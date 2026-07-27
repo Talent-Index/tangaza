@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Tangaza — dark surface, crimson accent.
+   The customer surface is phone-shaped and jargon-free by design: no "wallet",
+   no "gas", no token balances. Money is shown in KES. */
+@theme {
+  --color-ink-950: #08080c;
+  --color-ink-900: #0b0b11;
+  --color-ink-850: #101017;
+  --color-ink-800: #14141c;
+  --color-ink-700: #1c1c26;
+  --color-ink-600: #262633;
+  --color-ink-500: #3a3a4a;
+
+  --color-mist-500: #7c7c8f;
+  --color-mist-400: #9a9aad;
+  --color-mist-300: #c2c2d0;
+  --color-mist-100: #f2f2f6;
+
+  --color-crimson-600: #b30f31;
+  --color-crimson-500: #dc143c;
+  --color-crimson-400: #f0325a;
+  --color-crimson-300: #ff6b8a;
+
+  --color-jade-500: #17b877;
+  --color-jade-400: #34d399;
+  --color-amber-glow: #f0a835;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --radius-card: 1rem;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink-950);
+  color: var(--color-mist-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Ambient crimson wash behind the app — cheap, but it sells the brand. */
+.app-glow::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60rem 40rem at 50% -10%, rgb(220 20 60 / 0.16), transparent 65%),
+    radial-gradient(40rem 30rem at 100% 100%, rgb(220 20 60 / 0.07), transparent 60%);
+}
+
+@utility card {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-ink-800) 92%, white 8%),
+    var(--color-ink-850)
+  );
+  border: 1px solid var(--color-ink-700);
+  border-radius: var(--radius-card);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduced-motion for every animation in the app. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.35s ease-out both;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop {
+  animation: pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+::selection {
+  background: var(--color-crimson-500);
+  color: white;
+}
