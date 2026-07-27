@@ -10,6 +10,24 @@ Blockchain Centre.
 
 ---
 
+## Deployed
+
+**Avalanche Fuji**, chain id `43113`. The only network this is deployed to.
+
+| | |
+|---|---|
+| `TangazaRewards` | [`0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) |
+| Deployment tx | [`0xb93582f0…42cca9ca`](https://testnet.snowtrace.io/tx/0xb93582f0d10b1d3dc05116e5f490270a4908afa3405470c3325c824d42cca9ca) |
+| Deploy block | `57298496` — this is `NEXT_PUBLIC_DEPLOY_BLOCK`; event scanning starts here |
+| Owner | [`0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7`](https://testnet.snowtrace.io/address/0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7) |
+| Trusted forwarder | `0x0000000000000000000000000000000000000000` — deliberate, see [Architecture notes](#architecture-notes) |
+| Pilot org | `orgId` `1` — "Blockchain Centre Kenya", KES 50,000 cap |
+
+Deploying yourself writes the same values to `contracts/deployments.json`, which is
+untracked. Point `web/.env.local` at whichever deployment you're using.
+
+---
+
 ## The one-sentence version
 
 A customer submits proof off-chain → the business approves it on-chain → every 20
@@ -125,10 +143,10 @@ Fill in `.env.local`:
 | Variable | Value |
 |---|---|
 | `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` | from step 2 |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | from step 3 |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | from step 3, or the existing one under [Deployed](#deployed) |
 | `NEXT_PUBLIC_CHAIN` | `fuji` |
 | `NEXT_PUBLIC_ORG_ID` | `1` |
-| `NEXT_PUBLIC_DEPLOY_BLOCK` | `blockNumber` from `contracts/deployments.json` — event scanning starts here |
+| `NEXT_PUBLIC_DEPLOY_BLOCK` | `blockNumber` from `contracts/deployments.json`, or `57298496` for the deployment above — event scanning starts here |
 | `NEXT_PUBLIC_ORG_APPROVER` | the approver's smart-account address; blank = any signed-in account (dev only) |
 
 ```bash
