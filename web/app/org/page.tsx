@@ -133,10 +133,28 @@ function ApprovalRow({
     // The proof itself stays off-chain; only its fingerprint is recorded.
     const proofHash = keccak256(toHex(item.proofUrl));
 
+    /**
+     * Weight is what the business priced this engagement at, and the chain has to
+     * record it or the numbers stop agreeing: the submit form advertises +5, the
+     * leaderboard counts 5, and a singular approveActivity would write 1.
+     *
+     * The contract has no notion of weight — ActivityType is a bare enum — so the
+     * batch call repeats the same entry `weight` times, which is precisely what
+     * "worth 5 activities" means. Repeating the proof hash is safe: the contract
+     * records it, it does not enforce uniqueness. Crossing the 20-activity milestone
+     * mid-batch mints the credit as normal.
+     */
+    const count = Math.max(1, Math.min(item.weight || 1, 20));
+
     const tx = prepareContractCall({
       contract,
-      method: "approveActivity",
-      params: [BigInt(item.orgId), item.advocate as `0x${string}`, item.activityType, proofHash],
+      method: "approveActivityBatch",
+      params: [
+        BigInt(item.orgId),
+        Array.from({ length: count }, () => item.advocate as `0x${string}`),
+        Array.from({ length: count }, () => item.activityType),
+        Array.from({ length: count }, () => proofHash),
+      ],
     });
 
     sendTx(tx, {
