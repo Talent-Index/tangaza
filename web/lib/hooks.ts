@@ -160,6 +160,109 @@ export function useEngagementTypes(orgId: bigint = ORG_ID) {
   );
 }
 
+export interface RewardTier {
+  id: string;
+  level: number;
+  name: string;
+  perk: string;
+  icon: string;
+  thresholdWeight: number;
+}
+
+export interface LevelStanding {
+  approvedWeight: number;
+  currentLevel?: number;
+  currentLevelName?: string;
+  currentPerk?: string;
+  nextLevel?: number;
+  nextLevelName?: string;
+  nextPerk?: string;
+  weightToNext?: number;
+}
+
+/** The ladder a business offers, and where this person stands on it. */
+export function useTiers(address?: string, orgId: bigint = ORG_ID) {
+  return useAsync<{ tiers: RewardTier[]; standing?: LevelStanding }>(
+    async () => {
+      const qs = address ? `?orgId=${orgId}&address=${address}` : `?orgId=${orgId}`;
+      const res = await fetch(`/api/tiers${qs}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load levels (${res.status})`);
+      return (await res.json()) as { tiers: RewardTier[]; standing?: LevelStanding };
+    },
+    [address, String(orgId)],
+    true,
+    POLL_ORG
+  );
+}
+
+export interface Campaign {
+  id: string;
+  orgId: string;
+  slug: string;
+  title: string;
+  blurb?: string;
+  startsAt: string;
+  endsAt?: string;
+  active: boolean;
+  engagementTypeIds: string[];
+  participantCount: number;
+}
+
+export function useCampaigns(orgId: bigint = ORG_ID) {
+  return useAsync<Campaign[]>(
+    async () => {
+      const res = await fetch(`/api/campaigns?orgId=${orgId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load campaigns (${res.status})`);
+      return ((await res.json()) as { campaigns: Campaign[] }).campaigns;
+    },
+    [String(orgId)],
+    true
+  );
+}
+
+/** One campaign by its shareable slug, plus whether this person has joined. */
+export function useCampaign(slug: string, address?: string) {
+  return useAsync<{ campaign: Campaign; joined: boolean } | null>(
+    async () => {
+      const qs = address ? `?slug=${slug}&address=${address}` : `?slug=${slug}`;
+      const res = await fetch(`/api/campaigns${qs}`, { cache: "no-store" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`Could not load campaign (${res.status})`);
+      return (await res.json()) as { campaign: Campaign; joined: boolean };
+    },
+    [slug, address],
+    Boolean(slug)
+  );
+}
+
+export interface DirectoryEntry {
+  advocate: string;
+  displayName?: string;
+  xUsername?: string;
+  xLinkStatus?: "claimed" | "verified";
+  approvedWeight: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  lastSubmittedAt?: string;
+  lastApprovedAt?: string;
+  firstSeenAt?: string;
+}
+
+/** The business's client list. */
+export function useDirectory(orgId: bigint = ORG_ID) {
+  return useAsync<DirectoryEntry[]>(
+    async () => {
+      const res = await fetch(`/api/directory?orgId=${orgId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load clients (${res.status})`);
+      return ((await res.json()) as { directory: DirectoryEntry[] }).directory;
+    },
+    [String(orgId)],
+    true,
+    POLL_ORG
+  );
+}
+
 /** The off-chain queue. Separate from chain state on purpose. */
 export function usePendingActivities(filter: {
   orgId?: string;

@@ -9,7 +9,14 @@ import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner } 
 import { MILESTONE_ACTIVITIES, ORG_ID, CREDIT_VALUE_KES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { kesLabel, timeAgo } from "@/lib/format";
-import { useAdvocate, useCredits, useOrg, usePendingActivities } from "@/lib/hooks";
+import {
+  useAdvocate,
+  useCampaigns,
+  useCredits,
+  useOrg,
+  usePendingActivities,
+  useTiers,
+} from "@/lib/hooks";
 import { activityIcon, activityLabel } from "@/lib/types";
 
 export default function Page() {
@@ -62,7 +69,7 @@ function Welcome() {
       </div>
 
       <Link
-        href="/org"
+        href="/register"
         className="mt-10 text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300"
       >
         I run a business →
@@ -132,9 +139,13 @@ function Home({ address }: { address: string }) {
         </Card>
       ) : null}
 
+      <LevelCard address={address} />
+
       <Button href="/submit" className="w-full">
         Submit an activity
       </Button>
+
+      <CampaignStrip />
 
       <section>
         <SectionTitle>Waiting for approval</SectionTitle>
@@ -178,5 +189,109 @@ function Home({ address }: { address: string }) {
         raised.
       </p>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ levels */
+
+/**
+ * Where you stand on the business's ladder.
+ *
+ * Distinct from the progress ring above it, which counts toward the KES 500 credit the
+ * contract mints. This is what the house gives you for being a regular — the business
+ * sets it, and it can change without touching anything the chain enforces.
+ */
+function LevelCard({ address }: { address: string }) {
+  const { data } = useTiers(address);
+  const standing = data?.standing;
+  const tiers = data?.tiers ?? [];
+
+  if (tiers.length === 0 || !standing) return null;
+
+  const current = standing.currentLevelName;
+  const next = standing.nextLevelName;
+  const toGo = standing.weightToNext ?? 0;
+
+  // How far between the level reached and the next one.
+  const floor = tiers.find((t) => t.name === current)?.thresholdWeight ?? 0;
+  const ceiling = tiers.find((t) => t.name === next)?.thresholdWeight ?? floor;
+  const span = Math.max(1, ceiling - floor);
+  const pct = next
+    ? Math.min(100, Math.max(0, ((standing.approvedWeight - floor) / span) * 100))
+    : 100;
+
+  return (
+    <Card>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold">
+          {current ? (
+            <>
+              {tiers.find((t) => t.name === current)?.icon} {current}
+            </>
+          ) : (
+            <span className="text-mist-400">Not yet a member</span>
+          )}
+        </p>
+        <p className="tabular text-xs text-mist-500">{standing.approvedWeight} approved</p>
+      </div>
+
+      {next ? (
+        <>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-700">
+            <div
+              className="h-full rounded-full bg-crimson-500 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-mist-500">
+            <span className="text-mist-300">{toGo} more</span> to {next}
+            {standing.nextPerk ? ` — ${standing.nextPerk}` : ""}
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-xs text-mist-500">
+          Top level. {standing.currentPerk}
+        </p>
+      )}
+
+      {standing.currentPerk && next ? (
+        <p className="mt-3 border-t border-ink-700 pt-3 text-xs text-mist-400">
+          You have: {standing.currentPerk}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+/* --------------------------------------------------------------- campaigns */
+
+/** What the business is pushing right now. */
+function CampaignStrip() {
+  const { data } = useCampaigns();
+  const live = (data ?? []).filter((c) => c.active);
+  if (live.length === 0) return null;
+
+  return (
+    <section>
+      <SectionTitle>Happening now</SectionTitle>
+      <ul className="space-y-2">
+        {live.map((c) => (
+          <li key={c.id}>
+            <Link
+              href={`/c/${c.slug}`}
+              className="block rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
+            >
+              <p className="text-sm font-semibold">{c.title}</p>
+              {c.blurb ? (
+                <p className="mt-1 line-clamp-2 text-xs text-mist-500">{c.blurb}</p>
+              ) : null}
+              <p className="mt-2 text-[11px] text-mist-500">
+                {c.participantCount} taking part →
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -39,6 +39,37 @@ export const SIGNATURE_WINDOW_MS = 5 * 60 * 1000;
 
 export type VerifyResult = { ok: true } | { ok: false; reason: string };
 
+/**
+ * The generic form: does this account vouch for this exact text, recently?
+ *
+ * Both the activity signature and the business pledge reduce to this. Smart accounts
+ * are the reason it cannot be a one-liner — see the note at the top of the file.
+ */
+export async function verifySignedText(p: {
+  address: string;
+  message: string;
+  signature: string;
+  ts: number;
+}): Promise<VerifyResult> {
+  if (!p.signature) return { ok: false, reason: "Signature is required" };
+  if (!Number.isFinite(p.ts)) return { ok: false, reason: "Signed-at timestamp is required" };
+  if (Math.abs(Date.now() - p.ts) > SIGNATURE_WINDOW_MS) {
+    return { ok: false, reason: "That signature has expired — please try again" };
+  }
+
+  try {
+    const valid = await publicClient.verifyMessage({
+      address: p.address as `0x${string}`,
+      message: p.message,
+      signature: p.signature as `0x${string}`,
+    });
+    return valid ? { ok: true } : { ok: false, reason: "Signature does not match that account" };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return { ok: false, reason: `Could not verify signature: ${detail}` };
+  }
+}
+
 export async function verifyActivitySignature(p: {
   orgId: string;
   advocate: string;

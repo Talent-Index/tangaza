@@ -12,6 +12,8 @@ const NAV = [
   { href: "/org", label: "Approvals" },
   { href: "/org/overview", label: "Overview" },
   { href: "/org/liability", label: "Liability" },
+  { href: "/org/clients", label: "Clients" },
+  { href: "/org/settings", label: "Settings" },
 ];
 
 export function OrgShell({ children }: { children: React.ReactNode }) {

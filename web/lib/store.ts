@@ -636,3 +636,101 @@ export async function listStandings(
       : undefined,
   }));
 }
+
+/* --------------------------------------------------------------- registration */
+
+export type ApplicationStatus = "draft" | "signed" | "registered" | "rejected";
+
+export interface OrgApplication {
+  id: string;
+  name: string;
+  contactEmail?: string;
+  approverAddress: string;
+  emissionCapKes: number;
+  pledge: string;
+  signature?: string;
+  signedAt?: string;
+  status: ApplicationStatus;
+  orgId?: string;
+  registeredTx?: string;
+  createdAt: string;
+}
+
+const toApplication = (r: Record<string, unknown>): OrgApplication => ({
+  id: r.id as string,
+  name: r.name as string,
+  contactEmail: (r.contact_email as string) ?? undefined,
+  approverAddress: r.approver_address as string,
+  emissionCapKes: Number(r.emission_cap_kes),
+  pledge: r.pledge as string,
+  signature: (r.signature as string) ?? undefined,
+  signedAt: r.signed_at ? new Date(r.signed_at as string).toISOString() : undefined,
+  status: r.status as ApplicationStatus,
+  orgId: r.org_id ? String(r.org_id) : undefined,
+  registeredTx: (r.registered_tx as string) ?? undefined,
+  createdAt: new Date(r.created_at as string).toISOString(),
+});
+
+/**
+ * A business applying to run rewards, with the pledge already signed.
+ *
+ * Stored as 'signed' rather than 'registered' because registering mints the right to
+ * issue reward liabilities, and registerOrg is onlyOwner for that reason. The platform
+ * makes the on-chain call; this is the queue it works from.
+ */
+export async function createApplication(input: {
+  name: string;
+  contactEmail?: string;
+  approverAddress: string;
+  emissionCapKes: number;
+  pledge: string;
+  signature: string;
+  signedMessage: string;
+}): Promise<OrgApplication> {
+  const rows = await sql`
+    insert into org_applications
+      (name, contact_email, approver_address, emission_cap_kes, pledge,
+       signature, signed_message, signed_at, status)
+    values
+      (${input.name}, ${input.contactEmail ?? null}, ${input.approverAddress.toLowerCase()},
+       ${input.emissionCapKes}, ${input.pledge}, ${input.signature},
+       ${input.signedMessage}, now(), 'signed')
+    returning *`;
+  return toApplication((rows as Array<Record<string, unknown>>)[0]);
+}
+
+export async function listApplications(
+  status?: ApplicationStatus
+): Promise<OrgApplication[]> {
+  const rows = status
+    ? await sql`select * from org_applications where status = ${status}::application_status
+                order by created_at desc`
+    : await sql`select * from org_applications order by created_at desc`;
+  return (rows as Array<Record<string, unknown>>).map(toApplication);
+}
+
+export async function getApplication(id: string): Promise<OrgApplication | undefined> {
+  const rows = (await sql`select * from org_applications where id = ${id}`) as Array<
+    Record<string, unknown>
+  >;
+  return rows[0] ? toApplication(rows[0]) : undefined;
+}
+
+/** Called once registerOrg has landed on-chain, with the orgId it returned. */
+export async function markApplicationRegistered(
+  id: string,
+  orgId: string,
+  txHash: string
+): Promise<OrgApplication | undefined> {
+  await sql`insert into orgs (id, name, approver)
+            select ${orgId}, name, approver_address from org_applications where id = ${id}
+            on conflict (id) do nothing`;
+  const rows = await sql`
+    update org_applications
+       set status = 'registered', org_id = ${orgId}, registered_tx = ${txHash},
+           updated_at = now()
+     where id = ${id} and status = 'signed'
+    returning *`;
+  const r = (rows as Array<Record<string, unknown>>)[0];
+  return r ? toApplication(r) : undefined;
+}
