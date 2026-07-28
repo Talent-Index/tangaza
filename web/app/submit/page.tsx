@@ -8,7 +8,7 @@ import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { Button, Card, EmptyState, ErrorNote, Spinner } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useDisplayName, useEngagementTypes } from "@/lib/hooks";
+import { useAdvocateProfile, useEngagementTypes } from "@/lib/hooks";
 import { activityMessage } from "@/lib/sign-message";
 import { proofHint, type EngagementType } from "@/lib/types";
 
@@ -44,8 +44,11 @@ function SubmitForm({ account }: { account: Account }) {
   const router = useRouter();
   // Set when the advocate arrived from a shared campaign link.
   const campaignId = useSearchParams().get("campaign");
-  // Carried with the submission so the org's leaderboard can show a real person.
-  const displayName = useDisplayName(address);
+  // Only a name they actually chose travels with the submission. The UI's display
+  // name falls back to a nickname built from the address, and sending that would
+  // persist a pseudonym as though they had picked it.
+  const me = useAdvocateProfile(address);
+  const chosenName = me.data?.displayName;
   const engagements = useEngagementTypes();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -99,7 +102,7 @@ function SubmitForm({ account }: { account: Account }) {
         body: JSON.stringify({
           orgId: String(ORG_ID),
           advocate: address,
-          advocateLabel: displayName,
+          advocateLabel: chosenName,
           engagementTypeId: selected.id,
           proofUrl,
           note: note.trim() || undefined,

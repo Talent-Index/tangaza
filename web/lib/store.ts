@@ -184,11 +184,19 @@ export async function createActivity(
   const type = types[0];
   if (!type) return undefined;
 
-  await sql`insert into advocates (org_id, address, display_name)
-            values (${input.orgId}, ${advocate}, ${input.advocateLabel ?? null})
+  /**
+   * Deliberately does not write display_name.
+   *
+   * It used to, from whatever label the submit form sent — and that label was the UI's
+   * display name, which falls back to a nickname generated from the wallet address when
+   * the social login exposes nothing. So a pseudonym got persisted as though the person
+   * had chosen it, and then won every subsequent lookup. The name a person picks is
+   * owned by PUT /api/me and nothing else may overwrite it.
+   */
+  await sql`insert into advocates (org_id, address)
+            values (${input.orgId}, ${advocate})
             on conflict (org_id, address) do update
-              set last_active_at = now(),
-                  display_name = coalesce(excluded.display_name, advocates.display_name)`;
+              set last_active_at = now()`;
 
   const rows = await sql`insert into submissions
       (org_id, advocate, advocate_label, engagement_type_id,
