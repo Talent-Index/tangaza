@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const activities = listActivities({
+  const activities = await listActivities({
     orgId: params.get("orgId") ?? undefined,
     advocate: params.get("advocate") ?? undefined,
     status: status as PendingStatus | undefined,
@@ -46,11 +46,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { orgId, advocate, advocateLabel, activityType, proofUrl, note } = body as {
+  const { orgId, advocate, advocateLabel, engagementTypeId, proofUrl, note } = body as {
     orgId?: string;
     advocate?: string;
     advocateLabel?: string;
-    activityType?: number;
+    engagementTypeId?: string;
     proofUrl?: string;
     note?: string;
   };
@@ -61,27 +61,35 @@ export async function POST(req: NextRequest) {
   if (!advocate || !isAddress(advocate)) {
     return NextResponse.json({ error: "advocate must be an address" }, { status: 400 });
   }
-  if (typeof activityType !== "number" || activityType < 0 || activityType > 2) {
-    return NextResponse.json({ error: "activityType must be 0, 1 or 2" }, { status: 400 });
-  }
-  if (!proofUrl || typeof proofUrl !== "string") {
-    return NextResponse.json({ error: "proofUrl is required" }, { status: 400 });
+  if (!engagementTypeId || typeof engagementTypeId !== "string") {
+    return NextResponse.json({ error: "engagementTypeId is required" }, { status: 400 });
   }
 
-  try {
-    new URL(proofUrl);
-  } catch {
-    return NextResponse.json({ error: "proofUrl must be a valid URL" }, { status: 400 });
+  // Proof is optional now: an engagement type can be proof_kind 'none', and a
+  // referral code is not a URL. Only validate the shape when something was sent.
+  if (proofUrl && /^https?:\/\//i.test(proofUrl)) {
+    try {
+      new URL(proofUrl);
+    } catch {
+      return NextResponse.json({ error: "proofUrl must be a valid URL" }, { status: 400 });
+    }
   }
 
-  const activity = createActivity({
+  const activity = await createActivity({
     orgId: String(orgId),
     advocate,
     advocateLabel: advocateLabel?.slice(0, 60),
-    activityType,
-    proofUrl,
+    engagementTypeId,
+    proofUrl: proofUrl?.slice(0, 500),
     note: note?.slice(0, 280),
   });
+
+  if (!activity) {
+    return NextResponse.json(
+      { error: "Unknown or inactive engagementTypeId for this org" },
+      { status: 400 }
+    );
+  }
 
   return NextResponse.json({ activity }, { status: 201 });
 }
@@ -94,11 +102,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { id, status, txHash, rejectionReason } = body as {
+  const { id, status, txHash, rejectionReason, decidedBy } = body as {
     id?: string;
     status?: string;
     txHash?: string;
     rejectionReason?: string;
+    decidedBy?: string;
   };
 
   if (!id) {
@@ -118,9 +127,11 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const activity = decideActivity({ id, status, txHash, rejectionReason });
+  const activity = await decideActivity({ id, status, txHash, rejectionReason, decidedBy });
   if (!activity) {
-    return NextResponse.json({ error: `No activity ${id}` }, { status: 404 });
+    // Either the id is unknown, or it was already decided — the update is guarded on
+    // status = 'pending' so a retry cannot approve the same submission twice.
+    return NextResponse.json({ error: `No pending activity ${id}` }, { status: 404 });
   }
 
   return NextResponse.json({ activity });

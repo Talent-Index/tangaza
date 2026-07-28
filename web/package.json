@@ -11,6 +11,7 @@
     "verify": "node --env-file=.env.local scripts/verify-reads.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@x402/core": "^2.19.0",
     "@x402/evm": "^2.19.0",
     "@x402/svm": "^2.19.0",
