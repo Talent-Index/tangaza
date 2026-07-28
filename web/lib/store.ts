@@ -429,6 +429,173 @@ export async function listDirectory(orgId: string, limit = 100): Promise<Directo
   }));
 }
 
+/* ------------------------------------------------------------------ levels */
+
+export interface RewardTier {
+  id: string;
+  orgId: string;
+  level: number;
+  name: string;
+  perk: string;
+  icon: string;
+  thresholdWeight: number;
+}
+
+const toTier = (r: Record<string, unknown>): RewardTier => ({
+  id: r.id as string,
+  orgId: String(r.org_id),
+  level: Number(r.level),
+  name: r.name as string,
+  perk: r.perk as string,
+  icon: r.icon as string,
+  thresholdWeight: Number(r.threshold_weight),
+});
+
+export async function listRewardTiers(orgId: string): Promise<RewardTier[]> {
+  const rows = (await sql`select * from reward_tiers where org_id = ${orgId}
+                          order by threshold_weight`) as Array<Record<string, unknown>>;
+  return rows.map(toTier);
+}
+
+export async function upsertRewardTier(input: {
+  orgId: string;
+  level: number;
+  name: string;
+  perk: string;
+  icon?: string;
+  thresholdWeight: number;
+}): Promise<RewardTier> {
+  const rows = await sql`
+    insert into reward_tiers (org_id, level, name, perk, icon, threshold_weight)
+    values (${input.orgId}, ${input.level}, ${input.name}, ${input.perk},
+            ${input.icon ?? "★"}, ${input.thresholdWeight})
+    on conflict (org_id, level) do update
+      set name = excluded.name, perk = excluded.perk, icon = excluded.icon,
+          threshold_weight = excluded.threshold_weight
+    returning *`;
+  return toTier((rows as Array<Record<string, unknown>>)[0]);
+}
+
+export interface AdvocateLevel {
+  approvedWeight: number;
+  currentLevel?: number;
+  currentLevelName?: string;
+  currentPerk?: string;
+  nextLevel?: number;
+  nextLevelName?: string;
+  nextPerk?: string;
+  weightToNext?: number;
+}
+
+/** Where one person stands against their business's levels. */
+export async function getAdvocateLevel(
+  orgId: string,
+  address: string
+): Promise<AdvocateLevel> {
+  const rows = (await sql`select * from advocate_levels
+                          where org_id = ${orgId} and advocate = ${address.toLowerCase()}`) as Array<
+    Record<string, unknown>
+  >;
+  const r = rows[0];
+  const num = (v: unknown) => (v === null || v === undefined ? undefined : Number(v));
+  return {
+    approvedWeight: Number(r?.approved_weight ?? 0),
+    currentLevel: num(r?.current_level),
+    currentLevelName: (r?.current_level_name as string) ?? undefined,
+    currentPerk: (r?.current_perk as string) ?? undefined,
+    nextLevel: num(r?.next_level),
+    nextLevelName: (r?.next_level_name as string) ?? undefined,
+    nextPerk: (r?.next_perk as string) ?? undefined,
+    weightToNext: num(r?.weight_to_next),
+  };
+}
+
+/* --------------------------------------------------------------- campaigns */
+
+export interface Campaign {
+  id: string;
+  orgId: string;
+  slug: string;
+  title: string;
+  blurb?: string;
+  startsAt: string;
+  endsAt?: string;
+  active: boolean;
+  engagementTypeIds: string[];
+  participantCount: number;
+}
+
+const CAMPAIGN_SELECT = `
+  c.*,
+  coalesce(array_agg(distinct ce.engagement_type_id) filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+  count(distinct p.address) as participant_count`;
+
+const toCampaign = (r: Record<string, unknown>): Campaign => ({
+  id: r.id as string,
+  orgId: String(r.org_id),
+  slug: r.slug as string,
+  title: r.title as string,
+  blurb: (r.blurb as string) ?? undefined,
+  startsAt: new Date(r.starts_at as string).toISOString(),
+  endsAt: r.ends_at ? new Date(r.ends_at as string).toISOString() : undefined,
+  active: Boolean(r.active),
+  engagementTypeIds: (r.engagement_type_ids as string[]) ?? [],
+  participantCount: Number(r.participant_count ?? 0),
+});
+
+export async function listCampaigns(orgId: string): Promise<Campaign[]> {
+  const rows = (await sql`
+    select c.*,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaigns c
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
+    where c.org_id = ${orgId}
+    group by c.id
+    order by c.active desc, c.starts_at desc`) as Array<Record<string, unknown>>;
+  return rows.map(toCampaign);
+}
+
+export async function getCampaignBySlug(slug: string): Promise<Campaign | undefined> {
+  const rows = (await sql`
+    select c.*,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaigns c
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
+    where c.slug = ${slug}
+    group by c.id`) as Array<Record<string, unknown>>;
+  return rows[0] ? toCampaign(rows[0]) : undefined;
+}
+
+/** Joining is free and reversible — it only scopes what you see, never what you earn. */
+export async function joinCampaign(
+  campaignId: string,
+  orgId: string,
+  address: string
+): Promise<boolean> {
+  const rows = await sql`
+    insert into campaign_participants (campaign_id, org_id, address)
+    values (${campaignId}, ${orgId}, ${address.toLowerCase()})
+    on conflict (campaign_id, address) do nothing
+    returning campaign_id`;
+  return (rows as unknown[]).length > 0;
+}
+
+export async function hasJoinedCampaign(
+  campaignId: string,
+  address: string
+): Promise<boolean> {
+  const rows = (await sql`select 1 from campaign_participants
+                          where campaign_id = ${campaignId}
+                            and address = ${address.toLowerCase()}`) as unknown[];
+  return rows.length > 0;
+}
+
 /** Leaderboard, ranked by the weight the contract actually counted. */
 export async function listStandings(
   orgId: string,
