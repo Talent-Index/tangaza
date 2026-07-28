@@ -337,6 +337,54 @@ export async function claimAdvocateXHandle(input: {
   }
 }
 
+export interface AdvocateProfile {
+  address: string;
+  displayName?: string;
+  xUsername?: string;
+  xLinkStatus?: XLinkStatus;
+}
+
+/** What an advocate has told us about themselves. */
+export async function getAdvocateProfile(
+  orgId: string,
+  address: string
+): Promise<AdvocateProfile> {
+  const addr = address.toLowerCase();
+  const rows = (await sql`
+    select a.display_name, l.x_username, l.status as x_link_status
+    from advocates a
+    left join advocate_x_links l on l.org_id = a.org_id and l.address = a.address
+    where a.org_id = ${orgId} and a.address = ${addr}`) as Array<Record<string, unknown>>;
+
+  const r = rows[0];
+  return {
+    address: addr,
+    displayName: (r?.display_name as string) ?? undefined,
+    xUsername: (r?.x_username as string) ?? undefined,
+    xLinkStatus: (r?.x_link_status as XLinkStatus) ?? undefined,
+  };
+}
+
+/**
+ * The name an advocate chose for themselves.
+ *
+ * Worth being explicit about why this exists: signing in with X gives thirdweb no
+ * email and no username, so the app was falling back to a pseudonym derived from the
+ * wallet address. Deterministic, but it isn't anybody's name. This lets them say.
+ */
+export async function setAdvocateDisplayName(
+  orgId: string,
+  address: string,
+  displayName: string | null
+): Promise<AdvocateProfile> {
+  const addr = address.toLowerCase();
+  await sql`insert into advocates (org_id, address, display_name)
+            values (${orgId}, ${addr}, ${displayName})
+            on conflict (org_id, address) do update
+              set display_name = ${displayName}, last_active_at = now()`;
+  return getAdvocateProfile(orgId, addr);
+}
+
 export async function unlinkAdvocateX(orgId: string, address: string): Promise<void> {
   await sql`delete from advocate_x_links
             where org_id = ${orgId} and address = ${address.toLowerCase()}`;

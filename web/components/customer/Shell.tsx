@@ -31,12 +31,18 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         {account ? (
-          <div className="flex items-center gap-2">
+          // Tappable, because the name shown here is a guess until you correct it —
+          // an X login gives us neither a name nor an email to work from.
+          <Link
+            href="/profile"
+            aria-label="Your profile"
+            className="flex items-center gap-2 rounded-full transition hover:opacity-80"
+          >
             <span className="max-w-36 truncate text-sm text-mist-400">{name}</span>
             <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
-              {name.slice(0, 1)}
+              {name.replace(/^@/, "").slice(0, 1)}
             </span>
-          </div>
+          </Link>
         ) : null}
       </header>
 

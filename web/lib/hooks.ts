@@ -196,10 +196,40 @@ export function usePendingActivities(filter: {
  */
 export function useDisplayName(address?: string) {
   const { data: profiles } = useProfiles({ client });
+  const me = useAdvocateProfile(address);
+
+  // A name they typed beats a handle they linked, beats whatever the social login
+  // happened to expose, beats a pseudonym derived from the wallet address.
+  if (me.data?.displayName) return me.data.displayName;
+  if (me.data?.xUsername) return `@${me.data.xUsername}`;
 
   const email = profiles?.find((p) => p.details?.email)?.details?.email;
   if (email) return email.split("@")[0];
+
   return address ? advocateName(address) : "";
+}
+
+export interface AdvocateProfile {
+  address: string;
+  displayName?: string;
+  xUsername?: string;
+  xLinkStatus?: "claimed" | "verified";
+}
+
+/** Whatever the advocate has told us about themselves. */
+export function useAdvocateProfile(address?: string, orgId: bigint = ORG_ID) {
+  return useAsync<AdvocateProfile | null>(
+    async () => {
+      const res = await fetch(`/api/me?orgId=${orgId}&address=${address}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as { profile: AdvocateProfile };
+      return json.profile;
+    },
+    [address, String(orgId)],
+    Boolean(address)
+  );
 }
 
 /**
