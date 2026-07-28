@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
-import { Button, Card, ErrorNote } from "@/components/ui";
+import { Button, Card, EmptyState, ErrorNote, Spinner } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useDisplayName } from "@/lib/hooks";
-import { ACTIVITY_TYPES } from "@/lib/types";
+import { useDisplayName, useEngagementTypes } from "@/lib/hooks";
+import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
 
@@ -29,19 +29,39 @@ export default function SubmitPage() {
   );
 }
 
+/**
+ * The form is built from whatever the business decided to reward — it reads
+ * /api/engagement-types rather than a list baked into the app. That is the whole point
+ * of engagement types: a new one appears here the moment the org adds it, and the proof
+ * field changes shape to match what that engagement actually asks for.
+ */
 function SubmitForm({ address }: { address: string }) {
   const router = useRouter();
   // Carried with the submission so the org's leaderboard can show a real person.
   const displayName = useDisplayName(address);
-  const [activityType, setActivityType] = useState<number>(ACTIVITY_TYPES[0].id);
-  const [proofUrl, setProofUrl] = useState("");
+  const engagements = useEngagementTypes();
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [proof, setProof] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  const types = engagements.data ?? [];
+  const selected = types.find((t) => t.id === selectedId) ?? null;
+
+  // Preselect the first engagement once they arrive, without clobbering a real choice.
+  useEffect(() => {
+    if (!selectedId && types.length > 0) setSelectedId(types[0].id);
+  }, [types, selectedId]);
+
+  const needsProof = selected ? selected.proofKind !== "none" : true;
+  const canSubmit = Boolean(selected) && (!needsProof || proof.trim().length > 0);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!selected) return;
     setError(null);
     setSubmitting(true);
 
@@ -53,8 +73,8 @@ function SubmitForm({ address }: { address: string }) {
           orgId: String(ORG_ID),
           advocate: address,
           advocateLabel: displayName,
-          activityType,
-          proofUrl: proofUrl.trim(),
+          engagementTypeId: selected.id,
+          proofUrl: proof.trim() || undefined,
           note: note.trim() || undefined,
         }),
       });
@@ -86,6 +106,28 @@ function SubmitForm({ address }: { address: string }) {
     );
   }
 
+  if (engagements.loading && types.length === 0) {
+    return (
+      <div className="grid place-items-center py-24">
+        <Spinner className="size-6" />
+      </div>
+    );
+  }
+
+  if (engagements.error) {
+    return <ErrorNote>{engagements.error}</ErrorNote>;
+  }
+
+  if (types.length === 0) {
+    return (
+      <EmptyState
+        icon="🗒️"
+        title="Nothing to submit yet"
+        body="This business hasn't set up what it rewards. Check back once they have."
+      />
+    );
+  }
+
   return (
     <form onSubmit={submit} className="animate-rise space-y-6">
       <div>
@@ -100,63 +142,42 @@ function SubmitForm({ address }: { address: string }) {
         <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
           What did you do?
         </legend>
-        {ACTIVITY_TYPES.map((type) => {
-          const active = activityType === type.id;
-          return (
-            <label
-              key={type.id}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
-                active
-                  ? "border-crimson-500 bg-crimson-500/10"
-                  : "border-ink-700 bg-ink-850 hover:border-ink-600"
-              }`}
-            >
-              <input
-                type="radio"
-                name="activityType"
-                value={type.id}
-                checked={active}
-                onChange={() => setActivityType(type.id)}
-                className="sr-only"
-              />
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-                {type.icon}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">{type.label}</span>
-                <span className="block truncate text-xs text-mist-500">{type.blurb}</span>
-              </span>
-              <span
-                className={`size-4 shrink-0 rounded-full border-2 ${
-                  active ? "border-crimson-500 bg-crimson-500" : "border-ink-500"
-                }`}
-                aria-hidden
-              />
-            </label>
-          );
-        })}
+        {types.map((type) => (
+          <EngagementOption
+            key={type.id}
+            type={type}
+            active={type.id === selectedId}
+            onSelect={() => {
+              setSelectedId(type.id);
+              setProof("");
+            }}
+          />
+        ))}
       </fieldset>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="proofUrl"
-          className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
-        >
-          Link to your proof
-        </label>
-        <input
-          id="proofUrl"
-          type="url"
-          required
-          value={proofUrl}
-          onChange={(e) => setProofUrl(e.target.value)}
-          placeholder="https://x.com/you/status/…"
-          className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-        />
-        <p className="text-xs text-mist-500">
-          A post link, a photo, a screenshot — whatever shows it happened.
-        </p>
-      </div>
+      {needsProof && selected ? (
+        <div className="space-y-2">
+          <label
+            htmlFor="proof"
+            className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
+          >
+            {selected.proofKind === "referral_code" ? "Your referral code" : "Link to your proof"}
+          </label>
+          <input
+            id="proof"
+            // Not type="url": a referral code is not a URL, and browser URL validation
+            // would reject it before the form ever submits.
+            type="text"
+            inputMode={selected.proofKind === "referral_code" ? "text" : "url"}
+            required
+            value={proof}
+            onChange={(e) => setProof(e.target.value)}
+            placeholder={proofHint(selected.proofKind)}
+            className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+          />
+          <p className="text-xs text-mist-500">{proofBlurb(selected)}</p>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <label
@@ -178,7 +199,7 @@ function SubmitForm({ address }: { address: string }) {
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <Button type="submit" disabled={submitting || !proofUrl.trim()} className="w-full">
+      <Button type="submit" disabled={submitting || !canSubmit} className="w-full">
         {submitting ? "Sending…" : "Send for approval"}
       </Button>
 
@@ -190,4 +211,67 @@ function SubmitForm({ address }: { address: string }) {
       </Card>
     </form>
   );
+}
+
+function EngagementOption({
+  type,
+  active,
+  onSelect,
+}: {
+  type: EngagementType;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
+        active
+          ? "border-crimson-500 bg-crimson-500/10"
+          : "border-ink-700 bg-ink-850 hover:border-ink-600"
+      }`}
+    >
+      <input
+        type="radio"
+        name="engagementType"
+        value={type.id}
+        checked={active}
+        onChange={onSelect}
+        className="sr-only"
+      />
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
+        {type.icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{type.label}</span>
+        {type.blurb ? (
+          <span className="block truncate text-xs text-mist-500">{type.blurb}</span>
+        ) : null}
+      </span>
+      {/* What it's worth, in the same units the progress ring counts in. */}
+      <span className="shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] tabular text-mist-400">
+        +{type.weight}
+      </span>
+      <span
+        className={`size-4 shrink-0 rounded-full border-2 ${
+          active ? "border-crimson-500 bg-crimson-500" : "border-ink-500"
+        }`}
+        aria-hidden
+      />
+    </label>
+  );
+}
+
+function proofBlurb(type: EngagementType) {
+  switch (type.proofKind) {
+    case "x_link":
+      return "Paste the link to your post on X.";
+    case "social_link":
+      return "Paste the link to your Instagram, TikTok or Facebook post.";
+    case "screenshot":
+      return "Upload the screenshot somewhere and paste the link.";
+    case "referral_code":
+      return "The code you gave out. Add their name in the note below.";
+    default:
+      return "A post link, a photo, a screenshot — whatever shows it happened.";
+  }
 }

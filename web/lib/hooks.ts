@@ -15,7 +15,7 @@ import {
   type CreditState,
   type OrgState,
 } from "./reads";
-import type { PendingActivity, PendingStatus } from "./types";
+import type { EngagementType, PendingActivity, PendingStatus } from "./types";
 
 /**
  * Small async-state helper so every panel gets identical loading/error/refresh.
@@ -136,6 +136,27 @@ export function useOrgLedger(orgId: bigint = ORG_ID) {
     [String(orgId)],
     isConfigured,
     POLL_LEDGER
+  );
+}
+
+/**
+ * The engagements this business has chosen to reward.
+ *
+ * Not polled: an org edits these from a settings screen every few weeks, not every few
+ * seconds, and the submit form re-mounts often enough to stay current.
+ */
+export function useEngagementTypes(orgId: bigint = ORG_ID) {
+  return useAsync<EngagementType[]>(
+    async () => {
+      const res = await fetch(`/api/engagement-types?orgId=${orgId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Could not load engagements (${res.status})`);
+      const json = (await res.json()) as { types: EngagementType[] };
+      return json.types;
+    },
+    [String(orgId)],
+    true
   );
 }
 
