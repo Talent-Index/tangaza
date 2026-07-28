@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { createActivity, decideActivity, listActivities } from "@/lib/store";
+import { activityMessage, verifyActivitySignature } from "@/lib/verify";
 import type { PendingStatus } from "@/lib/types";
 
 /**
@@ -46,14 +47,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { orgId, advocate, advocateLabel, engagementTypeId, proofUrl, note } = body as {
-    orgId?: string;
-    advocate?: string;
-    advocateLabel?: string;
-    engagementTypeId?: string;
-    proofUrl?: string;
-    note?: string;
-  };
+  const { orgId, advocate, advocateLabel, engagementTypeId, proofUrl, note, ts, signature, campaignId } =
+    body as {
+      orgId?: string;
+      advocate?: string;
+      advocateLabel?: string;
+      engagementTypeId?: string;
+      proofUrl?: string;
+      note?: string;
+      ts?: number;
+      signature?: string;
+      campaignId?: string;
+    };
 
   if (!orgId) {
     return NextResponse.json({ error: "orgId is required" }, { status: 400 });
@@ -75,6 +80,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  /**
+   * The advocate signs what they are claiming, and we check it here.
+   *
+   * This is what stops one person filing submissions under another's address, or a
+   * stranger with curl stuffing the queue a business reads to decide who gets paid.
+   * The signature covers org, account, engagement, proof and time, so none of them
+   * can be swapped after it was signed.
+   */
+  const verdict = await verifyActivitySignature({
+    orgId: String(orgId),
+    advocate,
+    engagementTypeId,
+    proofUrl,
+    ts: Number(ts),
+    signature: signature ?? "",
+  });
+
+  if (!verdict.ok) {
+    return NextResponse.json({ error: verdict.reason }, { status: 401 });
+  }
+
   const activity = await createActivity({
     orgId: String(orgId),
     advocate,
@@ -82,6 +108,15 @@ export async function POST(req: NextRequest) {
     engagementTypeId,
     proofUrl: proofUrl?.slice(0, 500),
     note: note?.slice(0, 280),
+    campaignId,
+    signature,
+    signedMessage: activityMessage({
+      orgId: String(orgId),
+      advocate,
+      engagementTypeId,
+      proofUrl,
+      ts: Number(ts),
+    }),
   });
 
   if (!activity) {

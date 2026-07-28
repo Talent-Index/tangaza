@@ -1,13 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
+import type { Account } from "thirdweb/wallets";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { Button, Card, EmptyState, ErrorNote, Spinner } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
 import { useDisplayName, useEngagementTypes } from "@/lib/hooks";
+import { activityMessage } from "@/lib/sign-message";
 import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
@@ -18,7 +20,9 @@ export default function SubmitPage() {
   return (
     <CustomerShell>
       {account ? (
-        <SubmitForm address={account.address} />
+        <Suspense fallback={null}>
+          <SubmitForm account={account} />
+        </Suspense>
       ) : (
         <div className="pt-16 text-center">
           <p className="mb-6 text-mist-400">Sign in to submit an activity.</p>
@@ -35,8 +39,11 @@ export default function SubmitPage() {
  * of engagement types: a new one appears here the moment the org adds it, and the proof
  * field changes shape to match what that engagement actually asks for.
  */
-function SubmitForm({ address }: { address: string }) {
+function SubmitForm({ account }: { account: Account }) {
+  const address = account.address;
   const router = useRouter();
+  // Set when the advocate arrived from a shared campaign link.
+  const campaignId = useSearchParams().get("campaign");
   // Carried with the submission so the org's leaderboard can show a real person.
   const displayName = useDisplayName(address);
   const engagements = useEngagementTypes();
@@ -61,11 +68,31 @@ function SubmitForm({ address }: { address: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    if (!selected || !account) return;
     setError(null);
     setSubmitting(true);
 
     try {
+      /**
+       * Sign what you're claiming before it's filed.
+       *
+       * The queue is what the business reads to decide who gets paid, so a submission
+       * needs to be provably yours rather than merely addressed to you. With an in-app
+       * wallet this is silent — no popup, no seed phrase — but it is a real signature
+       * from your account and the server checks it.
+       */
+      const ts = Date.now();
+      const proofUrl = proof.trim() || undefined;
+      const signature = await account.signMessage({
+        message: activityMessage({
+          orgId: String(ORG_ID),
+          advocate: address,
+          engagementTypeId: selected.id,
+          proofUrl,
+          ts,
+        }),
+      });
+
       const res = await fetch("/api/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,8 +101,11 @@ function SubmitForm({ address }: { address: string }) {
           advocate: address,
           advocateLabel: displayName,
           engagementTypeId: selected.id,
-          proofUrl: proof.trim() || undefined,
+          proofUrl,
           note: note.trim() || undefined,
+          campaignId: campaignId ?? undefined,
+          ts,
+          signature,
         }),
       });
 

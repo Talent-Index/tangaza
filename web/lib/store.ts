@@ -161,6 +161,10 @@ export interface CreateActivityInput {
   engagementTypeId: string;
   proofUrl?: string;
   note?: string;
+  campaignId?: string;
+  /** The advocate's wallet signature over what they're claiming, and the exact text. */
+  signature?: string;
+  signedMessage?: string;
 }
 
 /**
@@ -188,11 +192,13 @@ export async function createActivity(
 
   const rows = await sql`insert into submissions
       (org_id, advocate, advocate_label, engagement_type_id,
-       type_label, type_icon, chain_category, weight, proof_url, note)
+       type_label, type_icon, chain_category, weight, proof_url, note,
+       campaign_id, signature, signed_message)
     values
       (${input.orgId}, ${advocate}, ${input.advocateLabel ?? null}, ${type.id},
        ${type.label}, ${type.icon}, ${type.chain_category}, ${type.weight},
-       ${input.proofUrl ?? null}, ${input.note ?? null})
+       ${input.proofUrl ?? null}, ${input.note ?? null},
+       ${input.campaignId ?? null}, ${input.signature ?? null}, ${input.signedMessage ?? null})
     returning *`;
 
   return toActivity((rows as SubmissionRow[])[0]);
