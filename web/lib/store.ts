@@ -1,6 +1,13 @@
 import "server-only";
 import { sql } from "./db";
-import type { EngagementType, PendingActivity, PendingStatus, ProofKind } from "./types";
+import type {
+  AdvocateXLink,
+  EngagementType,
+  PendingActivity,
+  PendingStatus,
+  ProofKind,
+  XLinkStatus,
+} from "./types";
 
 /**
  * The off-chain half of Ubu-Tangaza: engagement types a business defines for itself,
@@ -252,6 +259,126 @@ export interface AdvocateStanding {
   rejectedCount: number;
   lastSubmittedAt?: string;
   lastApprovedAt?: string;
+}
+
+/* ------------------------------------------------------------------ social identity */
+
+interface XLinkRow {
+  org_id: string;
+  address: string;
+  x_user_id: string;
+  x_username: string;
+  status: XLinkStatus;
+  linked_at: string;
+  verified_at: string | null;
+}
+
+const toXLink = (r: XLinkRow): AdvocateXLink => ({
+  orgId: String(r.org_id),
+  address: r.address,
+  xUserId: r.x_user_id,
+  xUsername: r.x_username,
+  status: r.status,
+  linkedAt: new Date(r.linked_at).toISOString(),
+  verifiedAt: r.verified_at ? new Date(r.verified_at).toISOString() : undefined,
+});
+
+export async function getAdvocateXLink(
+  orgId: string,
+  address: string
+): Promise<AdvocateXLink | undefined> {
+  const rows = (await sql`select * from advocate_x_links
+                          where org_id = ${orgId} and address = ${address.toLowerCase()}`) as XLinkRow[];
+  return rows[0] ? toXLink(rows[0]) : undefined;
+}
+
+/**
+ * Records the handle an advocate says is theirs.
+ *
+ * Self-declared, so it lands as 'claimed' and is worth nothing on its own — the point
+ * is to have somewhere for OAuth to upgrade later. Until then `x_user_id` is a
+ * `manual:` sentinel rather than a real X id, which keeps the one-account-per-business
+ * unique constraint meaningful without pretending we verified anything.
+ *
+ * Returns undefined when that handle is already claimed by a different wallet here.
+ */
+export async function claimAdvocateXHandle(input: {
+  orgId: string;
+  address: string;
+  handle: string;
+  displayName?: string;
+}): Promise<AdvocateXLink | undefined> {
+  const address = input.address.toLowerCase();
+  const handle = input.handle.toLowerCase();
+
+  await sql`insert into advocates (org_id, address, display_name)
+            values (${input.orgId}, ${address}, ${input.displayName ?? null})
+            on conflict (org_id, address) do update
+              set last_active_at = now(),
+                  display_name = coalesce(excluded.display_name, advocates.display_name)`;
+
+  try {
+    const rows = await sql`
+      insert into advocate_x_links (org_id, address, x_user_id, x_username, status)
+      values (${input.orgId}, ${address}, ${"manual:" + handle}, ${handle}, 'claimed')
+      on conflict (org_id, address) do update
+        set x_user_id = excluded.x_user_id,
+            x_username = excluded.x_username,
+            status = 'claimed',
+            verified_at = null,
+            linked_at = now()
+      returning *`;
+    return toXLink((rows as XLinkRow[])[0]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Someone else already claimed this handle for this business.
+    if (message.includes("advocate_x_links_org_id_x_user_id_key")) return undefined;
+    throw err;
+  }
+}
+
+export async function unlinkAdvocateX(orgId: string, address: string): Promise<void> {
+  await sql`delete from advocate_x_links
+            where org_id = ${orgId} and address = ${address.toLowerCase()}`;
+}
+
+export interface DirectoryEntry {
+  advocate: string;
+  displayName?: string;
+  xUsername?: string;
+  xLinkStatus?: XLinkStatus;
+  approvedWeight: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  lastSubmittedAt?: string;
+  lastApprovedAt?: string;
+  firstSeenAt?: string;
+}
+
+/** The business's contact list: who they are, what they're worth, how to find them. */
+export async function listDirectory(orgId: string, limit = 100): Promise<DirectoryEntry[]> {
+  const rows = (await sql`
+    select * from advocate_directory
+    where org_id = ${orgId}
+    order by approved_weight desc nulls last, last_submitted_at desc nulls last
+    limit ${limit}`) as Array<Record<string, unknown>>;
+
+  const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : undefined);
+
+  return rows.map((r) => ({
+    advocate: r.advocate as string,
+    displayName: (r.display_name as string) ?? undefined,
+    xUsername: (r.x_username as string) ?? undefined,
+    xLinkStatus: (r.x_link_status as XLinkStatus) ?? undefined,
+    approvedWeight: Number(r.approved_weight ?? 0),
+    approvedCount: Number(r.approved_count ?? 0),
+    pendingCount: Number(r.pending_count ?? 0),
+    rejectedCount: Number(r.rejected_count ?? 0),
+    lastSubmittedAt: iso(r.last_submitted_at),
+    lastApprovedAt: iso(r.last_approved_at),
+    firstSeenAt: iso(r.first_seen_at),
+  }));
 }
 
 /** Leaderboard, ranked by the weight the contract actually counted. */

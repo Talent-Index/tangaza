@@ -81,6 +81,38 @@ export interface EngagementType {
   sortOrder: number;
 }
 
+/**
+ * How much we trust that an X handle belongs to the wallet that claimed it.
+ *
+ * "claimed" is self-declared and proves nothing — anyone can type @jack. Only
+ * "verified" links (OAuth, or the business vouching by hand) are eligible for
+ * automatic ingestion, because that path leads to a reward.
+ */
+export type XLinkStatus = "claimed" | "verified";
+
+export interface AdvocateXLink {
+  orgId: string;
+  address: string;
+  xUserId: string;
+  xUsername: string;
+  status: XLinkStatus;
+  linkedAt: string;
+  verifiedAt?: string;
+}
+
+/** Strips @, whitespace and a pasted profile URL down to the bare handle. */
+export function normaliseHandle(input: string): string {
+  return input
+    .trim()
+    .replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "")
+    .replace(/^@/, "")
+    .split(/[/?#]/)[0]
+    .toLowerCase();
+}
+
+/** X allows 1–15 chars, letters/digits/underscore only. */
+export const isValidHandle = (h: string) => /^[a-z0-9_]{1,15}$/.test(h);
+
 /** A submission waiting for the org to approve it. Lives off-chain only. */
 export type PendingStatus = "pending" | "approved" | "rejected";
 
