@@ -1,6 +1,7 @@
 import "server-only";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, keccak256, parseAbiItem, parseEventLogs, toHex } from "viem";
 import { avalancheFuji } from "viem/chains";
+import { CONTRACT_ADDRESS } from "./client";
 import { activityMessage } from "./sign-message";
 
 export { activityMessage };
@@ -71,4 +72,74 @@ export async function verifyActivitySignature(p: {
     const detail = err instanceof Error ? err.message.split("\n")[0] : String(err);
     return { ok: false, reason: `Could not verify signature: ${detail}` };
   }
+}
+
+/* ------------------------------------------------------------- approval receipts */
+
+const ACTIVITY_APPROVED = parseAbiItem(
+  "event ActivityApproved(uint256 indexed orgId, address indexed advocate, uint8 activityType, bytes32 proofHash, uint256 advocateActivityCount, uint256 streak, uint256 timestamp)"
+);
+
+/**
+ * Checks that an approval actually happened, rather than trusting the caller's word.
+ *
+ * PATCH used to accept any string as a txHash, so anyone could mark any submission
+ * approved and move the leaderboard. There is no need for a session to fix that: the
+ * contract already refuses approvals from anyone but the org's registered approver, so
+ * the presence of an ActivityApproved log *is* the authorisation proof. We just have to
+ * go and look.
+ *
+ * Matching on proofHash is what stops one genuine approval being replayed to close out
+ * a different submission — the hash commits to that submission's own proof.
+ */
+export async function verifyApprovalReceipt(p: {
+  txHash: string;
+  orgId: string;
+  advocate: string;
+  proofUrl: string;
+}): Promise<VerifyResult> {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(p.txHash)) {
+    return { ok: false, reason: "That is not a transaction hash" };
+  }
+
+  let receipt;
+  try {
+    receipt = await publicClient.getTransactionReceipt({ hash: p.txHash as `0x${string}` });
+  } catch {
+    // Also the "invented hash" case: no such transaction on this chain.
+    return { ok: false, reason: "No such transaction on Avalanche Fuji" };
+  }
+
+  if (receipt.status !== "success") {
+    return { ok: false, reason: "That transaction reverted" };
+  }
+
+  const logs = parseEventLogs({
+    abi: [ACTIVITY_APPROVED],
+    logs: receipt.logs,
+  }).filter((l) => l.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase());
+
+  if (logs.length === 0) {
+    return { ok: false, reason: "That transaction approved nothing" };
+  }
+
+  // Computed exactly as the org surface computes it before sending the transaction.
+  const expected = keccak256(toHex(p.proofUrl ?? ""));
+  const advocate = p.advocate.toLowerCase();
+
+  const match = logs.some(
+    (l) =>
+      String(l.args.orgId) === String(p.orgId) &&
+      l.args.advocate?.toLowerCase() === advocate &&
+      l.args.proofHash === expected
+  );
+
+  if (!match) {
+    return {
+      ok: false,
+      reason: "That approval was for a different submission",
+    };
+  }
+
+  return { ok: true };
 }

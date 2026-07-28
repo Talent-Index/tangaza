@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
-import { createActivity, decideActivity, listActivities } from "@/lib/store";
-import { activityMessage, verifyActivitySignature } from "@/lib/verify";
+import { createActivity, decideActivity, getActivity, listActivities } from "@/lib/store";
+import { activityMessage, verifyActivitySignature, verifyApprovalReceipt } from "@/lib/verify";
 import type { PendingStatus } from "@/lib/types";
 
 /**
@@ -154,12 +154,42 @@ export async function PATCH(req: NextRequest) {
       { status: 400 }
     );
   }
-  if (status === "approved" && !txHash) {
-    // An approval without a tx hash means the chain write did not happen.
-    return NextResponse.json(
-      { error: "txHash is required when marking approved" },
-      { status: 400 }
-    );
+  if (status === "approved") {
+    if (!txHash) {
+      // An approval without a tx hash means the chain write did not happen.
+      return NextResponse.json(
+        { error: "txHash is required when marking approved" },
+        { status: 400 }
+      );
+    }
+
+    /**
+     * Go and look at the chain rather than believing the caller.
+     *
+     * This endpoint used to accept any string as a txHash, so anyone could mark any
+     * submission approved and move the leaderboard. No session is needed to close
+     * that: the contract already refuses approvals from anyone but the org's
+     * registered approver, so an ActivityApproved log in this receipt *is* the
+     * authorisation proof.
+     *
+     * Read the submission first — the proof hash has to be recomputed from what we
+     * stored, not from anything the caller sent, or the check proves nothing.
+     */
+    const pending = await getActivity(id);
+    if (!pending) {
+      return NextResponse.json({ error: `No activity ${id}` }, { status: 404 });
+    }
+
+    const verdict = await verifyApprovalReceipt({
+      txHash,
+      orgId: pending.orgId,
+      advocate: pending.advocate,
+      proofUrl: pending.proofUrl,
+    });
+
+    if (!verdict.ok) {
+      return NextResponse.json({ error: verdict.reason }, { status: 400 });
+    }
   }
 
   const activity = await decideActivity({ id, status, txHash, rejectionReason, decidedBy });
