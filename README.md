@@ -20,6 +20,9 @@ Blockchain Centre.
 
 ## Deployed
 
+**Live at [ubu-tangaza.vercel.app](https://ubu-tangaza.vercel.app)** — advocate surface at
+`/`, business surface at `/org`.
+
 **Avalanche Fuji**, chain id `43113`. The only network this is deployed to.
 
 | | |
@@ -69,13 +72,47 @@ a new one fails the suite until it's reviewed against invariant 1.
 
 ---
 
+## What a business rewards is its own decision
+
+The contract deliberately knows nothing about this. `ActivityType` is a three-value
+enum and `CREDIT_VALUE_KES` / `MILESTONE_ACTIVITIES` are `constant` — none of it can be
+reconfigured without redeploying, which is the point: the solvency rules are not a
+setting.
+
+The *product* on top of it is configurable. A business defines any number of
+**engagement types** in Postgres — what it's called, what proof to ask for, and what
+it's worth:
+
+| | proof asked for | weight |
+|---|---|---|
+| 🤝 Walk-in referral | their name + your referral link | **5** |
+| 📸 Instagram Reel | link to the Reel | **5** |
+| 𝕏 Shout-out on X | link to the post | **2** |
+| 💬 WhatsApp status | screenshot | **1** |
+
+**`weight` is the reward dial**: how many on-chain activities one approval counts for.
+Approving a weight-5 referral calls `approveActivityBatch` with the entry repeated five
+times, so at 20 activities per KES 500 credit a referral is a quarter of a reward and a
+WhatsApp status is a twentieth. Differentiated pricing, with the emission cap and the
+milestone still doing the enforcing.
+
+Label, icon and weight are **copied onto each submission** when it is filed, so renaming
+or retiring an engagement type never rewrites what people already did.
+
+`web/db/002_example_engagements.sql` seeds the table above with eleven submissions from
+six advocates, mixed approved / pending / rejected.
+
+---
+
 ## Layout
 
 ```
 contracts/   Hardhat + TypeScript + Solidity 0.8.24 + OpenZeppelin v5
              TangazaRewards.sol, 32 tests, deploy + seed scripts
 web/         Next.js (App Router) + TypeScript + Tailwind v4 + thirdweb v5 + viem
-             Customer surface (/), org surface (/org), queue API (/api/activities)
+             Advocate surface (/), business surface (/org)
+             API: /api/activities, /api/engagement-types, /api/standings
+web/db/      Postgres schema and seeds. Apply with psql; every file is idempotent.
 ```
 
 ---
@@ -162,6 +199,19 @@ Fill in `.env.local`:
 | `NEXT_PUBLIC_ORG_ID` | `1` |
 | `NEXT_PUBLIC_DEPLOY_BLOCK` | `blockNumber` from `contracts/deployments.json`, or `57298496` for the deployment above — event scanning starts here |
 | `NEXT_PUBLIC_ORG_APPROVER` | the approver's smart-account address; blank = any signed-in account (dev only) |
+| `DATABASE_URL` | Postgres connection string — see step 6. **No `NEXT_PUBLIC_` prefix**: that would inline a database password into the browser bundle |
+
+### 6. Database
+
+Any Postgres works; [Neon](https://neon.tech) has a free tier and the app uses its HTTP
+driver, which suits serverless better than a connection pool.
+
+```bash
+psql "$DATABASE_URL" -f db/001_init.sql              # schema
+psql "$DATABASE_URL" -f db/002_example_engagements.sql   # optional demo data
+```
+
+Both files are idempotent — re-running them is safe.
 
 ```bash
 npm run dev     # http://localhost:3000
@@ -178,15 +228,17 @@ The judging story is one unbroken earn → redeem journey.
 
 1. **Sign in as a customer** at `/`. Google or X. No seed phrase appears, because the
    in-app wallet is an embedded key wrapped in an ERC-4337 smart account.
-2. **Submit an activity** at `/submit` — pick a type, paste a proof link. This is
+2. **Submit an activity** at `/submit` — the form lists whatever the business
+   configured, each showing what it's worth. Paste the proof it asks for. This is
    off-chain; it lands in the queue via `POST /api/activities`.
 3. **Sign in as the org** at `/org` (a second browser profile is easiest). The
    submission is in the approvals queue with its proof link.
-4. **Approve it.** That calls `approveActivity()` on Fuji, gaslessly. The customer's
-   activity count and streak update on-chain.
+4. **Approve it.** That calls `approveActivityBatch()` on Fuji, gaslessly, with the
+   entry repeated `weight` times. Approving one walk-in referral moves the advocate
+   five activities, not one.
 5. **Cross 20 activities** and one KES 500 credit mints. Seed `DEMO_ADVOCATE` to your
    customer smart-account address so it sits at 19 — then a single approval on stage
-   mints the credit live.
+   mints the credit live. (With a weight-5 engagement, sitting at 15 works too.)
 6. **Claim it** at `/rewards` → pick airtime → a real transaction hash appears, linked
    to Snowtrace.
 7. **Watch the liability drop** at `/org/liability`. Outstanding = committed − settled,
@@ -205,10 +257,18 @@ user's account. `ERC2771Context` falls back to the real `msg.sender` when no for
 is trusted, so passing zero is correct — passing a real forwarder would be wrong.
 
 **Why the queue is off-chain.** Proof URLs, notes and rejected submissions have no
-business on a public chain. Only the approval and the redemption are written. The
-queue is a JSON file (`web/data/activities.json`) — no native dependencies, no
-migrations, and `cat` is a valid debugging tool. Every caller goes through
-`web/lib/store.ts`, so swapping in SQLite or Postgres touches one file.
+business on a public chain, and neither does a business's private view of who its
+advocates are. Only the approval and the redemption are written on-chain.
+
+The queue started as a JSON file, which was fine locally and impossible on Vercel —
+the filesystem there is read-only outside `/tmp`, so every submission 500'd in
+production. It is Postgres now (`web/db/001_init.sql`). Because every caller had always
+gone through `web/lib/store.ts`, that swap touched one file; the functions went from
+synchronous to async and nothing else moved.
+
+**Approval is idempotent.** `decideActivity` updates `where id = … and status =
+'pending'`, so a double-click or a retry after a timeout cannot decide the same
+submission twice and mint against the budget a second time.
 
 **Why there's no indexer.** `web/lib/events.ts` polls `getContractEvents` in
 2000-block windows and folds the results in the browser. That's ample for one pilot
@@ -227,8 +287,19 @@ crosshair tooltip, keyboard navigation, and a table view so no value is hover-ga
 
 ## Scope
 
-Built: the Blockchain Centre pilot, end to end. The X-content case is the same rails
-with a different `ActivityType` — deliberately not a second app.
+Built: the Blockchain Centre pilot, end to end. A second business is configuration, not
+a second app — it registers on-chain with its own cap and then defines its own
+engagement types.
+
+**The org approver must be set on-chain before approvals work.** `registerOrg` records
+an approver address, and `_authorizeApproval` admits only that address or the contract
+owner. If you sign in at `/org` with a smart account that isn't the registered approver,
+every approval reverts `NotApprover`. Fix it with:
+
+```bash
+cd contracts
+APPROVER=0xYourSmartAccountAddress npx hardhat run scripts/set-approver.ts --network fuji
+```
 
 Closed-loop only. Credits are non-transferable records inside the contract, not a
 tradeable token: there is no `transfer`, no allowance, no market.
