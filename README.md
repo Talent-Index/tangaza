@@ -1,9 +1,17 @@
-# Tangaza
+# Ubu-Tangaza
+
+> **ubu** — from *ubuntu*, the southern African idea that a person is a person
+> through other people. **tangaza** — Swahili, *to announce, to proclaim*.
+> Together: what you say for your community, and what your community gives back.
 
 **Proof-of-advocacy rewards on Avalanche.** Customers earn real rewards for real
 advocacy — referrals, posts on X, events they bring in. A business approves each
 activity, and that approval is the on-chain write. The reward budget is capped at
 registration, can never be raised, and shrinks as people claim.
+
+The name is the product's thesis: advocacy is not a transaction between one person
+and a brand, it's a thing a community does together, and the reward should come back
+into that community from a budget everyone can audit.
 
 Built for the Team1 Kenya Avalanche Game Jam / Mini Hack 2026. Pilot org: the
 Blockchain Centre.
@@ -25,6 +33,12 @@ Blockchain Centre.
 
 Deploying yourself writes the same values to `contracts/deployments.json`, which is
 untracked. Point `web/.env.local` at whichever deployment you're using.
+
+The contract is still called `TangazaRewards` — it was deployed under that name before
+the project was renamed, and the source in this repo is the exact source that produced
+the bytecode at the address above. Renaming it would mean redeploying and re-seeding,
+which would throw away the demo state. A contract's name isn't part of its ABI, so
+nothing in the app depends on it.
 
 ---
 

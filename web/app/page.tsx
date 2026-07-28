@@ -25,7 +25,7 @@ function Welcome() {
   return (
     <div className="animate-rise flex flex-col items-center pt-8 text-center">
       <div className="mb-8 grid size-20 place-items-center rounded-3xl bg-crimson-500 text-4xl font-black text-white shadow-[0_20px_60px_-15px_rgb(220_20_60/0.8)]">
-        T
+        U
       </div>
 
       <h1 className="text-3xl font-black leading-tight">

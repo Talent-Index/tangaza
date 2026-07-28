@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { TangazaRewards } from "../typechain-types";
 
 /**
- * Measures the gas that actually matters for running Tangaza:
+ * Measures the gas that actually matters for running Ubu-Tangaza:
  * a plain approval, a milestone approval (which also mints a credit), and a redeem.
  *
  *   npx hardhat run scripts/gas.ts

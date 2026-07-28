@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import type { PendingActivity, PendingStatus } from "./types";
 
 /**
- * The off-chain half of Tangaza: the queue of submitted-but-not-yet-approved
+ * The off-chain half of Ubu-Tangaza: the queue of submitted-but-not-yet-approved
  * activities. Proof lives here; the org's approval is what goes on-chain.
  *
  * A JSON file is deliberate for the jam — no native deps, no migrations, and the
@@ -13,7 +13,7 @@ import type { PendingActivity, PendingStatus } from "./types";
  * every caller goes through the functions below, so the surface to change is small.
  */
 
-const DB_PATH = process.env.TANGAZA_DB_PATH ?? join(process.cwd(), "data", "activities.json");
+const DB_PATH = process.env.UBU_TANGAZA_DB_PATH ?? join(process.cwd(), "data", "activities.json");
 
 interface Db {
   activities: PendingActivity[];
@@ -26,7 +26,7 @@ function read(): Db {
     return { activities: parsed.activities ?? [] };
   } catch {
     // A truncated file should not take the demo down.
-    console.error(`[tangaza] ${DB_PATH} is unreadable; starting from an empty queue`);
+    console.error(`[ubu-tangaza] ${DB_PATH} is unreadable; starting from an empty queue`);
     return { activities: [] };
   }
 }

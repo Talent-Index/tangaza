@@ -4,7 +4,7 @@ import { CHAIN } from "@/lib/chain";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Tangaza — get paid for the word you spread",
+  title: "Ubu-Tangaza — get paid for the word you spread",
   description:
     "Proof-of-advocacy rewards on Avalanche. Businesses reward real advocacy from a capped budget that can never grow.",
 };

@@ -1,7 +1,7 @@
 import { avalancheFuji } from "thirdweb/chains";
 
 /**
- * Tangaza runs on Avalanche Fuji for the jam. Kept in one place so the chain is
+ * Ubu-Tangaza runs on Avalanche Fuji for the jam. Kept in one place so the chain is
  * never ambiguous — the UI, the explorer links and the smart-account config all
  * read from here.
  *
@@ -12,7 +12,7 @@ const CHAIN_NAME = process.env.NEXT_PUBLIC_CHAIN ?? "fuji";
 
 if (CHAIN_NAME !== "fuji") {
   console.warn(
-    `[tangaza] NEXT_PUBLIC_CHAIN is "${CHAIN_NAME}" but only "fuji" is supported — using Fuji.`
+    `[ubu-tangaza] NEXT_PUBLIC_CHAIN is "${CHAIN_NAME}" but only "fuji" is supported — using Fuji.`
   );
 }
 

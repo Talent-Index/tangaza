@@ -8,14 +8,14 @@ const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
 if (!clientId) {
   // Loud at boot rather than a confusing 401 on the first read.
   console.warn(
-    "[tangaza] NEXT_PUBLIC_THIRDWEB_CLIENT_ID is not set — copy web/.env.example to web/.env.local"
+    "[ubu-tangaza] NEXT_PUBLIC_THIRDWEB_CLIENT_ID is not set — copy web/.env.example to web/.env.local"
   );
 }
 
 // A placeholder keeps `next build` working on a fresh clone with no .env.local —
 // every screen checks `isConfigured` and shows the setup notice instead of calling out.
 export const client = createThirdwebClient({
-  clientId: clientId || "tangaza-unconfigured",
+  clientId: clientId || "ubu-tangaza-unconfigured",
 });
 
 const ZERO = "0x0000000000000000000000000000000000000000";

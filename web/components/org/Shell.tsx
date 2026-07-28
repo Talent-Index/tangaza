@@ -24,10 +24,10 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-6">
           <Link href="/org" className="flex items-center gap-2">
             <span className="grid size-8 place-items-center rounded-lg bg-crimson-500 text-sm font-black text-white">
-              T
+              U
             </span>
             <span className="text-lg font-bold tracking-tight">
-              Tangaza <span className="text-mist-500">for business</span>
+              Ubu-Tangaza <span className="text-mist-500">for business</span>
             </span>
           </Link>
 

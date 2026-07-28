@@ -25,9 +25,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       <header className="mb-6 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-lg bg-crimson-500 text-sm font-black text-white">
-            T
+            U
           </span>
-          <span className="text-lg font-bold tracking-tight">Tangaza</span>
+          <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
         </Link>
 
         {account ? (

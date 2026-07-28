@@ -38,7 +38,7 @@ export function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#tangaza-ring)"
+          stroke="url(#ubu-tangaza-ring)"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -46,7 +46,7 @@ export function ProgressRing({
           style={{ transition: "stroke-dashoffset 700ms cubic-bezier(0.2,0.8,0.2,1)" }}
         />
         <defs>
-          <linearGradient id="tangaza-ring" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="ubu-tangaza-ring" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="var(--color-crimson-600)" />
             <stop offset="100%" stopColor="var(--color-crimson-400)" />
           </linearGradient>

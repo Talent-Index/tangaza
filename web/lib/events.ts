@@ -51,7 +51,7 @@ export async function fetchEvents(events: PreparedEvent[]) {
   if (start === 0n) {
     start = latest > MAX_LOOKBACK ? latest - MAX_LOOKBACK : 0n;
     console.warn(
-      `[tangaza] NEXT_PUBLIC_DEPLOY_BLOCK is unset — only scanning the last ${MAX_LOOKBACK} blocks (from ${start}). ` +
+      `[ubu-tangaza] NEXT_PUBLIC_DEPLOY_BLOCK is unset — only scanning the last ${MAX_LOOKBACK} blocks (from ${start}). ` +
         `Set it from contracts/deployments.json or older rewards will be missing from the dashboards.`
     );
   }
