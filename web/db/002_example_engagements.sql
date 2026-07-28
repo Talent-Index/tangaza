@@ -1,8 +1,8 @@
 -- Two worked examples of a business configuring Ubu-Tangaza for itself, with real
 -- submissions against them. Optional — the app runs fine without this file.
 --
---   Example 1  Social proof.   A shout-out on X, and a WhatsApp status screenshot.
---                              Different proof kinds, different weights.
+--   Example 1  Social proof.   A shout-out on X, a WhatsApp status screenshot, and an
+--                              Instagram Reel. Different proof kinds, different weights.
 --   Example 2  Referrals.      Who you brought, and the link that proves it. Weighted
 --                              heaviest, because a person through the door is worth
 --                              more to the house than a post.
@@ -28,7 +28,10 @@ values
       '𝕏', 'x_link', 1, 2, 10),
   (1, 'WhatsApp status',
       'Put us on your WhatsApp status for 24h, then send the screenshot.',
-      '💬', 'screenshot', 1, 1, 11)
+      '💬', 'screenshot', 1, 1, 11),
+  (1, 'Instagram Reel',
+      'Post a Reel featuring us and tag the account. Drop the link.',
+      '📸', 'social_link', 1, 5, 13)
 on conflict (org_id, label) do update
   set blurb = excluded.blurb, icon = excluded.icon, proof_kind = excluded.proof_kind,
       chain_category = excluded.chain_category, weight = excluded.weight,
