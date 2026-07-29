@@ -18,6 +18,7 @@ import {
 } from "@/components/ui";
 
 import { proofHashOf } from "@/lib/proof";
+import { awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
 import { useOrg, usePendingActivities } from "@/lib/hooks";
@@ -131,7 +132,10 @@ function ApprovalRow({
   onDone: (txHash: string) => void;
   onRejected: () => void;
 }) {
-  const { mutate: sendTx, isPending } = useSendAndConfirmTransaction();
+  const { mutateAsync: sendTx, isPending } = useSendAndConfirmTransaction();
+  // Locked while a userOp is out of our hands but unconfirmed — clicking Approve
+  // again during that window is exactly what creates duplicates and AA25 lockouts.
+  const [waitingChain, setWaitingChain] = useState(false);
   // Recorded with every decision, so the queue knows which wallet approved what —
   // the chain already enforces it, this makes it visible in the database too.
   const approverAccount = useActiveAccount();
@@ -139,11 +143,33 @@ function ApprovalRow({
   const [rejecting, setRejecting] = useState(false);
   const { success, error: toastError } = useToast();
 
-  function approve() {
+  async function approve() {
     setError(null);
 
     // The proof itself stays off-chain; only its fingerprint is recorded.
     const proofHash = proofHashOf(item.proofUrl);
+    const onChain = { orgId: BigInt(item.orgId), advocate: item.advocate, proofHash };
+
+    async function finish(txHash: string) {
+      // Only mark the queue item approved once the chain write has confirmed.
+      await fetch("/api/activities", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          status: "approved",
+          txHash,
+          decidedBy: approverAccount?.address,
+        }),
+      });
+      success(`Approved ${item.typeLabel}`);
+      onDone(txHash);
+    }
+
+    // A previous click may have landed after the client gave up — check before
+    // sending the same approval twice.
+    const already = await findApprovalOnChain(onChain).catch(() => null);
+    if (already) return finish(already);
 
     /**
      * Weight is what the business priced this engagement at, and the chain has to
@@ -169,27 +195,31 @@ function ApprovalRow({
       ],
     });
 
-    sendTx(tx, {
-      onSuccess: async (r) => {
-        // Only mark the queue item approved once the chain write has confirmed.
-        await fetch("/api/activities", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: item.id,
-            status: "approved",
-            txHash: r.transactionHash,
-            decidedBy: approverAccount?.address,
-          }),
-        });
-        success(`Approved ${item.typeLabel}`);
-        onDone(r.transactionHash);
-      },
-      onError: (e) => {
-        setError(e.message);
-        toastError(e.message);
-      },
-    });
+    try {
+      const r = await sendTx(tx);
+      await finish(r.transactionHash);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
+        // The op is usually still in flight — the bundler literally says so for
+        // AA25. Hold the button and watch the chain rather than inviting a re-send.
+        setWaitingChain(true);
+        try {
+          const landed = await awaitApprovalOnChain(onChain);
+          if (landed) return await finish(landed);
+          const note =
+            "Avalanche didn't confirm the approval — the network dropped it. " +
+            "Press Approve again; if it landed late, we'll pick it up instead of approving twice.";
+          setError(note);
+          toastError(note);
+        } finally {
+          setWaitingChain(false);
+        }
+      } else {
+        setError(msg);
+        toastError(msg);
+      }
+    }
   }
 
   async function reject() {
@@ -279,8 +309,15 @@ function ApprovalRow({
             <Button variant="ghost" onClick={reject} disabled={isPending || rejecting}>
               Reject
             </Button>
-            <Button onClick={approve} disabled={!canApprove || isPending || rejecting}>
-              {isPending ? (
+            <Button
+              onClick={approve}
+              disabled={!canApprove || isPending || waitingChain || rejecting}
+            >
+              {waitingChain ? (
+                <>
+                  <Spinner /> Waiting for Avalanche…
+                </>
+              ) : isPending ? (
                 <>
                   <Spinner /> Approving…
                 </>

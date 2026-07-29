@@ -2,7 +2,7 @@ import { getContractEvents } from "thirdweb";
 import { eth_blockNumber, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "./chain";
 import { client, contract } from "./client";
-import { activitySubmittedEvent } from "./events";
+import { activityApprovedEvent, activitySubmittedEvent } from "./events";
 
 /**
  * Finds an ActivitySubmitted the advocate already managed to get on-chain.
@@ -68,6 +68,59 @@ export async function awaitSubmissionOnChain(
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
     const tx = await findSubmissionOnChain(p);
+    if (tx) return tx;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return null;
+}
+
+
+/**
+ * Same rescue, approval-side: an approval userOp that outlives the SDK's wait is
+ * usually still in flight, and the org clicking Approve again is how duplicates and
+ * AA25 lockouts happen. Watch the chain for the ActivityApproved that matches this
+ * exact submission instead.
+ */
+export async function findApprovalOnChain(p: {
+  orgId: bigint;
+  advocate: string;
+  proofHash: `0x${string}`;
+}): Promise<string | null> {
+  const rpc = getRpcClient({ client, chain: CHAIN });
+  const tip = await eth_blockNumber(rpc);
+  const advocate = p.advocate.toLowerCase();
+
+  for (let i = 0; i < LOOKBACK_WINDOWS; i++) {
+    const toBlock = tip - WINDOW * BigInt(i);
+    const fromBlock = toBlock - WINDOW + 1n;
+    const events = await getContractEvents({
+      contract,
+      events: [activityApprovedEvent],
+      fromBlock: fromBlock > 0n ? fromBlock : 0n,
+      toBlock,
+    });
+    for (const e of [...events].reverse()) {
+      const args = e.args as { orgId: bigint; advocate: string; proofHash: `0x${string}` };
+      if (
+        args.orgId === p.orgId &&
+        args.advocate.toLowerCase() === advocate &&
+        args.proofHash === p.proofHash
+      ) {
+        return e.transactionHash;
+      }
+    }
+  }
+  return null;
+}
+
+export async function awaitApprovalOnChain(
+  p: { orgId: bigint; advocate: string; proofHash: `0x${string}` },
+  timeoutMs = 4 * 60_000,
+  intervalMs = 6_000
+): Promise<string | null> {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    const tx = await findApprovalOnChain(p);
     if (tx) return tx;
     await new Promise((r) => setTimeout(r, intervalMs));
   }
