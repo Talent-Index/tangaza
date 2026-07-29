@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useConnect } from "thirdweb/react";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
-import { client, wallets } from "@/lib/client";
+import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
 import { Button, ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
@@ -22,7 +22,10 @@ import { useToast } from "@/components/toast";
  * reload, because that came free with ConnectButton.
  */
 export function SignIn() {
-  const { connect, isConnecting, error: connectError } = useConnect({ client });
+  const { connect, isConnecting, error: connectError } = useConnect({
+    client,
+    accountAbstraction,
+  });
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 
@@ -35,6 +38,16 @@ export function SignIn() {
 
   const busy = isConnecting || sending;
   const error = emailError ?? connectError?.message ?? null;
+
+  // Core injects window.avalanche (and announces via EIP-6963). Checking up front
+  // means the button can say "get Core" before the click instead of erroring after.
+  const [coreInstalled, setCoreInstalled] = useState(false);
+  useEffect(() => {
+    setCoreInstalled(
+      typeof window !== "undefined" &&
+        Boolean((window as unknown as { avalanche?: unknown }).avalanche)
+    );
+  }, []);
 
   useEffect(() => {
     if (isConnecting) {
@@ -111,6 +124,39 @@ export function SignIn() {
         <XLogo />
         Continue with 𝕏
       </Button>
+
+      {coreInstalled ? (
+        <Button
+          variant="ghost"
+          className="w-full"
+          disabled={busy}
+          onClick={() =>
+            void connect(async () => {
+              // Bring-your-own Core wallet. The EOA it exposes gets wrapped in a
+              // sponsored smart account by the accountAbstraction option above, so a
+              // Core user never needs AVAX either.
+              await coreWallet.connect({ client });
+              success("Signed in with Core");
+              return coreWallet;
+            }).catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : "Could not connect Core";
+              setEmailError(msg);
+              toastError(msg);
+            })
+          }
+        >
+          Continue with Core 🔺
+        </Button>
+      ) : (
+        <a
+          href="https://core.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded-full border border-ink-600 py-3 text-center text-sm font-semibold text-mist-400 transition hover:border-ink-500 hover:text-mist-200"
+        >
+          Get Core Wallet 🔺 <span className="font-normal text-mist-500">— core.app</span>
+        </a>
+      )}
 
       {emailStage === "hidden" ? (
         <button

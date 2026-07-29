@@ -274,9 +274,18 @@ synchronous to async and nothing else moved.
 'pending'`, so a double-click or a retry after a timeout cannot decide the same
 submission twice and mint against the budget a second time.
 
-**Why there's no indexer.** `web/lib/events.ts` polls `getContractEvents` in
-2000-block windows and folds the results in the browser. That's ample for one pilot
-org and keeps the stack to two packages. It is the first thing to replace at scale.
+**How events are read.** `web/lib/events.ts` asks the [AvaCloud Data API](https://developers.avacloud.io)
+for the contract's indexed transaction list (keyless on Fuji, CORS-open), reads those
+receipts, and decodes the logs — work proportional to what the contract has actually
+done, not to how old the chain is. If the Data API is unreachable it falls back to
+scanning `eth_getLogs` in 900-block windows (Avalanche's RPC caps ranges at 1000).
+Set `NEXT_PUBLIC_AVACLOUD_API_KEY` for production rate limits.
+
+**Why first transactions used to feel slow.** An ERC-4337 account doesn't exist
+on-chain until its first transaction, so whatever a user did first carried the
+account deployment with it — and that heavier op could outlive the SDK's wait.
+`AccountWarmup` now deploys the account in the background at sign-in with a sponsored
+no-op, so by the time someone submits, their account already exists.
 
 **Why `viaIR` is on.** The contract hits "stack too deep" without the IR pipeline.
 Optimizer runs: 200.

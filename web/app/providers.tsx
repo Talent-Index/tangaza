@@ -1,8 +1,9 @@
 "use client";
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
+import { AccountWarmup } from "@/components/AccountWarmup";
 import { ToastProvider } from "@/components/toast";
-import { client, wallets } from "@/lib/client";
+import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +18,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
        * enough for the in-app wallet plus the smart-account lookup, and giving up early
        * only costs a tap on "Continue with Google" — the session itself survives.
        */}
-      <AutoConnect client={client} wallets={wallets} timeout={8_000} />
+      <AutoConnect
+        client={client}
+        wallets={[...wallets, coreWallet]}
+        // Restores a Core session as the same wrapped smart account it signed in with;
+        // the in-app wallet is already smart, so the wrapper skips it.
+        accountAbstraction={accountAbstraction}
+        timeout={8_000}
+      />
+      <AccountWarmup />
       <ToastProvider>{children}</ToastProvider>
     </ThirdwebProvider>
   );

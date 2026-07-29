@@ -91,3 +91,53 @@ export async function getCredit(id: bigint): Promise<CreditState> {
   })) as unknown as Omit<CreditState, "id">;
   return { ...c, id };
 }
+
+export async function getOrgCount(): Promise<bigint> {
+  return (await readContract({ contract, method: "orgCount" })) as bigint;
+}
+
+export interface OrgAccess {
+  /** The org this account approves for, or the default org as a visitor. */
+  orgId: bigint;
+  orgName: string;
+  isApprover: boolean;
+  /** Who IS allowed to approve for that org — so the UI can say so by name. */
+  approver: string;
+}
+
+/**
+ * Resolves what the connected account is allowed to do, from the chain itself.
+ *
+ * The old check compared against an env var that was never set, so the UI cheerfully
+ * enabled Approve for accounts the contract was always going to revert — and because
+ * every social login mints its own smart account, "signed in" and "authorised" are
+ * very much not the same thing. The contract has known the real answer all along:
+ * each org records its approver. Walk the orgs, find the one this account approves
+ * for; anyone else is a visitor to the default org.
+ */
+export async function resolveOrgAccess(
+  address: string,
+  defaultOrgId: bigint
+): Promise<OrgAccess> {
+  const me = address.toLowerCase();
+  const count = await getOrgCount();
+
+  for (let i = 1n; i <= count; i++) {
+    const org = await getOrg(i);
+    if (org.approver.toLowerCase() === me) {
+      return { orgId: i, orgName: org.name, isApprover: true, approver: org.approver };
+    }
+  }
+
+  const fallback = await getOrg(defaultOrgId);
+  return {
+    orgId: defaultOrgId,
+    orgName: fallback.name,
+    isApprover: false,
+    approver: fallback.approver,
+  };
+}
+
+export async function getContractOwner(): Promise<string> {
+  return (await readContract({ contract, method: "owner" })) as string;
+}

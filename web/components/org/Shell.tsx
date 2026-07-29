@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createContext, useContext } from "react";
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
-import { BrandMark } from "@/components/ui";
-import { ORG_APPROVER, addressUrl } from "@/lib/chain";
+import { BrandMark, Spinner } from "@/components/ui";
+import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 import { shortAddress } from "@/lib/format";
+import { useOrgAccess } from "@/lib/hooks";
+import type { OrgAccess } from "@/lib/reads";
 
 const NAV = [
   { href: "/org", label: "Approvals" },
@@ -72,7 +75,9 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        {account ? <WithOrgAccess address={account.address}>{children}</WithOrgAccess> : <OrgSignedOut />}
+      </main>
 
       <footer className="mt-10 border-t border-ink-800 pt-5 text-xs leading-relaxed text-mist-500 sm:mt-12">
         Avalanche Fuji · every approval and every redemption below is a real on-chain
@@ -148,10 +153,56 @@ function OrgSignedOut() {
   );
 }
 
-/** True when this account may approve. Blank env = open, for local development. */
+/* ------------------------------------------------------------------ access */
+
+const OrgAccessContext = createContext<OrgAccess>({
+  orgId: ORG_ID,
+  orgName: "",
+  isApprover: false,
+  approver: "",
+});
+
+/**
+ * Resolves what the connected account may do — from the chain, not an env var.
+ *
+ * Every social login mints its own smart account, so "signed in" and "authorised"
+ * are different facts: the same person can hold one account that approves for
+ * FitTribe and another that is a stranger to every org. Each org records its
+ * approver on-chain; this walks them and serves whichever org the account
+ * approves for, or the default org read-only.
+ */
+function WithOrgAccess({
+  address,
+  children,
+}: {
+  address: string;
+  children: React.ReactNode;
+}) {
+  const access = useOrgAccess(address);
+
+  if (access.loading && !access.data) {
+    return (
+      <div className="grid place-items-center py-24">
+        <Spinner className="size-6" />
+      </div>
+    );
+  }
+
+  return (
+    <OrgAccessContext.Provider
+      value={access.data ?? { orgId: ORG_ID, orgName: "", isApprover: false, approver: "" }}
+    >
+      {children}
+    </OrgAccessContext.Provider>
+  );
+}
+
+/** The org this session is scoped to, and whether it may approve. */
+export function useOrgAccessContext() {
+  return useContext(OrgAccessContext);
+}
+
+/** True when this account is the resolved org's on-chain approver. */
 export function useIsApprover() {
-  const account = useActiveAccount();
-  if (!account) return false;
-  if (!ORG_APPROVER) return true;
-  return account.address.toLowerCase() === ORG_APPROVER;
+  return useOrgAccessContext().isApprover;
 }
