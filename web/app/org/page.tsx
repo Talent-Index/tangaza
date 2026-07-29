@@ -20,7 +20,7 @@ import { proofHashOf } from "@/lib/proof";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
 import { useOrg, usePendingActivities } from "@/lib/hooks";
-import { activityIcon, activityLabel, type PendingActivity } from "@/lib/types";
+import type { PendingActivity } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 6 */
 
@@ -205,7 +205,7 @@ function ApprovalRow({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">
-              Approved {activityLabel(item.activityType)} for{" "}
+              Approved {item.typeLabel} for{" "}
               {item.advocateLabel ?? advocateName(item.advocate)}
             </p>
             <p className="text-xs text-mist-500">Their count and streak just went up.</p>
@@ -221,7 +221,7 @@ function ApprovalRow({
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start gap-4">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-ink-700 text-lg">
-            {activityIcon(item.activityType)}
+            {item.typeIcon}
           </span>
 
           <div className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ function ApprovalRow({
               <p className="font-semibold">
                 {item.advocateLabel ?? advocateName(item.advocate)}
               </p>
-              <Pill>{activityLabel(item.activityType)}</Pill>
+              <Pill>{item.typeLabel} · +{item.weight}</Pill>
               <span className="text-xs text-mist-500">
                 {timeAgo(new Date(item.submittedAt).getTime())}
               </span>

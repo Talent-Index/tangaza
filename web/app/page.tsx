@@ -17,7 +17,7 @@ import {
   usePendingActivities,
   useTiers,
 } from "@/lib/hooks";
-import { activityIcon, activityLabel } from "@/lib/types";
+
 
 export default function Page() {
   const account = useActiveAccount();
@@ -165,11 +165,11 @@ function Home({ address }: { address: string }) {
               <li key={item.id}>
                 <Card className="flex items-center gap-3 py-4">
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-700 text-lg">
-                    {activityIcon(item.activityType)}
+                    {item.typeIcon}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
-                      {activityLabel(item.activityType)}
+                      {item.typeLabel}
                     </p>
                     <p className="truncate text-xs text-mist-500">
                       {timeAgo(new Date(item.submittedAt).getTime())}
