@@ -1,5 +1,6 @@
-import { getContractEvents, prepareEvent } from "thirdweb";
-import { eth_blockNumber, getRpcClient } from "thirdweb/rpc";
+import { getContractEvents, parseEventLogs, prepareEvent } from "thirdweb";
+import { eth_blockNumber, eth_getTransactionReceipt, getRpcClient } from "thirdweb/rpc";
+import { listContractTxHashes } from "./avacloud";
 import { CHAIN } from "./chain";
 import { client, contract } from "./client";
 
@@ -50,8 +51,49 @@ export const budgetExhaustedEvent = prepareEvent({
 
 type PreparedEvent = ReturnType<typeof prepareEvent>;
 
-/** Fetches events across the whole chain history in RPC-safe windows. */
+/**
+ * Fetches the contract's events — indexed path first, window scan as the fallback.
+ *
+ * The primary path asks AvaCloud's Data API for the contract's transaction list
+ * (already indexed, one call) and reads those receipts: work proportional to what the
+ * contract has actually done, immune to the RPC's 1000-block eth_getLogs cap, and not
+ * dependent on thirdweb Insight being up. The window scan below survives as the
+ * fallback so an AvaCloud outage costs speed, not data.
+ */
 export async function fetchEvents(events: PreparedEvent[]) {
+  try {
+    return await fetchEventsViaDataApi(events);
+  } catch (err) {
+    console.warn(
+      "[ubu-tangaza] Data API unavailable, falling back to block scanning:",
+      err instanceof Error ? err.message : err
+    );
+    return fetchEventsByScanning(events);
+  }
+}
+
+async function fetchEventsViaDataApi(events: PreparedEvent[]) {
+  const hashes = await listContractTxHashes(CHAIN.id);
+  const rpc = getRpcClient({ client, chain: CHAIN });
+
+  const out: Awaited<ReturnType<typeof getContractEvents>> = [];
+  // Small batches: kind to the RPC, and ~an org's whole history is a dozen receipts.
+  const BATCH = 8;
+  for (let i = 0; i < hashes.length; i += BATCH) {
+    const receipts = await Promise.all(
+      hashes.slice(i, i + BATCH).map((hash) =>
+        eth_getTransactionReceipt(rpc, { hash: hash as `0x${string}` })
+      )
+    );
+    for (const receipt of receipts) {
+      const parsed = parseEventLogs({ logs: receipt.logs, events });
+      out.push(...(parsed as typeof out));
+    }
+  }
+  return out;
+}
+
+async function fetchEventsByScanning(events: PreparedEvent[]) {
   const rpc = getRpcClient({ client, chain: CHAIN });
   const latest = await eth_blockNumber(rpc);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
+import { AccountWarmup } from "@/components/AccountWarmup";
 import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         accountAbstraction={accountAbstraction}
         timeout={8_000}
       />
+      <AccountWarmup />
       {children}
     </ThirdwebProvider>
   );
