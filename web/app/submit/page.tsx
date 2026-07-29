@@ -12,6 +12,7 @@ import { ORG_ID } from "@/lib/chain";
 import { useAdvocateProfile, useEngagementTypes } from "@/lib/hooks";
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
+import { awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
 import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
@@ -88,13 +89,53 @@ function SubmitForm({ account }: { account: Account }) {
        * stays off-chain; the chain records its fingerprint.
        */
       const proofUrl = proof.trim() || undefined;
-      const receipt = await sendTx(
-        prepareContractCall({
-          contract,
-          method: "submitActivity",
-          params: [ORG_ID, selected.chainCategory, proofHashOf(proofUrl)],
-        })
-      );
+      const proofHash = proofHashOf(proofUrl);
+      const onChain = { orgId: ORG_ID, advocate: address, proofHash };
+
+      /**
+       * A previous attempt may have made it on-chain after the client gave up: the
+       * first tx from a smart account also deploys the account, and that op often
+       * outlives the SDK's 120s wait. Check before sending a duplicate.
+       */
+      let txHash = await findSubmissionOnChain(onChain).catch(() => null);
+
+      if (!txHash) {
+        try {
+          const receipt = await sendTx(
+            prepareContractCall({
+              contract,
+              method: "submitActivity",
+              params: [ORG_ID, selected.chainCategory, proofHash],
+            })
+          );
+          txHash = receipt.transactionHash;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (/Timeout waiting for userOp/i.test(msg)) {
+            // The op is usually still in flight — watch the chain for it.
+            txHash = await awaitSubmissionOnChain(onChain);
+            if (!txHash) {
+              throw new Error(
+                "Avalanche is being slow and your submission hasn't landed yet. " +
+                  "Leave this page open a moment and press Send again — if it already " +
+                  "went through, we'll find it instead of sending a duplicate."
+              );
+            }
+          } else if (/AA25|already being processed/i.test(msg)) {
+            // The bundler still holds the earlier deployment op for this account.
+            txHash = await awaitSubmissionOnChain(onChain, 60_000);
+            if (!txHash) {
+              throw new Error(
+                "Your account's first transaction is still settling on Avalanche. " +
+                  "Give it a minute, then press Send again with the same proof — " +
+                  "we'll pick it up rather than double-file it."
+              );
+            }
+          } else {
+            throw err;
+          }
+        }
+      }
 
       const res = await fetch("/api/activities", {
         method: "POST",
@@ -107,14 +148,14 @@ function SubmitForm({ account }: { account: Account }) {
           proofUrl,
           note: note.trim() || undefined,
           campaignId: campaignId ?? undefined,
-          submitTx: receipt.transactionHash,
+          submitTx: txHash,
         }),
       });
 
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
 
-      setDone(receipt.transactionHash);
+      setDone(txHash);
       setTimeout(() => router.push("/"), 3200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit");
