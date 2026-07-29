@@ -20,6 +20,10 @@ if (!url) {
   );
 }
 
-export const sql = neon(url ?? "postgresql://unset");
+// Placeholder must be a valid neon() URL shape so `next build` can collect
+// API route modules without DATABASE_URL (Vercel sets it at runtime).
+export const sql = neon(
+  url ?? "postgresql://build:build@127.0.0.1/ubu_tangaza_build"
+);
 
 export const isDbConfigured = Boolean(url);

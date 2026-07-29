@@ -83,7 +83,7 @@ function Directory() {
       <section>
         <SectionTitle>Everyone who has engaged</SectionTitle>
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[40rem] text-sm">
             <thead>
               <tr className="border-b border-ink-700 text-left text-[11px] uppercase tracking-[0.14em] text-mist-500">
                 <th className="px-4 py-3 font-semibold">Client</th>

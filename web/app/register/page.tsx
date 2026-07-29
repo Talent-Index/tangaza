@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { BrandMark, Button, Card, ErrorNote, SectionTitle } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
@@ -23,12 +24,12 @@ export default function RegisterPage() {
   const account = useActiveAccount();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-6 py-10">
-      <header className="mb-10 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <BrandMark />
+    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col overflow-x-clip px-4 py-8 sm:px-6 sm:py-10">
+      <header className="mb-8 flex items-center justify-between gap-3 sm:mb-10">
+        <Link href="/" className="min-w-0 shrink">
+          <BrandMark className="text-base sm:text-lg" />
         </Link>
-        <Link href="/org" className="text-xs text-mist-500 hover:text-mist-300">
+        <Link href="/org" className="shrink-0 text-xs text-mist-500 hover:text-mist-300">
           Already registered? →
         </Link>
       </header>
@@ -74,6 +75,7 @@ function ApplyForm({ address }: { address: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const { success, error: toastError } = useToast();
 
   const account = useActiveAccount();
 
@@ -112,8 +114,11 @@ function ApplyForm({ address }: { address: string }) {
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
       setDone(true);
+      success("Pledge signed");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit");
+      const msg = err instanceof Error ? err.message : "Could not submit";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }

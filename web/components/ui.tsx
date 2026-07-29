@@ -11,7 +11,7 @@ export function Card({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={`card p-5 ${className}`}>{children}</div>;
+  return <div className={`card p-4 sm:p-5 ${className}`}>{children}</div>;
 }
 
 export function SectionTitle({
@@ -49,7 +49,7 @@ export function Button({
   type?: "button" | "submit";
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 sm:px-6";
   const styles = {
     primary:
       "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(30_122_239/0.65)]",

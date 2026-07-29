@@ -4,6 +4,7 @@ import { useState } from "react";
 import { prepareContractCall } from "thirdweb";
 import { useSendAndConfirmTransaction } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
+import { useToast } from "@/components/toast";
 import {
   Button,
   Card,
@@ -133,6 +134,7 @@ function ApprovalRow({
   const { mutate: sendTx, isPending } = useSendAndConfirmTransaction();
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
+  const { success, error: toastError } = useToast();
 
   function approve() {
     setError(null);
@@ -176,9 +178,13 @@ function ApprovalRow({
             txHash: r.transactionHash,
           }),
         });
+        success(`Approved ${item.typeLabel}`);
         onDone(r.transactionHash);
       },
-      onError: (e) => setError(e.message),
+      onError: (e) => {
+        setError(e.message);
+        toastError(e.message);
+      },
     });
   }
 
@@ -195,9 +201,12 @@ function ApprovalRow({
           rejectionReason: "Proof did not check out",
         }),
       });
+      success("Activity rejected");
       onRejected();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not reject");
+      const msg = e instanceof Error ? e.message : "Could not reject";
+      setError(msg);
+      toastError(msg);
     } finally {
       setRejecting(false);
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
+import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 
 import { useCampaigns, useEngagementTypes, useTiers } from "@/lib/hooks";
@@ -57,6 +58,7 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
   const engagements = useEngagementTypes(orgId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
   const [form, setForm] = useState({
     label: "",
     blurb: "",
@@ -79,17 +81,25 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
       setForm({ ...form, label: "", blurb: "" });
+      success("Engagement added");
       engagements.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save");
+      const msg = err instanceof Error ? err.message : "Could not save";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSaving(false);
     }
   }
 
   async function retire(id: string) {
-    await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, { method: "DELETE" });
-    engagements.refresh();
+    try {
+      await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, { method: "DELETE" });
+      success("Engagement retired");
+      engagements.refresh();
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not retire");
+    }
   }
 
   const types = engagements.data ?? [];
@@ -194,6 +204,7 @@ function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
   const [form, setForm] = useState({ level: 1, name: "", perk: "", icon: "★", thresholdWeight: 5 });
 
   async function add(e: React.FormEvent) {
@@ -209,9 +220,12 @@ function TierEditor({ orgId }: { orgId: bigint }) {
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
       setForm({ ...form, name: "", perk: "", level: form.level + 1 });
+      success("Level added");
       tiers.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save");
+      const msg = err instanceof Error ? err.message : "Could not save";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSaving(false);
     }
@@ -297,6 +311,7 @@ function TierEditor({ orgId }: { orgId: bigint }) {
 
 function CampaignList({ orgId }: { orgId: bigint }) {
   const campaigns = useCampaigns(orgId);
+  const { success } = useToast();
   const list = campaigns.data ?? [];
 
   return (
@@ -332,7 +347,10 @@ function CampaignList({ orgId }: { orgId: bigint }) {
                   </code>
                   <button
                     type="button"
-                    onClick={() => navigator.clipboard?.writeText(url)}
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(url);
+                      success("Campaign link copied");
+                    }}
                     className="text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
                   >
                     Copy link

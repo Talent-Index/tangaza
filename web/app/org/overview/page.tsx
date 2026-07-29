@@ -139,7 +139,7 @@ function Overview() {
             />
           ) : (
             <Card className="overflow-x-auto p-0">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[36rem] text-sm">
                 <caption className="sr-only">
                   Advocates ranked by rewards earned, then activities approved
                 </caption>

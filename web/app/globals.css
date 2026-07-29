@@ -35,6 +35,9 @@
 
 html {
   color-scheme: dark;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -43,6 +46,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
+  overflow-x: clip;
 }
 
 .app-glow::before {
@@ -126,6 +130,21 @@ body {
 
 .animate-fade-up {
   animation: fade-up 0.6s ease-out both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.28s ease-out both;
 }
 
 ::selection {
