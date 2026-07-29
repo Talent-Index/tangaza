@@ -59,6 +59,10 @@ function SubmitForm({ account }: { account: Account }) {
   const [note, setNote] = useState("");
   const { mutateAsync: sendTx, isPending: sending } = useSendAndConfirmTransaction();
   const [submitting, setSubmitting] = useState(false);
+  // True while the userOp is out of our hands but not yet confirmed. The button stays
+  // locked through this — re-sending while the first op is in flight is exactly what
+  // produces AA25 "another deployment operation is already being processed".
+  const [waitingChain, setWaitingChain] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null); // the submission tx hash
 
@@ -111,24 +115,26 @@ function SubmitForm({ account }: { account: Account }) {
           txHash = receipt.transactionHash;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (/Timeout waiting for userOp/i.test(msg)) {
-            // The op is usually still in flight — watch the chain for it.
-            txHash = await awaitSubmissionOnChain(onChain);
-            if (!txHash) {
-              throw new Error(
-                "Avalanche is being slow and your submission hasn't landed yet. " +
-                  "Leave this page open a moment and press Send again — if it already " +
-                  "went through, we'll find it instead of sending a duplicate."
-              );
+          if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
+            /**
+             * The op is out of our hands but very likely still in flight — a timed-out
+             * userOp usually mines after the SDK gives up, and AA25 means the bundler
+             * is literally telling us it still holds one. So do what the Builders Hub
+             * guidance says: do not offer Send again until the first op has resolved.
+             * Keep the button locked and watch the chain until the submission appears
+             * or we're confident it was dropped.
+             */
+            setWaitingChain(true);
+            try {
+              txHash = await awaitSubmissionOnChain(onChain, 4 * 60_000, 6_000);
+            } finally {
+              setWaitingChain(false);
             }
-          } else if (/AA25|already being processed/i.test(msg)) {
-            // The bundler still holds the earlier deployment op for this account.
-            txHash = await awaitSubmissionOnChain(onChain, 60_000);
             if (!txHash) {
               throw new Error(
-                "Your account's first transaction is still settling on Avalanche. " +
-                  "Give it a minute, then press Send again with the same proof — " +
-                  "we'll pick it up rather than double-file it."
+                "Avalanche didn't confirm your submission — the network dropped it. " +
+                  "Press Send again with the same proof; if it did land late, we'll " +
+                  "find it rather than double-file it."
               );
             }
           } else {
@@ -276,8 +282,22 @@ function SubmitForm({ account }: { account: Account }) {
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       <Button type="submit" disabled={submitting || sending || !canSubmit} className="w-full">
-        {sending ? "Recording on Avalanche…" : submitting ? "Sending…" : "Send for approval"}
+        {waitingChain
+          ? "Waiting for Avalanche to confirm…"
+          : sending
+            ? "Recording on Avalanche…"
+            : submitting
+              ? "Sending…"
+              : "Send for approval"}
       </Button>
+
+      {waitingChain ? (
+        <p className="text-center text-xs text-mist-500">
+          Your account&rsquo;s first transaction includes setting the account up
+          on-chain, which can take a couple of minutes. Leave this page open —
+          we&rsquo;ll pick it up the moment it lands.
+        </p>
+      ) : null}
 
       <Card className="bg-ink-850/60">
         <p className="text-xs leading-relaxed text-mist-500">

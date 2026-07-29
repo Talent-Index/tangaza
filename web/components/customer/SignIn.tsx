@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useConnect } from "thirdweb/react";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
@@ -32,6 +32,16 @@ export function SignIn() {
 
   const busy = isConnecting || sending;
   const error = emailError ?? connectError?.message ?? null;
+
+  // Core injects window.avalanche (and announces via EIP-6963). Checking up front
+  // means the button can say "get Core" before the click instead of erroring after.
+  const [coreInstalled, setCoreInstalled] = useState(false);
+  useEffect(() => {
+    setCoreInstalled(
+      typeof window !== "undefined" &&
+        Boolean((window as unknown as { avalanche?: unknown }).avalanche)
+    );
+  }, []);
 
   /**
    * `connect` wants a thunk that returns a connected wallet. `wallets[0]` is the
@@ -93,34 +103,35 @@ export function SignIn() {
         Continue with 𝕏
       </Button>
 
-      <Button
-        variant="ghost"
-        className="w-full"
-        disabled={busy}
-        onClick={() =>
-          void connect(async () => {
-            // Bring-your-own Core wallet. The EOA it exposes gets wrapped in a
-            // sponsored smart account by the accountAbstraction option above, so a
-            // Core user never needs AVAX either.
-            try {
+      {coreInstalled ? (
+        <Button
+          variant="ghost"
+          className="w-full"
+          disabled={busy}
+          onClick={() =>
+            void connect(async () => {
+              // Bring-your-own Core wallet. The EOA it exposes gets wrapped in a
+              // sponsored smart account by the accountAbstraction option above, so a
+              // Core user never needs AVAX either.
               await coreWallet.connect({ client });
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err);
-              if (/no provider|not detected|not installed|No wallet found/i.test(msg)) {
-                throw new Error(
-                  "Core wallet isn't installed in this browser — get it at core.app, or use Google/X above."
-                );
-              }
-              throw err;
-            }
-            return coreWallet;
-          }).catch((err: unknown) => {
-            if (err instanceof Error) setEmailError(err.message);
-          })
-        }
-      >
-        Continue with Core 🔺
-      </Button>
+              return coreWallet;
+            }).catch((err: unknown) => {
+              if (err instanceof Error) setEmailError(err.message);
+            })
+          }
+        >
+          Continue with Core 🔺
+        </Button>
+      ) : (
+        <a
+          href="https://core.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded-full border border-ink-600 py-3 text-center text-sm font-semibold text-mist-400 transition hover:border-ink-500 hover:text-mist-200"
+        >
+          Get Core Wallet 🔺 <span className="font-normal text-mist-500">— core.app</span>
+        </a>
+      )}
 
       {emailStage === "hidden" ? (
         <button
