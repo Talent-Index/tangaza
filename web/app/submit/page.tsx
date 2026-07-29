@@ -10,7 +10,7 @@ import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile, useEngagementTypes } from "@/lib/hooks";
+import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks";
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
@@ -46,14 +46,23 @@ export default function SubmitPage() {
 function SubmitForm({ account }: { account: Account }) {
   const address = account.address;
   const router = useRouter();
-  // Set when the advocate arrived from a shared campaign link.
-  const campaignId = useSearchParams().get("campaign");
+  /**
+   * Arriving from a shared campaign link changes whose form this is: the submission —
+   * the on-chain write included — targets the campaign's business, not the app's
+   * default org. A FitTribe campaign submission belongs to FitTribe.
+   */
+  const campaignSlug = useSearchParams().get("c");
+  const campaignCtx = useCampaign(campaignSlug ?? "", address);
+  const campaign = campaignSlug ? campaignCtx.data?.campaign : undefined;
+  const orgId = campaign ? BigInt(campaign.orgId) : ORG_ID;
   // Only a name they actually chose travels with the submission. The UI's display
   // name falls back to a nickname built from the address, and sending that would
   // persist a pseudonym as though they had picked it.
-  const me = useAdvocateProfile(address);
+  const me = useAdvocateProfile(address, orgId);
   const chosenName = me.data?.displayName;
-  const engagements = useEngagementTypes();
+  const engagements = useEngagementTypes(
+    campaignSlug && !campaign ? undefined : orgId
+  );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proof, setProof] = useState("");
@@ -68,7 +77,12 @@ function SubmitForm({ account }: { account: Account }) {
   const [done, setDone] = useState<string | null>(null); // the submission tx hash
   const { success, error: toastError } = useToast();
 
-  const types = engagements.data ?? [];
+  // Inside a campaign, only the engagements that campaign counts are offered.
+  const allTypes = engagements.data ?? [];
+  const types =
+    campaign && campaign.engagementTypeIds.length > 0
+      ? allTypes.filter((t) => campaign.engagementTypeIds.includes(t.id))
+      : allTypes;
   const selected = types.find((t) => t.id === selectedId) ?? null;
 
   // Preselect the first engagement once they arrive, without clobbering a real choice.
@@ -96,7 +110,7 @@ function SubmitForm({ account }: { account: Account }) {
        */
       const proofUrl = proof.trim() || undefined;
       const proofHash = proofHashOf(proofUrl);
-      const onChain = { orgId: ORG_ID, advocate: address, proofHash };
+      const onChain = { orgId, advocate: address, proofHash };
 
       /**
        * A previous attempt may have made it on-chain after the client gave up: the
@@ -111,7 +125,7 @@ function SubmitForm({ account }: { account: Account }) {
             prepareContractCall({
               contract,
               method: "submitActivity",
-              params: [ORG_ID, selected.chainCategory, proofHash],
+              params: [orgId, selected.chainCategory, proofHash],
             })
           );
           txHash = receipt.transactionHash;
@@ -149,13 +163,13 @@ function SubmitForm({ account }: { account: Account }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orgId: String(ORG_ID),
+          orgId: String(orgId),
           advocate: address,
           advocateLabel: chosenName,
           engagementTypeId: selected.id,
           proofUrl,
           note: note.trim() || undefined,
-          campaignId: campaignId ?? undefined,
+          campaignId: campaign?.id,
           submitTx: txHash,
         }),
       });
@@ -218,6 +232,11 @@ function SubmitForm({ account }: { account: Account }) {
   return (
     <form onSubmit={submit} className="animate-rise space-y-6">
       <div>
+        {campaign ? (
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-crimson-400">
+            {campaign.title}
+          </p>
+        ) : null}
         <h1 className="text-2xl font-black">Submit an activity</h1>
         <p className="mt-1 text-sm text-mist-500">
           Show us what you did. The Centre approves it, and it counts toward your next

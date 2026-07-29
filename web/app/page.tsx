@@ -11,7 +11,7 @@ import { isConfigured } from "@/lib/client";
 import { kesLabel, timeAgo } from "@/lib/format";
 import {
   useAdvocate,
-  useCampaigns,
+  useAllCampaigns,
   useCredits,
   useOrg,
   usePendingActivities,
@@ -201,9 +201,10 @@ function LevelCard({ address }: { address: string }) {
   );
 }
 
+/** What every business on the platform is pushing right now. */
 function CampaignStrip() {
-  const { data } = useCampaigns();
-  const live = (data ?? []).filter((c) => c.active);
+  const { data } = useAllCampaigns();
+  const live = data ?? [];
   if (live.length === 0) return null;
 
   return (
@@ -216,6 +217,7 @@ function CampaignStrip() {
               href={`/c/${c.slug}`}
               className="block rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
             >
+              <p className="text-xs text-mist-500">{c.orgName}</p>
               <p className="text-sm font-semibold">{c.title}</p>
               {c.blurb ? (
                 <p className="mt-1 line-clamp-2 text-xs text-mist-500">{c.blurb}</p>

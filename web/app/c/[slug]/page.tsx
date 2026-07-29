@@ -29,7 +29,11 @@ export default function CampaignPage({ params }: { params: Promise<{ slug: strin
 
 function CampaignView({ slug, address }: { slug: string; address?: string }) {
   const campaign = useCampaign(slug, address);
-  const engagements = useEngagementTypes();
+  // The campaign's own business, not the app's default org — a FitTribe campaign
+  // must list FitTribe's engagements, or "what counts" lies.
+  const engagements = useEngagementTypes(
+    campaign.data ? BigInt(campaign.data.campaign.orgId) : undefined
+  );
 
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,13 +151,7 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
             {counted.map((t) => (
               <li key={t.id}>
                 <Link
-                  href={
-                    joined && !closed
-                      ? `/submit?campaign=${c.id}`
-                      : closed
-                        ? "/"
-                        : `/submit?campaign=${c.id}`
-                  }
+                  href={closed ? "/" : `/submit?c=${c.slug}`}
                   className="flex items-center gap-3 rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
                 >
                   <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">

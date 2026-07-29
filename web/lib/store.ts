@@ -733,3 +733,89 @@ export async function markApplicationRegistered(
   const r = (rows as Array<Record<string, unknown>>)[0];
   return r ? toApplication(r) : undefined;
 }
+
+export interface UpsertCampaignInput {
+  id?: string;
+  orgId: string;
+  title: string;
+  blurb?: string;
+  endsAt?: string | null;
+  active?: boolean;
+  engagementTypeIds?: string[];
+}
+
+const slugify = (s: string) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
+
+/**
+ * Create or update a campaign, including which engagements count toward it.
+ *
+ * The slug is derived from the title at creation and then never changes — it is the
+ * shared link, and editing a title must not break every post that already points at
+ * the campaign. Collisions get a numeric suffix rather than an error because two
+ * businesses can plausibly both run a "launch-week".
+ */
+export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campaign> {
+  let row: Record<string, unknown>;
+
+  if (input.id) {
+    const rows = await sql`
+      update campaigns set
+        title = ${input.title}, blurb = ${input.blurb ?? null},
+        ends_at = ${input.endsAt ?? null},
+        active = ${input.active ?? true}
+      where id = ${input.id} and org_id = ${input.orgId}
+      returning *`;
+    row = (rows as Array<Record<string, unknown>>)[0];
+    if (!row) throw new Error("No such campaign for this org");
+  } else {
+    const base = slugify(input.title) || "campaign";
+    let created: Array<Record<string, unknown>> = [];
+    for (let n = 0; n < 5 && created.length === 0; n++) {
+      const slug = n === 0 ? base : `${base}-${n + 1}`;
+      created = (await sql`
+        insert into campaigns (org_id, slug, title, blurb, ends_at, active)
+        values (${input.orgId}, ${slug}, ${input.title}, ${input.blurb ?? null},
+                ${input.endsAt ?? null}, ${input.active ?? true})
+        on conflict (slug) do nothing
+        returning *`) as Array<Record<string, unknown>>;
+    }
+    if (created.length === 0) throw new Error("Could not find a free link for that title");
+    row = created[0];
+  }
+
+  if (input.engagementTypeIds) {
+    await sql`delete from campaign_engagements where campaign_id = ${row.id as string}`;
+    for (const etId of input.engagementTypeIds) {
+      await sql`insert into campaign_engagements (campaign_id, engagement_type_id)
+                select ${row.id as string}, id from engagement_types
+                where id = ${etId} and org_id = ${input.orgId}
+                on conflict do nothing`;
+    }
+  }
+
+  const full = await getCampaignBySlug(row.slug as string);
+  if (!full) throw new Error("Campaign vanished mid-save");
+  return full;
+}
+
+export interface CampaignWithOrg extends Campaign {
+  orgName: string;
+}
+
+/** Every live campaign across every registered business — the discovery feed. */
+export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
+  const rows = (await sql`
+    select c.*, o.name as org_name,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaigns c
+    join orgs o on o.id = c.org_id
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
+    where c.active and (c.ends_at is null or c.ends_at > now())
+    group by c.id, o.name
+    order by c.starts_at desc`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+}

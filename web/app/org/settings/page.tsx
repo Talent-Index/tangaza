@@ -47,7 +47,7 @@ function Settings() {
 
       <EngagementEditor orgId={orgId} />
       <TierEditor orgId={orgId} />
-      <CampaignList orgId={orgId} />
+      <CampaignEditor orgId={orgId} />
     </div>
   );
 }
@@ -309,58 +309,205 @@ function TierEditor({ orgId }: { orgId: bigint }) {
 
 /* --------------------------------------------------------------- campaigns */
 
-function CampaignList({ orgId }: { orgId: bigint }) {
+interface CampaignDraft {
+  id?: string;
+  title: string;
+  blurb: string;
+  endsAt: string;
+  engagementTypeIds: string[];
+}
+
+const EMPTY_DRAFT: CampaignDraft = { title: "", blurb: "", endsAt: "", engagementTypeIds: [] };
+
+/**
+ * Create, edit, open and close campaigns — live. Saving refreshes straight from the
+ * API, and the advocate side reads the same rows, so a change here is on "Happening
+ * now" and the campaign page as soon as they next load.
+ */
+function CampaignEditor({ orgId }: { orgId: bigint }) {
   const campaigns = useCampaigns(orgId);
-  const { success } = useToast();
+  const engagements = useEngagementTypes(orgId);
+  const [draft, setDraft] = useState<CampaignDraft>(EMPTY_DRAFT);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const types = engagements.data ?? [];
   const list = campaigns.data ?? [];
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: draft.id,
+          orgId: String(orgId),
+          title: draft.title,
+          blurb: draft.blurb || undefined,
+          endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
+          active: true,
+          engagementTypeIds: draft.engagementTypeIds,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not save");
+      setDraft(EMPTY_DRAFT);
+      campaigns.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setActive(c: { id: string; title: string; blurb?: string; endsAt?: string }, active: boolean) {
+    await fetch("/api/campaigns", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: c.id, orgId: String(orgId), title: c.title, blurb: c.blurb,
+        endsAt: c.endsAt ?? null, active,
+      }),
+    });
+    campaigns.refresh();
+  }
+
+  const toggleType = (id: string) =>
+    setDraft((d) => ({
+      ...d,
+      engagementTypeIds: d.engagementTypeIds.includes(id)
+        ? d.engagementTypeIds.filter((x) => x !== id)
+        : [...d.engagementTypeIds, id],
+    }));
 
   return (
     <section>
       <SectionTitle>Campaigns</SectionTitle>
-      {list.length === 0 ? (
-        <Card className="bg-ink-850/60">
-          <p className="text-sm text-mist-500">
-            No campaigns yet. They&rsquo;re seeded from <code>web/db</code> for now.
-          </p>
-        </Card>
-      ) : (
-        <ul className="space-y-2">
-          {list.map((c) => {
-            const url = `${typeof window !== "undefined" ? window.location.origin : ""}/c/${c.slug}`;
-            return (
-              <li key={c.id}>
-                <Card className="flex flex-wrap items-center gap-3 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">
-                      {c.title}{" "}
-                      {!c.active ? (
-                        <span className="text-xs font-normal text-mist-500">· closed</span>
-                      ) : null}
-                    </p>
-                    <p className="truncate text-xs text-mist-500">
-                      {c.participantCount} taking part · {c.engagementTypeIds.length}{" "}
-                      engagements count
-                    </p>
-                  </div>
-                  <code className="tabular truncate rounded-lg border border-ink-700 bg-ink-850 px-2 py-1 text-xs text-mist-400">
-                    /c/{c.slug}
-                  </code>
+
+      <ul className="mb-4 space-y-2">
+        {list.map((c) => {
+          const url = `${typeof window !== "undefined" ? window.location.origin : ""}/c/${c.slug}`;
+          return (
+            <li key={c.id}>
+              <Card className="flex flex-wrap items-center gap-3 py-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">
+                    {c.title}{" "}
+                    {!c.active ? (
+                      <span className="text-xs font-normal text-mist-500">· closed</span>
+                    ) : null}
+                  </p>
+                  <p className="truncate text-xs text-mist-500">
+                    {c.participantCount} taking part ·{" "}
+                    {c.engagementTypeIds.length || "all"} engagements count
+                    {c.endsAt ? ` · ends ${new Date(c.endsAt).toLocaleDateString()}` : ""}
+                  </p>
+                </div>
+                <code className="tabular truncate rounded-lg border border-ink-700 bg-ink-850 px-2 py-1 text-xs text-mist-400">
+                  /c/{c.slug}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(url)}
+                  className="text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+                >
+                  Copy link
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft({
+                      id: c.id,
+                      title: c.title,
+                      blurb: c.blurb ?? "",
+                      endsAt: c.endsAt ? c.endsAt.slice(0, 10) : "",
+                      engagementTypeIds: c.engagementTypeIds,
+                    })
+                  }
+                  className="text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActive(c, !c.active)}
+                  className="text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+                >
+                  {c.active ? "Close" : "Reopen"}
+                </button>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+
+      <Card>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
+          {draft.id ? "Edit campaign" : "New campaign"}
+        </p>
+        <form onSubmit={save} className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <input
+              required
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="Launch week"
+              className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            />
+            <input
+              type="date"
+              value={draft.endsAt}
+              onChange={(e) => setDraft({ ...draft, endsAt: e.target.value })}
+              className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+              aria-label="Ends on"
+            />
+          </div>
+          <textarea
+            rows={2}
+            value={draft.blurb}
+            onChange={(e) => setDraft({ ...draft, blurb: e.target.value })}
+            placeholder="What's the push, and why should people take part?"
+            className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+          />
+          {types.length > 0 ? (
+            <div>
+              <p className="mb-2 text-xs text-mist-500">
+                What counts (none selected = everything counts):
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {types.map((t) => (
                   <button
+                    key={t.id}
                     type="button"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(url);
-                      success("Campaign link copied");
-                    }}
-                    className="text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+                    onClick={() => toggleType(t.id)}
+                    className={`rounded-full border px-3 py-1 text-xs transition ${
+                      draft.engagementTypeIds.includes(t.id)
+                        ? "border-crimson-500 bg-crimson-500/15 text-crimson-300"
+                        : "border-ink-600 text-mist-400 hover:border-ink-500"
+                    }`}
                   >
-                    Copy link
+                    {t.icon} {t.label}
                   </button>
-                </Card>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={saving || !draft.title.trim()}>
+              {saving ? "Saving…" : draft.id ? "Save changes" : "Create campaign"}
+            </Button>
+            {draft.id ? (
+              <Button variant="ghost" onClick={() => setDraft(EMPTY_DRAFT)}>
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+        </form>
+        {error ? <div className="mt-3"><ErrorNote>{error}</ErrorNote></div> : null}
+      </Card>
     </section>
   );
 }

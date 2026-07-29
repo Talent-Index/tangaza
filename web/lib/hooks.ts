@@ -193,7 +193,7 @@ export function useOrgLedger(orgId: bigint = ORG_ID) {
  * Not polled: an org edits these from a settings screen every few weeks, not every few
  * seconds, and the submit form re-mounts often enough to stay current.
  */
-export function useEngagementTypes(orgId: bigint = ORG_ID) {
+export function useEngagementTypes(orgId: bigint | undefined = ORG_ID) {
   return useAsync<EngagementType[]>(
     async () => {
       const res = await fetch(`/api/engagement-types?orgId=${orgId}`, {
@@ -204,7 +204,7 @@ export function useEngagementTypes(orgId: bigint = ORG_ID) {
       return json.types;
     },
     [String(orgId)],
-    true
+    orgId !== undefined
   );
 }
 
@@ -254,6 +254,24 @@ export interface Campaign {
   active: boolean;
   engagementTypeIds: string[];
   participantCount: number;
+}
+
+export interface CampaignWithOrg extends Campaign {
+  orgName: string;
+}
+
+/** Every live campaign across every business — the advocate's discovery feed. */
+export function useAllCampaigns() {
+  return useAsync<CampaignWithOrg[]>(
+    async () => {
+      const res = await fetch("/api/campaigns?all=true", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load campaigns (${res.status})`);
+      return ((await res.json()) as { campaigns: CampaignWithOrg[] }).campaigns;
+    },
+    [],
+    true,
+    POLL_ORG
+  );
 }
 
 export function useCampaigns(orgId: bigint = ORG_ID) {
