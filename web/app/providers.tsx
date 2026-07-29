@@ -3,7 +3,7 @@
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
 import { AccountWarmup } from "@/components/AccountWarmup";
 import { ToastProvider } from "@/components/toast";
-import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
+import { client, coreWallet, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -21,9 +21,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AutoConnect
         client={client}
         wallets={[...wallets, coreWallet]}
-        // Restores a Core session as the same wrapped smart account it signed in with;
-        // the in-app wallet is already smart, so the wrapper skips it.
-        accountAbstraction={accountAbstraction}
         timeout={8_000}
       />
       <AccountWarmup />

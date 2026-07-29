@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useConnect } from "thirdweb/react";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
-import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
+import { client, coreWallet, wallets } from "@/lib/client";
 import { Button, ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
@@ -22,10 +22,7 @@ import { useToast } from "@/components/toast";
  * reload, because that came free with ConnectButton.
  */
 export function SignIn() {
-  const { connect, isConnecting, error: connectError } = useConnect({
-    client,
-    accountAbstraction,
-  });
+  const { connect, isConnecting, error: connectError } = useConnect({ client });
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 

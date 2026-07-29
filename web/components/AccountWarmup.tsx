@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useActiveAccount } from "thirdweb/react";
+import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { eth_getCode, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "@/lib/chain";
 import { client } from "@/lib/client";
@@ -25,10 +25,14 @@ import { client } from "@/lib/client";
  */
 export function AccountWarmup() {
   const account = useActiveAccount();
+  const wallet = useActiveWallet();
   const attempted = useRef(new Set<string>());
 
   useEffect(() => {
     if (!account) return;
+    // Only smart accounts have anything to deploy. A plain EOA (Core) has no code by
+    // nature, and a warmup tx from it would just spend the user's own gas on nothing.
+    if (wallet && wallet.id !== "inApp" && wallet.id !== "smart") return;
     const address = account.address;
     if (attempted.current.has(address)) return;
     attempted.current.add(address);
@@ -52,7 +56,7 @@ export function AccountWarmup() {
         // Best-effort by design; see the note above.
       }
     })();
-  }, [account]);
+  }, [account, wallet]);
 
   return null;
 }
