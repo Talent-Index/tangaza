@@ -1,7 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, Syne } from "next/font/google";
 import "./globals.css";
 import { CHAIN } from "@/lib/chain";
 import { Providers } from "./providers";
+
+const body = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const display = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Ubu-Tangaza — get paid for the word you spread",
@@ -10,14 +23,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08080c",
+  themeColor: "#050b18",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${body.variable} ${display.variable}`}>
       {/*
        * Signing in blocks on two round trips to two different origins: the in-app
        * wallet's auth API, then an RPC read to work out the advocate's smart-account
@@ -27,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
        */}
       <link rel="preconnect" href="https://embedded-wallet.thirdweb.com" crossOrigin="" />
       <link rel="preconnect" href={`https://${CHAIN.id}.rpc.thirdweb.com`} crossOrigin="" />
-      <body className="app-glow">
+      <body className="app-glow font-sans">
         <Providers>
           <div className="relative z-10">{children}</div>
         </Providers>

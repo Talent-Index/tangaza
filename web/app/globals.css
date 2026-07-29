@@ -1,35 +1,36 @@
 @import "tailwindcss";
 
-/* Ubu-Tangaza — dark surface, crimson accent.
-   The customer surface is phone-shaped and jargon-free by design: no "wallet",
-   no "gas", no token balances. Money is shown in KES. */
+/* Ubu-Tangaza — MetroPorter visual language (navy / accent blue).
+   Product stays advocacy rewards; chrome borrows MetroPorter professionalism.
+   Customer surface stays jargon-free: no "wallet", no "gas". Money in KES. */
 @theme {
-  --color-ink-950: #08080c;
-  --color-ink-900: #0b0b11;
-  --color-ink-850: #101017;
-  --color-ink-800: #14141c;
-  --color-ink-700: #1c1c26;
-  --color-ink-600: #262633;
-  --color-ink-500: #3a3a4a;
+  --color-ink-950: #050b18;
+  --color-ink-900: #070f1f;
+  --color-ink-850: #0a1428;
+  --color-ink-800: #0d1a32;
+  --color-ink-700: #152445;
+  --color-ink-600: #1e3258;
+  --color-ink-500: #2a4570;
 
-  --color-mist-500: #7c7c8f;
-  --color-mist-400: #9a9aad;
-  --color-mist-300: #c2c2d0;
-  --color-mist-100: #f2f2f6;
+  --color-mist-500: #7a8ba8;
+  --color-mist-400: #9aabc4;
+  --color-mist-300: #c5d0e0;
+  --color-mist-100: #f0f4fa;
 
-  --color-crimson-600: #b30f31;
-  --color-crimson-500: #dc143c;
-  --color-crimson-400: #f0325a;
-  --color-crimson-300: #ff6b8a;
+  /* Accent blue (kept as crimson-* class names so existing screens re-skin cleanly) */
+  --color-crimson-600: #1565c0;
+  --color-crimson-500: #1e7aef;
+  --color-crimson-400: #3d93ff;
+  --color-crimson-300: #7eb6ff;
 
   --color-jade-500: #17b877;
   --color-jade-400: #34d399;
   --color-amber-glow: #f0a835;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 1rem;
+  --radius-card: 0.75rem;
 }
 
 html {
@@ -44,7 +45,6 @@ body {
   min-height: 100dvh;
 }
 
-/* Ambient crimson wash behind the app — cheap, but it sells the brand. */
 .app-glow::before {
   content: "";
   position: fixed;
@@ -52,17 +52,17 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(60rem 40rem at 50% -10%, rgb(220 20 60 / 0.16), transparent 65%),
-    radial-gradient(40rem 30rem at 100% 100%, rgb(220 20 60 / 0.07), transparent 60%);
+    radial-gradient(70rem 45rem at 50% -15%, rgb(30 122 239 / 0.18), transparent 65%),
+    radial-gradient(40rem 30rem at 100% 100%, rgb(30 122 239 / 0.08), transparent 60%);
 }
 
 @utility card {
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, var(--color-ink-800) 92%, white 8%),
+    color-mix(in oklab, var(--color-ink-800) 88%, white 12%),
     var(--color-ink-850)
   );
-  border: 1px solid var(--color-ink-700);
+  border: 1px solid color-mix(in oklab, var(--color-ink-600) 70%, white 8%);
   border-radius: var(--radius-card);
 }
 
@@ -70,7 +70,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Respect reduced-motion for every animation in the app. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -84,7 +83,7 @@ body {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -93,16 +92,16 @@ body {
 }
 
 .animate-rise {
-  animation: rise 0.35s ease-out both;
+  animation: rise 0.45s ease-out both;
 }
 
 @keyframes pop {
   0% {
-    transform: scale(0.9);
+    transform: scale(0.92);
     opacity: 0;
   }
   60% {
-    transform: scale(1.04);
+    transform: scale(1.03);
   }
   100% {
     transform: scale(1);
@@ -112,6 +111,21 @@ body {
 
 .animate-pop {
   animation: pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out both;
 }
 
 ::selection {

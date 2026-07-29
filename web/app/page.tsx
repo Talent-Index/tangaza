@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
-import { SignIn } from "@/components/customer/SignIn";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { ProgressRing } from "@/components/customer/ProgressRing";
 import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner } from "@/components/ui";
 import { MILESTONE_ACTIVITIES, ORG_ID, CREDIT_VALUE_KES } from "@/lib/chain";
@@ -18,67 +18,15 @@ import {
   useTiers,
 } from "@/lib/hooks";
 
-
 export default function Page() {
   const account = useActiveAccount();
+  if (!account) return <LandingPage />;
   return (
-    <CustomerShell>{account ? <Home address={account.address} /> : <Welcome />}</CustomerShell>
+    <CustomerShell>
+      <Home address={account.address} />
+    </CustomerShell>
   );
 }
-
-/* ------------------------------------------------------------------ screen 1 */
-
-function Welcome() {
-  return (
-    <div className="animate-rise flex flex-col items-center pt-8 text-center">
-      <div className="mb-8 grid size-20 place-items-center rounded-3xl bg-crimson-500 text-4xl font-black text-white shadow-[0_20px_60px_-15px_rgb(220_20_60/0.8)]">
-        U
-      </div>
-
-      <h1 className="text-3xl font-black leading-tight">
-        Get paid for the
-        <br />
-        word you spread.
-      </h1>
-      <p className="mt-4 max-w-xs text-mist-400">
-        Refer a friend, post about us, bring an event. Every 20 approved activities earns
-        you {kesLabel(CREDIT_VALUE_KES)} in real rewards.
-      </p>
-
-      <div className="mt-10 w-full">
-        <SignIn />
-      </div>
-
-      <p className="mt-4 text-xs text-mist-500">
-        No passwords. No seed phrase. No fees — ever.
-      </p>
-
-      <div className="mt-12 grid w-full grid-cols-3 gap-2 text-center">
-        {[
-          { icon: "👥", label: "Refer" },
-          { icon: "𝕏", label: "Post" },
-          { icon: "🎤", label: "Host" },
-        ].map((item) => (
-          <Card key={item.label} className="px-2 py-4">
-            <div className="text-xl" aria-hidden>
-              {item.icon}
-            </div>
-            <p className="mt-1 text-xs text-mist-400">{item.label}</p>
-          </Card>
-        ))}
-      </div>
-
-      <Link
-        href="/register"
-        className="mt-10 text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300"
-      >
-        I run a business →
-      </Link>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ screen 2 */
 
 function Home({ address }: { address: string }) {
   const org = useOrg();
@@ -164,7 +112,7 @@ function Home({ address }: { address: string }) {
             {pendingItems.map((item) => (
               <li key={item.id}>
                 <Card className="flex items-center gap-3 py-4">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-700 text-lg">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink-700 text-lg">
                     {item.typeIcon}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -192,15 +140,6 @@ function Home({ address }: { address: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ levels */
-
-/**
- * Where you stand on the business's ladder.
- *
- * Distinct from the progress ring above it, which counts toward the KES 500 credit the
- * contract mints. This is what the house gives you for being a regular — the business
- * sets it, and it can change without touching anything the chain enforces.
- */
 function LevelCard({ address }: { address: string }) {
   const { data } = useTiers(address);
   const standing = data?.standing;
@@ -212,7 +151,6 @@ function LevelCard({ address }: { address: string }) {
   const next = standing.nextLevelName;
   const toGo = standing.weightToNext ?? 0;
 
-  // How far between the level reached and the next one.
   const floor = tiers.find((t) => t.name === current)?.thresholdWeight ?? 0;
   const ceiling = tiers.find((t) => t.name === next)?.thresholdWeight ?? floor;
   const span = Math.max(1, ceiling - floor);
@@ -263,9 +201,6 @@ function LevelCard({ address }: { address: string }) {
   );
 }
 
-/* --------------------------------------------------------------- campaigns */
-
-/** What the business is pushing right now. */
 function CampaignStrip() {
   const { data } = useCampaigns();
   const live = (data ?? []).filter((c) => c.active);

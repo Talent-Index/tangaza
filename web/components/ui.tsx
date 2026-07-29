@@ -44,15 +44,16 @@ export function Button({
   onClick?: () => void;
   disabled?: boolean;
   href?: string;
-  variant?: "primary" | "ghost" | "danger";
+  variant?: "primary" | "ghost" | "danger" | "light";
   className?: string;
   type?: "button" | "submit";
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
+    "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
   const styles = {
     primary:
-      "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(220_20_60/0.7)]",
+      "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(30_122_239/0.65)]",
+    light: "bg-white text-ink-950 hover:bg-mist-100",
     ghost: "border border-ink-600 text-mist-300 hover:border-ink-500 hover:text-mist-100",
     danger: "border border-crimson-600 text-crimson-300 hover:bg-crimson-600/15",
   }[variant];
@@ -135,7 +136,7 @@ export function TxReceipt({ hash, label = "Recorded on Avalanche" }: { hash: str
       href={txUrl(hash)}
       target="_blank"
       rel="noopener noreferrer"
-      className="group inline-flex items-center gap-2 rounded-lg border border-ink-600 bg-ink-850 px-3 py-2 text-xs text-mist-400 transition hover:border-crimson-500/50 hover:text-mist-100"
+      className="group inline-flex items-center gap-2 rounded-full border border-ink-600 bg-ink-850 px-3 py-2 text-xs text-mist-400 transition hover:border-crimson-500/50 hover:text-mist-100"
     >
       <span className="size-1.5 rounded-full bg-jade-400" />
       <span>{label}</span>
@@ -182,7 +183,7 @@ export function EmptyState({
 
 export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-lg border border-crimson-500/40 bg-crimson-500/10 px-3 py-2 text-sm text-crimson-300">
+    <p className="rounded-xl border border-crimson-500/40 bg-crimson-500/10 px-3 py-2 text-sm text-crimson-300">
       {children}
     </p>
   );
@@ -200,5 +201,15 @@ export function ConfigWarning() {
         <code className="text-mist-300">NEXT_PUBLIC_CONTRACT_ADDRESS</code>.
       </p>
     </Card>
+  );
+}
+
+/** Split-color wordmark in the MetroPorter style. */
+export function BrandMark({ className = "" }: { className?: string }) {
+  return (
+    <span className={`font-display text-lg font-bold tracking-tight ${className}`}>
+      <span className="text-white">ubu</span>
+      <span className="text-crimson-400">tangaza</span>
+    </span>
   );
 }

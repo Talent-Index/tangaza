@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActiveAccount } from "thirdweb/react";
+import { BrandMark } from "@/components/ui";
 import { useDisplayName } from "@/lib/hooks";
 
 const NAV = [
@@ -24,15 +25,10 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-6">
       <header className="mb-6 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-crimson-500 text-sm font-black text-white">
-            U
-          </span>
-          <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
+          <BrandMark />
         </Link>
 
         {account ? (
-          // Tappable, because the name shown here is a guess until you correct it —
-          // an X login gives us neither a name nor an email to work from.
           <Link
             href="/profile"
             aria-label="Your profile"
@@ -50,7 +46,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
 
       {account ? (
         <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-5 pb-5">
-          <div className="flex items-center justify-around rounded-2xl border border-ink-700 bg-ink-850/95 p-1.5 backdrop-blur">
+          <div className="flex items-center justify-around rounded-full border border-ink-700 bg-ink-850/95 p-1.5 backdrop-blur">
             {NAV.map((item) => {
               const active =
                 item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -59,7 +55,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-medium transition ${
+                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
                     active
                       ? "bg-crimson-500/15 text-crimson-300"
                       : "text-mist-500 hover:text-mist-300"
