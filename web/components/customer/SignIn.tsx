@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useConnect } from "thirdweb/react";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
-import { client, wallets } from "@/lib/client";
+import { accountAbstraction, client, coreWallet, wallets } from "@/lib/client";
 import { Button, ErrorNote, Spinner } from "@/components/ui";
 
 /**
@@ -21,7 +21,7 @@ import { Button, ErrorNote, Spinner } from "@/components/ui";
  * reload, because that came free with ConnectButton.
  */
 export function SignIn() {
-  const { connect, isConnecting, error: connectError } = useConnect({ client });
+  const { connect, isConnecting, error: connectError } = useConnect({ client, accountAbstraction });
 
   // Email is a two-step OTP, so it needs somewhere to live. Google and X are one tap.
   const [emailStage, setEmailStage] = useState<"hidden" | "address" | "code">("hidden");
@@ -91,6 +91,35 @@ export function SignIn() {
         onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
       >
         Continue with 𝕏
+      </Button>
+
+      <Button
+        variant="ghost"
+        className="w-full"
+        disabled={busy}
+        onClick={() =>
+          void connect(async () => {
+            // Bring-your-own Core wallet. The EOA it exposes gets wrapped in a
+            // sponsored smart account by the accountAbstraction option above, so a
+            // Core user never needs AVAX either.
+            try {
+              await coreWallet.connect({ client });
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (/no provider|not detected|not installed|No wallet found/i.test(msg)) {
+                throw new Error(
+                  "Core wallet isn't installed in this browser — get it at core.app, or use Google/X above."
+                );
+              }
+              throw err;
+            }
+            return coreWallet;
+          }).catch((err: unknown) => {
+            if (err instanceof Error) setEmailError(err.message);
+          })
+        }
+      >
+        Continue with Core 🔺
       </Button>
 
       {emailStage === "hidden" ? (

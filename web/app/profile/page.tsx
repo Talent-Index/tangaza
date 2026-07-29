@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
-import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
+import { Button, Card, ErrorNote, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile } from "@/lib/hooks";
+import { useAdvocateProfile, useOnChainHistory } from "@/lib/hooks";
+import { timeAgo } from "@/lib/format";
 import { normaliseHandle } from "@/lib/types";
 
 /**
@@ -170,15 +171,73 @@ function ProfileForm({ address }: { address: string }) {
         {saving ? "Saving…" : "Save"}
       </Button>
 
+      <OnChainRecord address={address} />
+
       <section>
         <SectionTitle>Your account</SectionTitle>
         <Card className="bg-ink-850/60">
           <p className="text-xs leading-relaxed text-mist-500">
             No seed phrase, no gas, no balance to top up — your account is created from
-            the social login you used and the Centre sponsors every transaction.
+            the social login you used and the Centre sponsors every transaction. Prefer
+            your own wallet? Core works too, from the sign-in screen.
           </p>
         </Card>
       </section>
     </form>
+  );
+}
+
+
+/* -------------------------------------------------------------- on-chain record */
+
+const HISTORY_STYLE = {
+  submitted: { icon: "📤", label: "Submitted an activity" },
+  approved: { icon: "✅", label: "Activity approved" },
+  earned: { icon: "🎉", label: "Credit minted" },
+  redeemed: { icon: "🔥", label: "Credit burned for a reward" },
+} as const;
+
+/**
+ * The wallet's own story, read straight off Avalanche. Every row is a transaction —
+ * open it in Snowtrace, or watch the same history from Core or any wallet that holds
+ * this account. Nothing here comes from our database.
+ */
+function OnChainRecord({ address }: { address: string }) {
+  const history = useOnChainHistory(address);
+  const entries = history.data ?? [];
+
+  if (history.loading && entries.length === 0) return null;
+  if (entries.length === 0) return null;
+
+  return (
+    <section>
+      <SectionTitle>Your on-chain record</SectionTitle>
+      <ul className="space-y-2">
+        {entries.map((e) => {
+          const style = HISTORY_STYLE[e.kind];
+          return (
+            <li key={`${e.txHash}-${e.kind}-${e.timestamp}`}>
+              <Card className="flex flex-wrap items-center gap-3 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-ink-700 text-base">
+                  {style.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    {style.label}
+                    {e.valueKES ? ` · KES ${e.valueKES}` : ""}
+                  </p>
+                  <p className="text-xs text-mist-500">{timeAgo(e.timestamp)}</p>
+                </div>
+                <TxReceipt hash={e.txHash} label="On Avalanche" />
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-xs text-mist-500">
+        Read straight from Avalanche — none of this comes from our database, and any
+        wallet holding this account sees the same history.
+      </p>
+    </section>
   );
 }

@@ -5,7 +5,12 @@ import { useProfiles } from "thirdweb/react";
 import { ORG_ID } from "./chain";
 import { client, isConfigured } from "./client";
 import { advocateName } from "./format";
-import { loadOrgLedger, type OrgLedger } from "./events";
+import {
+  loadAdvocateHistory,
+  loadOrgLedger,
+  type AdvocateHistoryEntry,
+  type OrgLedger,
+} from "./events";
 import {
   getAdvocate,
   getCredits,
@@ -260,6 +265,19 @@ export function useDirectory(orgId: bigint = ORG_ID) {
     [String(orgId)],
     true,
     POLL_ORG
+  );
+}
+
+/**
+ * One wallet's on-chain story: submissions it recorded, approvals, credits minted,
+ * credits burned — every entry a real transaction it can show from any wallet app.
+ */
+export function useOnChainHistory(address?: string, orgId: bigint = ORG_ID) {
+  return useAsync<AdvocateHistoryEntry[]>(
+    () => loadAdvocateHistory(address!, orgId),
+    [address, String(orgId)],
+    isConfigured && Boolean(address),
+    POLL_LEDGER
   );
 }
 

@@ -1,5 +1,5 @@
 import { createThirdwebClient, getContract } from "thirdweb";
-import { inAppWallet } from "thirdweb/wallets";
+import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { CHAIN } from "./chain";
 import { TANGAZA_ABI } from "./abi";
 
@@ -49,3 +49,21 @@ export const wallets = [
     },
   }),
 ];
+
+/**
+ * Avalanche's own wallet, as a bring-your-own option. Core does seedless accounts
+ * from social logins on its side, so "sign in with Google" and "use my Core wallet"
+ * can be the same person on different days.
+ */
+export const coreWallet = createWallet("app.core.extension");
+
+/**
+ * Wraps any non-smart wallet (i.e. Core's EOA) in an ERC-4337 smart account with
+ * sponsored gas, so a Core user gets the same no-AVAX experience as everyone else.
+ * thirdweb's connection manager checks isSmartWallet() first, so the in-app wallet —
+ * already a smart account by construction — is never double-wrapped by this.
+ */
+export const accountAbstraction = {
+  chain: CHAIN,
+  sponsorGas: true,
+};
