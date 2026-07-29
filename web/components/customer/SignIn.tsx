@@ -113,7 +113,7 @@ export function SignIn() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="min-w-0 flex-1 rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            className="min-w-0 flex-1 rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
           <Button type="submit" variant="ghost" disabled={busy || !email}>
             {sending ? <Spinner /> : null}
@@ -137,7 +137,7 @@ export function SignIn() {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               placeholder="6-digit code"
-              className="tabular min-w-0 flex-1 rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+              className="tabular min-w-0 flex-1 rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
             />
             <Button type="submit" disabled={busy || !code}>
               {isConnecting ? <Spinner /> : null}

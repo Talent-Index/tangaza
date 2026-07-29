@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { BrandMark } from "@/components/ui";
 import { ORG_APPROVER, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 import { shortAddress } from "@/lib/format";
@@ -23,36 +24,34 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 py-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-6">
           <Link href="/org" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-crimson-500 text-sm font-black text-white">
-              U
-            </span>
-            <span className="text-lg font-bold tracking-tight">
-              Ubu-Tangaza <span className="text-mist-500">for business</span>
-            </span>
+            <BrandMark />
+            <span className="hidden text-sm text-mist-500 sm:inline">Business</span>
           </Link>
 
-          <nav className="flex items-center gap-1">
-            {NAV.map((item) => {
-              const active =
-                item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    active
-                      ? "bg-ink-800 text-mist-100"
-                      : "text-mist-500 hover:text-mist-300"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          {account ? (
+            <nav className="flex flex-wrap items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1">
+              {NAV.map((item) => {
+                const active =
+                  item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                      active
+                        ? "bg-crimson-500/15 text-crimson-300"
+                        : "text-mist-500 hover:text-mist-300"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-3">
@@ -82,11 +81,6 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * The header's account corner. Unlike the advocate surface, the org *does* get to see
- * its address — it signs the approvals, and it needs a way to sign out of a shared
- * laptop. That's the whole of what <ConnectButton />'s details panel was doing here.
- */
 function SignedInAs() {
   const account = useActiveAccount();
   const wallet = useActiveWallet();
@@ -95,7 +89,7 @@ function SignedInAs() {
   if (!account) return null;
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-ink-700 bg-ink-850 px-3 py-2">
+    <div className="flex items-center gap-2 rounded-full border border-ink-700 bg-ink-850 px-3 py-2">
       <span className="tabular text-xs text-mist-400">
         {shortAddress(account.address)}
       </span>
@@ -112,14 +106,38 @@ function SignedInAs() {
 
 function OrgSignedOut() {
   return (
-    <div className="grid place-items-center py-32 text-center">
-      <h1 className="text-3xl font-black">Approve advocacy. Control the bill.</h1>
-      <p className="mt-3 max-w-md text-mist-400">
-        Sign in to review what your advocates did, approve the real ones, and watch your
-        reward liability from a budget that can never grow.
-      </p>
-      <div className="mt-8 w-full max-w-xs">
-        <SignIn />
+    <div className="relative grid place-items-center py-16">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
+        aria-hidden
+      />
+      <div className="relative w-full max-w-md">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="rounded-md bg-ink-900 px-3 py-2">
+            <BrandMark className="text-base" />
+          </div>
+          <Link
+            href="/"
+            className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200"
+          >
+            Advocate portal →
+          </Link>
+        </div>
+        <div className="card px-6 py-8 sm:px-8">
+          <p className="text-center text-sm text-mist-500">
+            Log in to approve advocacy and manage liability
+          </p>
+          <h1 className="mt-3 text-center font-display text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl">
+            Business portal.
+          </h1>
+          <p className="mx-auto mt-4 max-w-sm text-center text-sm text-mist-500">
+            Review what your advocates did, approve the real ones, and watch reward liability
+            from a budget that can never grow.
+          </p>
+          <div className="mt-8">
+            <SignIn />
+          </div>
+        </div>
       </div>
     </div>
   );

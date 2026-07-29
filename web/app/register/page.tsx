@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
-import { Button, Card, ErrorNote, SectionTitle } from "@/components/ui";
+import { BrandMark, Button, Card, ErrorNote, SectionTitle } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
 
@@ -26,10 +26,7 @@ export default function RegisterPage() {
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-6 py-10">
       <header className="mb-10 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-crimson-500 text-sm font-black text-white">
-            U
-          </span>
-          <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
+          <BrandMark />
         </Link>
         <Link href="/org" className="text-xs text-mist-500 hover:text-mist-300">
           Already registered? →
@@ -47,7 +44,9 @@ function SignedOut() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black leading-tight">Reward the people who talk about you.</h1>
+        <h1 className="font-display text-3xl font-bold leading-tight tracking-tight">
+          Reward the people who talk about you.
+        </h1>
         <p className="mt-3 max-w-lg text-mist-400">
           Put up a budget, say what you&rsquo;ll give back, and let your community earn
           it. The budget is written once on Avalanche and can never be raised — not by
@@ -55,9 +54,12 @@ function SignedOut() {
         </p>
       </div>
       <Card>
-        <p className="mb-4 text-sm text-mist-400">
-          Sign in with the account that will approve activities.
+        <p className="mb-1 text-center text-sm text-mist-500">
+          Sign in with the account that will approve activities
         </p>
+        <h2 className="mb-6 text-center font-display text-2xl font-bold uppercase tracking-tight">
+          Register portal.
+        </h2>
         <SignIn />
       </Card>
     </div>
@@ -135,7 +137,7 @@ function ApplyForm({ address }: { address: string }) {
   return (
     <form onSubmit={apply} className="animate-rise space-y-8">
       <div>
-        <h1 className="text-2xl font-black">Register your business</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Register your business</h1>
         <p className="mt-1 text-sm text-mist-500">
           Signing in as{" "}
           <code className="tabular text-mist-300">
@@ -152,7 +154,7 @@ function ApplyForm({ address }: { address: string }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Blockchain Centre Kenya"
-            className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
         </Field>
         <Field label="Contact email">
@@ -161,7 +163,7 @@ function ApplyForm({ address }: { address: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@business.co.ke"
-            className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
         </Field>
       </div>
@@ -174,7 +176,7 @@ function ApplyForm({ address }: { address: string }) {
           step={500}
           value={cap}
           onChange={(e) => setCap(Number(e.target.value))}
-          className="tabular w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none focus:border-crimson-500"
+          className="tabular w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none focus:border-crimson-500"
         />
         <p className="mt-2 text-xs text-mist-500">
           {kesLabel(cap)} is {Math.floor(cap / 500)} rewards of KES 500. Written once
