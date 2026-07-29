@@ -1,0 +1,175 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #070a12; color: #e8eaf0; }
+  .slide { width: 13.333in; height: 7.5in; page-break-after: always; padding: .85in .95in;
+           position: relative; display: flex; flex-direction: column; background: #070a12; overflow: hidden; }
+  .slide::before { content:""; position:absolute; inset:0;
+           background: radial-gradient(60% 70% at 75% 15%, rgba(220,20,60,.10), transparent 65%); }
+  .slide > * { position: relative; }
+  .kicker { font-size: 13pt; letter-spacing: .22em; text-transform: uppercase; color: #dc3054; font-weight: 700; margin-bottom: .22in; }
+  h1 { font-size: 46pt; font-weight: 900; line-height: 1.06; letter-spacing: -.01em; }
+  h2 { font-size: 33pt; font-weight: 850; line-height: 1.1; margin-bottom: .30in; letter-spacing: -.01em; }
+  p, li { font-size: 15.5pt; line-height: 1.5; color: #aab2c5; }
+  strong { color: #e8eaf0; }
+  .accent { color: #ef4368; }
+  .footer { position: absolute; bottom: .45in; left: .95in; right: .95in; display: flex; justify-content: space-between;
+            font-size: 10pt; color: #5b6478; }
+  .mono { font-family: ui-monospace, "Cascadia Code", monospace; }
+  .card { background: #10151f; border: 1px solid #232a3a; border-radius: 14px; padding: .28in .34in; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .3in; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .3in; }
+  .big { font-size: 54pt; font-weight: 900; color: #e8eaf0; line-height: 1; }
+  .lbl { font-size: 11.5pt; text-transform: uppercase; letter-spacing: .14em; color: #7d8598; margin-bottom: .12in; }
+  ul { list-style: none; }
+  ul li { padding-left: .32in; position: relative; margin-bottom: .16in; }
+  ul li::before { content: ""; position: absolute; left: 0; top: .14in; width: .11in; height: .11in;
+                  border-radius: 999px; background: #dc3054; }
+  .step { display: flex; align-items: center; gap: .22in; margin-bottom: .21in; }
+  .stepn { flex: none; width: .52in; height: .52in; border-radius: 999px; background: rgba(220,20,60,.16);
+           border: 1.5px solid #dc3054; color: #ef4368; font-weight: 800; font-size: 16pt;
+           display: flex; align-items: center; justify-content: center; }
+  .quote { border-left: 3px solid #dc3054; padding-left: .3in; font-size: 16.5pt; color: #cfd5e2; font-style: italic; line-height: 1.5; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { text-align: left; padding: .13in .18in; font-size: 13.5pt; border-bottom: 1px solid #1d2433; color: #aab2c5; }
+  th { color: #7d8598; font-size: 11pt; text-transform: uppercase; letter-spacing: .12em; }
+  .ok { color: #35d492; }
+  .logo { display:flex; align-items:center; gap:.16in; margin-bottom:.5in; }
+  .logomark { width:.5in; height:.5in; border-radius: 12px; background:#dc3054; color:#fff; font-weight:900;
+              font-size:20pt; display:flex; align-items:center; justify-content:center; }
+</style></head><body>
+
+<!-- 1 · TITLE -->
+<section class="slide" style="justify-content:center">
+  <div class="logo"><div class="logomark">U</div><span style="font-size:17pt;font-weight:700">Ubu-Tangaza</span></div>
+  <h1>Get paid for the<br>word you spread.</h1>
+  <p style="margin-top:.35in; font-size:19pt; max-width:9.5in"><strong>Proof-of-advocacy rewards on Avalanche.</strong>
+     Real behaviour, attested by the business, paid from a budget written once on-chain — that can never be raised.</p>
+  <p style="margin-top:.3in; font-size:14pt"><span class="accent">ubu</span> — from <em>ubuntu</em>: a person is a person through other people ·
+     <span class="accent">tangaza</span> — Swahili: <em>to announce</em></p>
+  <div class="footer"><span>Team1 Kenya · Avalanche Game Jam 2026</span>
+    <span class="mono">live on Fuji · ubu-tangaza.vercel.app</span></div>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Word of mouth builds Kenyan businesses.<br>Nobody can pay for it safely.</h2>
+  <ul style="max-width:10.5in; margin-top:.1in">
+    <li><strong>The advocates get nothing.</strong> The customer who brings five friends gets a handshake.</li>
+    <li><strong>Loyalty points die of success.</strong> Unlimited emission &rarr; unbudgeted liability &rarr; program cancelled, trust burned.</li>
+    <li><strong>Influencer spend is unverifiable.</strong> You pay for reach, not for people through the door.</li>
+  </ul>
+  <p style="margin-top:.35in" class="quote">One contract fixes both sides: advocacy becomes attested and payable,
+     and the budget becomes physically impossible to overrun.</p>
+  <div class="footer"><span>Ubu-Tangaza</span><span>2</span></div>
+</section>
+
+<!-- 3 · ROUTLEDGE -->
+<section class="slide">
+  <div class="kicker">Name the behaviour · name the metric</div>
+  <h2>Bring a friend. Post about us.<br>Measured to the shilling.</h2>
+  <div class="grid3" style="margin-top:.15in">
+    <div class="card"><div class="lbl">The behaviour</div>
+      <p style="font-size:14.5pt"><strong>A member brings a person through the door, or posts about the business</strong> — and their own wallet records it on-chain.</p></div>
+    <div class="card"><div class="lbl">The metric — live today</div>
+      <div class="big">KES 15</div>
+      <p style="font-size:12.5pt; margin-top:.14in">per <strong>verified</strong> advocacy action<br>= committed budget &divide; approved activities, computed from chain state</p></div>
+    <div class="card"><div class="lbl">Repeat behaviour</div>
+      <p style="font-size:14.5pt"><strong>Streaks</strong> (consecutive active days, on-chain) and <strong>levels</strong> — Regular &rarr; Champion &rarr; Founder&rsquo;s Circle — set by each business.</p></div>
+  </div>
+  <div class="footer"><span>Ubu-Tangaza</span><span>3</span></div>
+</section>
+
+<!-- 4 · THE LOOP -->
+<section class="slide">
+  <div class="kicker">One behaviour · one mechanic</div>
+  <h2>The loop</h2>
+  <div style="max-width:10.8in">
+    <div class="step"><div class="stepn">1</div><p><strong>Advocate&rsquo;s wallet writes the activity on-chain</strong> — <span class="mono">submitActivity()</span>, gas sponsored, <span class="mono">msg.sender</span> is the identity</p></div>
+    <div class="step"><div class="stepn">2</div><p><strong>Business approves with its wallet</strong> — the contract rejects every other signer (<span class="mono">NotApprover</span>)</p></div>
+    <div class="step"><div class="stepn">3</div><p><strong>Every 20 approved activities mints a KES 500 credit</strong> — engagement weights set by the business price each act</p></div>
+    <div class="step"><div class="stepn">4</div><p><strong>Burn-on-redeem</strong> — airtime, data or voucher; every redemption shrinks the business&rsquo;s liability</p></div>
+  </div>
+  <p style="margin-top:.24in">Composed from the cohort&rsquo;s building blocks — capped token + streaks + tiers — in one contract, <strong>45 tests passing</strong>.</p>
+  <div class="footer"><span>Ubu-Tangaza</span><span>4</span></div>
+</section>
+
+<!-- 5 · DEMO -->
+<section class="slide">
+  <div class="kicker">Live — every step a real Fuji transaction</div>
+  <h2>The demo <span class="accent">is</span> the product</h2>
+  <div class="grid2" style="margin-top:.1in">
+    <div class="card">
+      <div class="lbl">&#128241; Phone — the advocate</div>
+      <p style="font-size:14pt">Opens the campaign &rarr; submits proof &rarr; <strong>Core prompts, she signs</strong> &rarr;
+      &ldquo;Recorded on Avalanche&rdquo; with her own tx hash on screen.</p></div>
+    <div class="card">
+      <div class="lbl">&#128187; Laptop — the business</div>
+      <p style="font-size:14pt">The queue shows it, with the <em>&ldquo;submitted on-chain by their wallet&rdquo;</em> link &rarr;
+      <strong>Approve, Core prompts, they sign</strong> &rarr; mined; count &amp; streak move on-chain.</p></div>
+  </div>
+  <p style="margin-top:.3in" class="quote">&ldquo;No placeholder data. That was her wallet writing to Fuji — and the contract
+     just refused every other signer on this chain.&rdquo;</p>
+  <div class="footer"><span>Ubu-Tangaza</span><span>5</span></div>
+</section>
+
+<!-- 6 · SOLVENCY -->
+<section class="slide">
+  <div class="kicker">Can it survive success?</div>
+  <h2>The chain enforces the CFO</h2>
+  <div class="grid2" style="margin-top:.05in">
+    <div class="card"><div class="lbl">1 · Budget-backed</div><p style="font-size:13.5pt">No org exists without committing <span class="mono">emissionCapKES</span>. Every credit is KES 500 of airtime, data or voucher.</p></div>
+    <div class="card"><div class="lbl">2 · Capped emission</div><p style="font-size:13.5pt">Written once. <strong>No function can raise it</strong> — CI pins the contract&rsquo;s full function list; verified source on Snowtrace.</p></div>
+    <div class="card"><div class="lbl">3 · Sinks that work</div><p style="font-size:13.5pt">Burn-on-redeem shrinks outstanding liability — and redemptions <strong>never reopen minting headroom</strong>.</p></div>
+    <div class="card"><div class="lbl">4 · Value from the product</div><p style="font-size:13.5pt">Earned by attested behaviour, spent on real rewards. Non-transferable: no market, no speculation loop.</p></div>
+  </div>
+  <p style="margin-top:.26in">At the cap: activities still record, <span class="mono">BudgetExhausted</span> fires, <strong>nothing reverts</strong> — worst-case cost is known on day one.</p>
+  <div class="footer"><span>Ubu-Tangaza</span><span>6</span></div>
+</section>
+
+<!-- 7 · DEPLOYED -->
+<section class="slide">
+  <div class="kicker">Deployed, not demoed</div>
+  <h2>Verify us while we talk</h2>
+  <table style="margin-top:.05in">
+    <tr><th>Proof</th><th>Where</th></tr>
+    <tr><td>Contract, <strong>source verified</strong></td><td class="mono">TangazaRewards · 0x04AE7084&hellip;2086 · testnet.snowtrace.io</td></tr>
+    <tr><td>Advocate&rsquo;s own wallet submits</td><td class="mono">0x10500913&hellip;d06d44e4 <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>Business approves (weighted batch)</td><td class="mono">0x7f56ad34&hellip;a851417a5 <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>20th activity &rarr; KES 500 credit mints</td><td class="mono">0x0954b9a9&hellip;ede3f6cc0 <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>Advocate burns credit for reward</td><td class="mono">0xfddaaebd&hellip;b31686c2b <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>2nd business self-served via the product</td><td class="mono">FitTribe · org #2 · 0x09346bec&hellip;30877bdf <span class="ok">&#10003;</span></td></tr>
+  </table>
+  <div class="footer"><span>Ubu-Tangaza</span><span>7</span></div>
+</section>
+
+<!-- 8 · INVISIBLE UX -->
+<section class="slide">
+  <div class="kicker">Invisible UX</div>
+  <h2>A non-crypto user never notices the chain</h2>
+  <ul style="max-width:10.6in; margin-top:.05in">
+    <li><strong>Social login is the wallet.</strong> Google, X or email — no seed phrase, ever.</li>
+    <li><strong>Gas is sponsored.</strong> Advocates never hold AVAX and never see the word.</li>
+    <li><strong>No crypto vocabulary</strong> on the customer surface — the account is just &ldquo;you&rdquo;.</li>
+    <li><strong>Or bring your own wallet</strong> — Core, Avalanche&rsquo;s own, works out of the box.</li>
+    <li><strong>The chain shows up only as trust:</strong> every reward carries a receipt anyone can check.</li>
+  </ul>
+  <p style="margin-top:.3in" class="quote">&ldquo;Every journey we move together, we grow together.&rdquo;</p>
+  <div class="footer"><span>Ubu-Tangaza</span><span>8</span></div>
+</section>
+
+<!-- 9 · CLOSE -->
+<section class="slide" style="justify-content:center">
+  <div class="kicker">The ask</div>
+  <h1 style="font-size:38pt">One behaviour. One mechanic.<br>Live on Avalanche — and an economy<br>that survives its own success.</h1>
+  <div class="grid3" style="margin-top:.45in; max-width:11in">
+    <div class="card"><div class="lbl">Businesses on-chain</div><div class="big">2</div></div>
+    <div class="card"><div class="lbl">Advocates taking part</div><div class="big">7+</div></div>
+    <div class="card"><div class="lbl">Cost per verified action</div><div class="big">KES 15</div></div>
+  </div>
+  <p style="margin-top:.4in; font-size:17pt"><strong>Ubu-Tangaza</strong> — we grow together.
+     <span class="mono" style="font-size:12pt; color:#7d8598">&nbsp;&nbsp;ubu-tangaza.vercel.app · Fuji 0x04AE7084&hellip;2086</span></p>
+</section>
+
+</body></html>
