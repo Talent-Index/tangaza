@@ -1,6 +1,7 @@
 "use client";
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
+import { ToastProvider } from "@/components/toast";
 import { client, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
        * only costs a tap on "Continue with Google" — the session itself survives.
        */}
       <AutoConnect client={client} wallets={wallets} timeout={8_000} />
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </ThirdwebProvider>
   );
 }

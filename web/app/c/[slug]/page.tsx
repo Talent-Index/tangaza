@@ -5,6 +5,7 @@ import { use, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaign, useEngagementTypes } from "@/lib/hooks";
 
@@ -32,6 +33,7 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
 
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
 
   if (campaign.loading && !campaign.data) {
     return (
@@ -78,9 +80,12 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not join");
+      success("You're in the campaign");
       campaign.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not join");
+      const msg = err instanceof Error ? err.message : "Could not join";
+      setError(msg);
+      toastError(msg);
     } finally {
       setJoining(false);
     }

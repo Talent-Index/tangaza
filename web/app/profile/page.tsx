@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
+import { useRouter } from "next/navigation";
+import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
 import { useAdvocateProfile } from "@/lib/hooks";
@@ -36,12 +38,15 @@ export default function ProfilePage() {
 
 function ProfileForm({ address }: { address: string }) {
   const me = useAdvocateProfile(address);
+  const wallet = useActiveWallet();
+  const { disconnect } = useDisconnect();
+  const router = useRouter();
+  const { success, error: toastError } = useToast();
 
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   // Seed the fields once the stored profile arrives.
   useEffect(() => {
@@ -54,7 +59,6 @@ function ProfileForm({ address }: { address: string }) {
     e.preventDefault();
     setError(null);
     setSaving(true);
-    setSaved(false);
 
     try {
       const nameRes = await fetch("/api/me", {
@@ -90,13 +94,21 @@ function ProfileForm({ address }: { address: string }) {
         }
       }
 
-      setSaved(true);
+      success("Profile saved");
       me.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save");
+      const msg = err instanceof Error ? err.message : "Could not save";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSaving(false);
     }
+  }
+
+  function signOut() {
+    if (wallet) disconnect(wallet);
+    success("Signed out");
+    router.push("/auth");
   }
 
   if (me.loading && !me.data) {
@@ -160,11 +172,6 @@ function ProfileForm({ address }: { address: string }) {
       </div>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
-      {saved && !error ? (
-        <p className="rounded-lg border border-jade-500/40 bg-jade-500/10 px-3 py-2 text-sm text-jade-400">
-          Saved.
-        </p>
-      ) : null}
 
       <Button type="submit" disabled={saving} className="w-full">
         {saving ? "Saving…" : "Save"}
@@ -172,11 +179,14 @@ function ProfileForm({ address }: { address: string }) {
 
       <section>
         <SectionTitle>Your account</SectionTitle>
-        <Card className="bg-ink-850/60">
+        <Card className="space-y-4 bg-ink-850/60">
           <p className="text-xs leading-relaxed text-mist-500">
             No seed phrase, no gas, no balance to top up — your account is created from
             the social login you used and the Centre sponsors every transaction.
           </p>
+          <Button type="button" variant="danger" className="w-full" onClick={signOut}>
+            Sign out
+          </Button>
         </Card>
       </section>
     </form>

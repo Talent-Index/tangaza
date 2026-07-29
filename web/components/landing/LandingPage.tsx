@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { SignIn } from "@/components/customer/SignIn";
 import { BrandMark, Button } from "@/components/ui";
 import { CREDIT_VALUE_KES, MILESTONE_ACTIVITIES } from "@/lib/chain";
 import { kesLabel } from "@/lib/format";
@@ -11,7 +10,6 @@ const NAV = [
   { href: "#about", label: "About" },
   { href: "#how", label: "How it works" },
   { href: "#why", label: "Why us" },
-  { href: "#signin", label: "Sign in" },
 ];
 
 const CARDS = [
@@ -36,7 +34,6 @@ export function LandingPage() {
       <Hero />
       <Solutions />
       <WhyUs />
-      <PortalSignIn />
       <footer className="border-t border-ink-700/80 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <BrandMark />
@@ -97,22 +94,22 @@ function LandingNav() {
             </a>
           ))}
           <span className="mx-1 h-4 w-px bg-white/25" aria-hidden />
-          <a
-            href="#signin"
+          <Link
+            href="/auth"
             className="rounded-full bg-crimson-500 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-crimson-400"
           >
             Sign in
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <a
-            href="#signin"
+          <Link
+            href="/auth"
             className="rounded-full bg-crimson-500 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white"
             onClick={close}
           >
             Sign in
-          </a>
+          </Link>
           <button
             type="button"
             aria-expanded={open}
@@ -204,15 +201,15 @@ function Hero() {
             <Button href="#how" variant="light" className="min-h-12 px-5 sm:px-7">
               How it works
             </Button>
-            <a
-              href="#signin"
+            <Link
+              href="/auth"
               aria-label="Go to sign in"
               className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-ink-950 transition hover:bg-mist-100"
             >
               <span aria-hidden className="text-lg leading-none">
                 →
               </span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -368,54 +365,6 @@ function WhyUs() {
             That rule is enforced by the contract, not by a settings toggle. Advocacy is a
             community act; the return should be something the community can verify.
           </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PortalSignIn() {
-  return (
-    <section
-      id="signin"
-      className="relative scroll-mt-4 border-t border-ink-800 px-4 py-16 sm:px-6 sm:py-24"
-    >
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-          <div className="min-w-0 rounded-md bg-ink-900 px-2.5 py-2 sm:px-3">
-            <BrandMark className="text-sm sm:text-base" />
-          </div>
-          <Link
-            href="/org"
-            className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
-          >
-            Sign in as business
-          </Link>
-        </div>
-
-        <div className="card animate-fade-up px-4 py-7 sm:px-8 sm:py-8">
-          <p className="text-center text-sm text-mist-500">
-            Log in to manage your advocacy rewards
-          </p>
-          <h2 className="mt-3 text-center font-display text-2xl font-bold uppercase tracking-tight text-white sm:text-4xl">
-            Advocate portal.
-          </h2>
-
-          <div className="mt-7 sm:mt-8">
-            <SignIn />
-          </div>
-
-          <div className="mt-6 flex flex-col gap-2 text-xs text-mist-500 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <Link href="/register" className="hover:text-mist-300">
-              No business account? Register →
-            </Link>
-            <span className="text-mist-600">No fees — ever</span>
-          </div>
         </div>
       </div>
     </section>

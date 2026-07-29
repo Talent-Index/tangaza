@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { BrandMark } from "@/components/ui";
 import { ORG_APPROVER, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
@@ -85,6 +86,7 @@ function SignedInAs() {
   const account = useActiveAccount();
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
+  const { success } = useToast();
 
   if (!account) return null;
 
@@ -95,7 +97,10 @@ function SignedInAs() {
       </span>
       <button
         type="button"
-        onClick={() => wallet && disconnect(wallet)}
+        onClick={() => {
+          if (wallet) disconnect(wallet);
+          success("Signed out");
+        }}
         className="text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
       >
         Sign out

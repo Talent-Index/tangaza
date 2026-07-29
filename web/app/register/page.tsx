@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { BrandMark, Button, Card, ErrorNote, SectionTitle } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
@@ -74,6 +75,7 @@ function ApplyForm({ address }: { address: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const { success, error: toastError } = useToast();
 
   const account = useActiveAccount();
 
@@ -112,8 +114,11 @@ function ApplyForm({ address }: { address: string }) {
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
       setDone(true);
+      success("Pledge signed");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit");
+      const msg = err instanceof Error ? err.message : "Could not submit";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }

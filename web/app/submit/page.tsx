@@ -7,6 +7,7 @@ import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
 import type { Account } from "thirdweb/wallets";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
 import { useAdvocateProfile, useEngagementTypes } from "@/lib/hooks";
@@ -61,6 +62,7 @@ function SubmitForm({ account }: { account: Account }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null); // the submission tx hash
+  const { success, error: toastError } = useToast();
 
   const types = engagements.data ?? [];
   const selected = types.find((t) => t.id === selectedId) ?? null;
@@ -156,9 +158,12 @@ function SubmitForm({ account }: { account: Account }) {
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
 
       setDone(txHash);
+      success("Activity submitted — waiting for approval");
       setTimeout(() => router.push("/"), 3200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit");
+      const msg = err instanceof Error ? err.message : "Could not submit";
+      setError(msg);
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }

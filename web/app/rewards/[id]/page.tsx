@@ -7,6 +7,7 @@ import { prepareContractCall } from "thirdweb";
 import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
+import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { contract } from "@/lib/client";
 import { formatDate, kesLabel } from "@/lib/format";
@@ -40,6 +41,7 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const { mutate: sendTx, isPending, error } = useSendAndConfirmTransaction();
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +64,11 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
 
     // Gas is sponsored by the paymaster — the advocate never sees a fee prompt.
     sendTx(tx, {
-      onSuccess: (receipt) => setTxHash(receipt.transactionHash),
+      onSuccess: (receipt) => {
+        setTxHash(receipt.transactionHash);
+        success("Reward claimed");
+      },
+      onError: (e) => toastError(e.message),
     });
   }
 
