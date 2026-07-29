@@ -1,6 +1,6 @@
 "use client";
 
-import { OrgShell } from "@/components/org/Shell";
+import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { Card, ConfigWarning, EmptyState, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { addressUrl } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
@@ -24,8 +24,9 @@ export default function ClientsPage() {
 }
 
 function Directory() {
-  const directory = useDirectory();
-  const tiers = useTiers();
+  const { orgId } = useOrgAccessContext();
+  const directory = useDirectory(orgId);
+  const tiers = useTiers(undefined, orgId);
 
   if (!isConfigured) return <ConfigWarning />;
   if (directory.error) return <ErrorNote>{directory.error}</ErrorNote>;

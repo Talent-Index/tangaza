@@ -1,6 +1,6 @@
 "use client";
 
-import { OrgShell } from "@/components/org/Shell";
+import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { LiabilityChart } from "@/components/org/LiabilityChart";
 import {
   Card,
@@ -26,8 +26,9 @@ export default function OrgLiabilityPage() {
 }
 
 function Liability() {
-  const org = useOrg();
-  const ledger = useOrgLedger();
+  const { orgId } = useOrgAccessContext();
+  const org = useOrg(orgId);
+  const ledger = useOrgLedger(orgId);
 
   if (!isConfigured) return <ConfigWarning />;
   if (org.error) return <ErrorNote>{org.error}</ErrorNote>;

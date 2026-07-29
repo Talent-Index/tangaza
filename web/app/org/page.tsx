@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { prepareContractCall } from "thirdweb";
 import { useSendAndConfirmTransaction } from "thirdweb/react";
-import { OrgShell, useIsApprover } from "@/components/org/Shell";
+import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import {
   Button,
   Card,
@@ -15,7 +15,7 @@ import {
   Spinner,
   TxReceipt,
 } from "@/components/ui";
-import { ORG_ID } from "@/lib/chain";
+
 import { proofHashOf } from "@/lib/proof";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
@@ -33,9 +33,10 @@ export default function OrgApprovalsPage() {
 }
 
 function Approvals() {
-  const org = useOrg();
+  const access = useOrgAccessContext();
+  const org = useOrg(access.orgId);
   const isApprover = useIsApprover();
-  const pending = usePendingActivities({ orgId: String(ORG_ID), status: "pending" });
+  const pending = usePendingActivities({ orgId: String(access.orgId), status: "pending" });
   const [receipts, setReceipts] = useState<Record<string, string>>({});
 
   if (!isConfigured) return <ConfigWarning />;
@@ -65,8 +66,11 @@ function Approvals() {
 
       {!isApprover ? (
         <ErrorNote>
-          This account is not the approver for org #{String(ORG_ID)}. Approvals will be
-          rejected by the contract.
+          You&rsquo;re signed in with an account that can&rsquo;t approve for{" "}
+          {access.orgName || "this business"}. Approvals are signed by{" "}
+          <code className="tabular">{access.approver.slice(0, 6)}…{access.approver.slice(-4)}</code>{" "}
+          — sign out and sign back in with the login that owns that account. Every
+          social login has its own account, so the same person can hold several.
         </ErrorNote>
       ) : null}
 
@@ -98,6 +102,7 @@ function Approvals() {
             <ApprovalRow
               key={item.id}
               item={item}
+              canApprove={isApprover}
               receipt={receipts[item.id]}
               onDone={(hash) => {
                 setReceipts((r) => ({ ...r, [item.id]: hash }));
@@ -114,11 +119,13 @@ function Approvals() {
 
 function ApprovalRow({
   item,
+  canApprove,
   receipt,
   onDone,
   onRejected,
 }: {
   item: PendingActivity;
+  canApprove: boolean;
   receipt?: string;
   onDone: (txHash: string) => void;
   onRejected: () => void;
@@ -253,7 +260,7 @@ function ApprovalRow({
             <Button variant="ghost" onClick={reject} disabled={isPending || rejecting}>
               Reject
             </Button>
-            <Button onClick={approve} disabled={isPending || rejecting}>
+            <Button onClick={approve} disabled={!canApprove || isPending || rejecting}>
               {isPending ? (
                 <>
                   <Spinner /> Approving…

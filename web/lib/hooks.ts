@@ -16,8 +16,11 @@ import {
   getCredits,
   getOrg,
   getOutstandingKES,
+  getContractOwner,
+  resolveOrgAccess,
   type AdvocateState,
   type CreditState,
+  type OrgAccess,
   type OrgState,
 } from "./reads";
 import type { EngagementType, PendingActivity, PendingStatus } from "./types";
@@ -103,6 +106,46 @@ const POLL_FAST = 6_000; // advocate-facing state: the moment a credit lands
 const POLL_ORG = 10_000; // org totals
 const POLL_LEDGER = 20_000; // full event replay — the expensive one
 const POLL_QUEUE = 5_000; // local JSON, essentially free
+
+export interface ApplicationSummary {
+  id: string;
+  name: string;
+  emissionCapKes: number;
+  approverAddress: string;
+  pledge: string;
+  status: "draft" | "signed" | "registered" | "rejected";
+  orgId?: string;
+  registeredTx?: string;
+  signedAt?: string;
+}
+
+/** The platform's queue of business applications. */
+export function useApplications() {
+  return useAsync<ApplicationSummary[]>(
+    async () => {
+      const res = await fetch("/api/applications", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load applications (${res.status})`);
+      return ((await res.json()) as { applications: ApplicationSummary[] }).applications;
+    },
+    [],
+    true,
+    POLL_ORG
+  );
+}
+
+/** The contract owner — the only account allowed to register orgs on-chain. */
+export function useContractOwner() {
+  return useAsync<string>(() => getContractOwner(), [], isConfigured);
+}
+
+/** What the connected account may do, resolved from the chain — see resolveOrgAccess. */
+export function useOrgAccess(address?: string) {
+  return useAsync<OrgAccess>(
+    () => resolveOrgAccess(address!, ORG_ID),
+    [address],
+    isConfigured && Boolean(address)
+  );
+}
 
 export function useOrg(orgId: bigint = ORG_ID) {
   return useAsync<OrgState>(() => getOrg(orgId), [String(orgId)], isConfigured, POLL_ORG);

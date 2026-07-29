@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { OrgShell } from "@/components/org/Shell";
+import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { BudgetMeter } from "@/components/org/Meter";
 import {
   Card,
@@ -29,8 +29,9 @@ export default function OrgOverviewPage() {
 }
 
 function Overview() {
-  const org = useOrg();
-  const ledger = useOrgLedger();
+  const { orgId } = useOrgAccessContext();
+  const org = useOrg(orgId);
+  const ledger = useOrgLedger(orgId);
   const labels = useAdvocateLabels();
 
   // Real name if they ever submitted through the app; pseudonym otherwise.

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { OrgShell, useIsApprover } from "@/components/org/Shell";
+import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
-import { ORG_ID } from "@/lib/chain";
+
 import { useCampaigns, useEngagementTypes, useTiers } from "@/lib/hooks";
 import { PROOF_KINDS, type ProofKind } from "@/lib/types";
 
@@ -24,11 +24,12 @@ export default function SettingsPage() {
 
 function Settings() {
   const isApprover = useIsApprover();
+  const { orgId, orgName } = useOrgAccessContext();
 
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-black">What you reward</h1>
+        <h1 className="text-2xl font-black">What {orgName || "you"} reward{orgName ? "s" : ""}</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
           Define the engagements you want, and what each one is worth. Weight is how many
           on-chain activities one approval counts for — 20 activities mints one KES 500
@@ -43,17 +44,17 @@ function Settings() {
         </ErrorNote>
       ) : null}
 
-      <EngagementEditor />
-      <TierEditor />
-      <CampaignList />
+      <EngagementEditor orgId={orgId} />
+      <TierEditor orgId={orgId} />
+      <CampaignList orgId={orgId} />
     </div>
   );
 }
 
 /* ------------------------------------------------------------- engagements */
 
-function EngagementEditor() {
-  const engagements = useEngagementTypes();
+function EngagementEditor({ orgId }: { orgId: bigint }) {
+  const engagements = useEngagementTypes(orgId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -73,7 +74,7 @@ function EngagementEditor() {
       const res = await fetch("/api/engagement-types", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(ORG_ID), ...form }),
+        body: JSON.stringify({ orgId: String(orgId), ...form }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
@@ -87,7 +88,7 @@ function EngagementEditor() {
   }
 
   async function retire(id: string) {
-    await fetch(`/api/engagement-types?orgId=${ORG_ID}&id=${id}`, { method: "DELETE" });
+    await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, { method: "DELETE" });
     engagements.refresh();
   }
 
@@ -189,8 +190,8 @@ function EngagementEditor() {
 
 /* ------------------------------------------------------------------ levels */
 
-function TierEditor() {
-  const tiers = useTiers();
+function TierEditor({ orgId }: { orgId: bigint }) {
+  const tiers = useTiers(undefined, orgId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ level: 1, name: "", perk: "", icon: "★", thresholdWeight: 5 });
@@ -203,7 +204,7 @@ function TierEditor() {
       const res = await fetch("/api/tiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(ORG_ID), ...form }),
+        body: JSON.stringify({ orgId: String(orgId), ...form }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
@@ -294,8 +295,8 @@ function TierEditor() {
 
 /* --------------------------------------------------------------- campaigns */
 
-function CampaignList() {
-  const campaigns = useCampaigns();
+function CampaignList({ orgId }: { orgId: bigint }) {
+  const campaigns = useCampaigns(orgId);
   const list = campaigns.data ?? [];
 
   return (
