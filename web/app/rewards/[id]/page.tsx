@@ -218,7 +218,7 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
       <Card className="bg-ink-850/60">
         <p className="text-xs leading-relaxed text-mist-500">
           No fees, no wallet to top up. Claiming burns this reward so it can never be spent
-          twice — and it shrinks what the Centre still owes.
+          twice — and it shrinks what the business still owes.
         </p>
       </Card>
     </div>

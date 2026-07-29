@@ -51,10 +51,16 @@ function SubmitForm({ account }: { account: Account }) {
    * the on-chain write included — targets the campaign's business, not the app's
    * default org. A FitTribe campaign submission belongs to FitTribe.
    */
-  const campaignSlug = useSearchParams().get("c");
+  const params = useSearchParams();
+  const campaignSlug = params.get("c");
+  const orgParam = params.get("org");
   const campaignCtx = useCampaign(campaignSlug ?? "", address);
   const campaign = campaignSlug ? campaignCtx.data?.campaign : undefined;
-  const orgId = campaign ? BigInt(campaign.orgId) : ORG_ID;
+  const orgId = campaign
+    ? BigInt(campaign.orgId)
+    : orgParam && /^\d+$/.test(orgParam)
+      ? BigInt(orgParam)
+      : ORG_ID;
   // Only a name they actually chose travels with the submission. The UI's display
   // name falls back to a nickname built from the address, and sending that would
   // persist a pseudonym as though they had picked it.
@@ -197,7 +203,7 @@ function SubmitForm({ account }: { account: Account }) {
         </div>
         <p className="text-xl font-bold">Recorded on Avalanche</p>
         <p className="mt-2 max-w-xs text-sm text-mist-500">
-          Your wallet wrote this submission on-chain. The Centre reviews it next —
+          Your wallet wrote this submission on-chain. The business reviews it next —
           it counts the moment they approve.
         </p>
         <div className="mt-5">
@@ -239,7 +245,7 @@ function SubmitForm({ account }: { account: Account }) {
         ) : null}
         <h1 className="text-2xl font-black">Submit an activity</h1>
         <p className="mt-1 text-sm text-mist-500">
-          Show us what you did. The Centre approves it, and it counts toward your next
+          Show us what you did. The business approves it, and it counts toward your next
           reward.
         </p>
       </div>
@@ -325,7 +331,7 @@ function SubmitForm({ account }: { account: Account }) {
 
       <Card className="bg-ink-850/60">
         <p className="text-xs leading-relaxed text-mist-500">
-          Your proof stays with the Centre. Only their approval is written to Avalanche —
+          Your proof stays with the business. Only their approval is written to Avalanche —
           that&rsquo;s what makes your reward real and impossible to quietly take back.
         </p>
       </Card>

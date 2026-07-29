@@ -125,7 +125,7 @@ function ProfileForm({ address }: { address: string }) {
       <div>
         <h1 className="text-2xl font-black">Your profile</h1>
         <p className="mt-1 text-sm text-mist-500">
-          This is what the Centre sees next to everything you submit.
+          This is what businesses see next to everything you submit.
         </p>
       </div>
 
@@ -167,7 +167,7 @@ function ProfileForm({ address }: { address: string }) {
           className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="text-xs text-mist-500">
-          So the Centre can match your posts to you. Paste the handle or your profile
+          So businesses can match your posts to you. Paste the handle or your profile
           link — either works.
         </p>
       </div>
@@ -185,7 +185,7 @@ function ProfileForm({ address }: { address: string }) {
         <Card className="space-y-4 bg-ink-850/60">
           <p className="text-xs leading-relaxed text-mist-500">
             No seed phrase, no gas, no balance to top up — your account is created from
-            the social login you used and the Centre sponsors every transaction. Prefer
+            the social login you used, and gas is sponsored on every transaction. Prefer
             your own wallet? Core works too, from the sign-in screen.
           </p>
           <Button type="button" variant="danger" className="w-full" onClick={signOut}>

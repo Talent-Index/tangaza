@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { prepareContractCall } from "thirdweb";
-import { useSendAndConfirmTransaction } from "thirdweb/react";
+import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
 import {
@@ -132,6 +132,9 @@ function ApprovalRow({
   onRejected: () => void;
 }) {
   const { mutate: sendTx, isPending } = useSendAndConfirmTransaction();
+  // Recorded with every decision, so the queue knows which wallet approved what —
+  // the chain already enforces it, this makes it visible in the database too.
+  const approverAccount = useActiveAccount();
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const { success, error: toastError } = useToast();
@@ -176,6 +179,7 @@ function ApprovalRow({
             id: item.id,
             status: "approved",
             txHash: r.transactionHash,
+            decidedBy: approverAccount?.address,
           }),
         });
         success(`Approved ${item.typeLabel}`);
@@ -199,6 +203,7 @@ function ApprovalRow({
           id: item.id,
           status: "rejected",
           rejectionReason: "Proof did not check out",
+          decidedBy: approverAccount?.address,
         }),
       });
       success("Activity rejected");

@@ -10,10 +10,9 @@ import { MILESTONE_ACTIVITIES, ORG_ID, CREDIT_VALUE_KES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { kesLabel, timeAgo } from "@/lib/format";
 import {
-  useAdvocate,
   useAllCampaigns,
   useCredits,
-  useOrg,
+  useMyCommunities,
   usePendingActivities,
   useTiers,
 } from "@/lib/hooks";
@@ -29,18 +28,16 @@ export default function Page() {
 }
 
 function Home({ address }: { address: string }) {
-  const org = useOrg();
-  const advocate = useAdvocate(address);
+  // One card per business the advocate has real standing with — the chain, not the
+  // app, decides whose names appear here. Org 1 was only ever sample data.
+  const communities = useMyCommunities(address);
   const credits = useCredits(address);
-  const pending = usePendingActivities({
-    orgId: String(ORG_ID),
-    advocate: address,
-    status: "pending",
-  });
+  // Everything waiting, across every business.
+  const pending = usePendingActivities({ advocate: address, status: "pending" });
 
   if (!isConfigured) return <ConfigWarning />;
 
-  if (advocate.loading && !advocate.data) {
+  if (communities.loading && !communities.data) {
     return (
       <div className="grid place-items-center py-24">
         <Spinner className="size-6" />
@@ -48,28 +45,27 @@ function Home({ address }: { address: string }) {
     );
   }
 
-  const total = Number(MILESTONE_ACTIVITIES);
-  const approved = Number(advocate.data?.approvedActivities ?? 0n);
-  const done = approved % total;
-  const streak = Number(advocate.data?.streak ?? 0n);
+  const mine = communities.data ?? [];
   const available = (credits.data ?? []).filter((c) => !c.redeemed);
   const pendingItems = pending.data ?? [];
 
   return (
     <div className="animate-rise space-y-6">
-      <section className="flex flex-col items-center">
-        <p className="mb-4 text-sm text-mist-400">
-          {org.data?.name ?? "Your community"}
-        </p>
-        <ProgressRing done={done} total={total} />
-
-        <div className="mt-5 flex items-center gap-2">
-          <Pill tone={streak > 1 ? "warn" : "neutral"}>
-            🔥 {streak} day{streak === 1 ? "" : "s"} streak
-          </Pill>
-          <Pill>{approved} approved all-time</Pill>
-        </div>
-      </section>
+      {mine.length === 0 ? (
+        <section className="flex flex-col items-center pt-2 text-center">
+          <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
+          <p className="mt-5 max-w-xs text-sm text-mist-400">
+            Every 20 approved activities earns {kesLabel(CREDIT_VALUE_KES)}, at any
+            business here. Join a campaign below and start.
+          </p>
+        </section>
+      ) : (
+        <section className="space-y-3">
+          {mine.map((c) => (
+            <CommunityCard key={String(c.orgId)} community={c} address={address} />
+          ))}
+        </section>
+      )}
 
       {available.length > 0 ? (
         <Card className="animate-pop border-crimson-500/40 bg-crimson-500/10">
@@ -87,9 +83,10 @@ function Home({ address }: { address: string }) {
         </Card>
       ) : null}
 
-      <LevelCard address={address} />
-
-      <Button href="/submit" className="w-full">
+      <Button
+        href={mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit"}
+        className="w-full"
+      >
         Submit an activity
       </Button>
 
@@ -105,7 +102,7 @@ function Home({ address }: { address: string }) {
           <EmptyState
             icon="📮"
             title="Nothing pending"
-            body="Submit a referral, a post, or an event you brought in. The Centre approves it and it counts."
+            body="Submit a referral, a post, or an event you brought in. The business approves it and it counts."
           />
         ) : (
           <ul className="space-y-2">
@@ -132,16 +129,69 @@ function Home({ address }: { address: string }) {
       </section>
 
       <p className="pt-2 text-center text-[11px] leading-relaxed text-mist-500">
-        Rewards come from {org.data?.name ?? "the business"}&rsquo;s fixed budget of{" "}
-        {org.data ? kesLabel(org.data.emissionCapKES) : "—"}. That budget can never be
-        raised.
+        Every reward comes from a business&rsquo;s own fixed budget, written once on
+        Avalanche. No budget can ever be raised — not by them, not by us.
       </p>
     </div>
   );
 }
 
-function LevelCard({ address }: { address: string }) {
-  const { data } = useTiers(address);
+/**
+ * One business relationship: progress toward the next credit there, streak, and the
+ * level ladder if that business runs one. The name is data — whichever orgs the chain
+ * says this advocate has standing with.
+ */
+function CommunityCard({
+  community,
+  address,
+}: {
+  community: { orgId: bigint; name: string; approved: number; streak: number };
+  address: string;
+}) {
+  const total = Number(MILESTONE_ACTIVITIES);
+  const done = community.approved % total;
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">{community.name}</p>
+        <div className="flex items-center gap-2">
+          {community.streak > 0 ? (
+            <Pill tone={community.streak > 1 ? "warn" : "neutral"}>
+              🔥 {community.streak}d
+            </Pill>
+          ) : null}
+          <Pill>{community.approved} approved</Pill>
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-700">
+        <div
+          className="h-full rounded-full bg-crimson-500 transition-all"
+          style={{ width: `${(done / total) * 100}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-mist-500">
+        <span className="tabular text-mist-300">{done} of {total}</span> toward your next{" "}
+        {kesLabel(CREDIT_VALUE_KES)} reward
+      </p>
+
+      <LevelCard address={address} orgId={community.orgId} />
+
+      <div className="mt-3 border-t border-ink-700 pt-3">
+        <Link
+          href={`/submit?org=${community.orgId}`}
+          className="text-xs text-crimson-300 underline underline-offset-4 hover:text-crimson-200"
+        >
+          Submit an activity here →
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+function LevelCard({ address, orgId }: { address: string; orgId: bigint }) {
+  const { data } = useTiers(address, orgId);
   const standing = data?.standing;
   const tiers = data?.tiers ?? [];
 
@@ -159,7 +209,7 @@ function LevelCard({ address }: { address: string }) {
     : 100;
 
   return (
-    <Card>
+    <div className="mt-3 border-t border-ink-700 pt-3">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-semibold">
           {current ? (
@@ -170,7 +220,6 @@ function LevelCard({ address }: { address: string }) {
             <span className="text-mist-400">Not yet a member</span>
           )}
         </p>
-        <p className="tabular text-xs text-mist-500">{standing.approvedWeight} approved</p>
       </div>
 
       {next ? (
@@ -193,11 +242,9 @@ function LevelCard({ address }: { address: string }) {
       )}
 
       {standing.currentPerk && next ? (
-        <p className="mt-3 border-t border-ink-700 pt-3 text-xs text-mist-400">
-          You have: {standing.currentPerk}
-        </p>
+        <p className="mt-2 text-xs text-mist-400">You have: {standing.currentPerk}</p>
       ) : null}
-    </Card>
+    </div>
   );
 }
 

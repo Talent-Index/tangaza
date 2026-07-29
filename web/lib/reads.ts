@@ -141,3 +141,36 @@ export async function resolveOrgAccess(
 export async function getContractOwner(): Promise<string> {
   return (await readContract({ contract, method: "owner" })) as string;
 }
+
+export interface Community {
+  orgId: bigint;
+  name: string;
+  approved: number;
+  streak: number;
+  creditsEarned: number;
+}
+
+/**
+ * Every business this advocate has standing with, straight from the chain.
+ *
+ * The home screen used to be hardcoded to org 1, which made the whole app read as
+ * that one institution's app — but org 1 was only ever sample data. Progress, streaks
+ * and credits are per-org in the contract (_advocates[orgId][advocate]), so the honest
+ * home is one card per relationship, each named as data rather than branding.
+ */
+export async function getMyCommunities(address: string): Promise<Community[]> {
+  const count = await getOrgCount();
+  const out: Community[] = [];
+
+  for (let i = 1n; i <= count; i++) {
+    const a = await getAdvocate(i, address);
+    const approved = Number(a.approvedActivities);
+    const streak = Number(a.streak);
+    const credits = Number(a.creditsEarned);
+    if (approved > 0 || streak > 0 || credits > 0) {
+      const org = await getOrg(i);
+      out.push({ orgId: i, name: org.name, approved, streak, creditsEarned: credits });
+    }
+  }
+  return out;
+}

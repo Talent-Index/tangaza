@@ -17,8 +17,10 @@ import {
   getOrg,
   getOutstandingKES,
   getContractOwner,
+  getMyCommunities,
   resolveOrgAccess,
   type AdvocateState,
+  type Community,
   type CreditState,
   type OrgAccess,
   type OrgState,
@@ -144,6 +146,16 @@ export function useOrgAccess(address?: string) {
     () => resolveOrgAccess(address!, ORG_ID),
     [address],
     isConfigured && Boolean(address)
+  );
+}
+
+/** Every business this advocate has on-chain standing with. */
+export function useMyCommunities(address?: string) {
+  return useAsync<Community[]>(
+    () => getMyCommunities(address!),
+    [address],
+    isConfigured && Boolean(address),
+    POLL_FAST
   );
 }
 
