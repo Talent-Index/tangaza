@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { createActivity, decideActivity, getActivity, listActivities } from "@/lib/store";
-import { activityMessage, verifyActivitySignature, verifyApprovalReceipt } from "@/lib/verify";
+import { verifyApprovalReceipt, verifySubmissionReceipt } from "@/lib/verify";
 import type { PendingStatus } from "@/lib/types";
 
 /**
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { orgId, advocate, advocateLabel, engagementTypeId, proofUrl, note, ts, signature, campaignId } =
+  const { orgId, advocate, advocateLabel, engagementTypeId, proofUrl, note, submitTx, campaignId } =
     body as {
       orgId?: string;
       advocate?: string;
@@ -55,8 +55,7 @@ export async function POST(req: NextRequest) {
       engagementTypeId?: string;
       proofUrl?: string;
       note?: string;
-      ts?: number;
-      signature?: string;
+      submitTx?: string;
       campaignId?: string;
     };
 
@@ -81,20 +80,25 @@ export async function POST(req: NextRequest) {
   }
 
   /**
-   * The advocate signs what they are claiming, and we check it here.
-   *
-   * This is what stops one person filing submissions under another's address, or a
-   * stranger with curl stuffing the queue a business reads to decide who gets paid.
-   * The signature covers org, account, engagement, proof and time, so none of them
-   * can be swapped after it was signed.
+   * The submission has to already exist on-chain, written by the advocate's own
+   * wallet. We verify the receipt rather than a signature: under ERC-4337 the
+   * msg.sender inside submitActivity IS the advocate's smart account, which is
+   * stronger proof of origin than anything the server could check off-chain. A
+   * stranger with curl cannot file for someone else without that person's wallet
+   * having sent the transaction.
    */
-  const verdict = await verifyActivitySignature({
+  if (!submitTx) {
+    return NextResponse.json(
+      { error: "submitTx is required — submissions are recorded on-chain first" },
+      { status: 401 }
+    );
+  }
+
+  const verdict = await verifySubmissionReceipt({
+    txHash: submitTx,
     orgId: String(orgId),
     advocate,
-    engagementTypeId,
     proofUrl,
-    ts: Number(ts),
-    signature: signature ?? "",
   });
 
   if (!verdict.ok) {
@@ -109,14 +113,7 @@ export async function POST(req: NextRequest) {
     proofUrl: proofUrl?.slice(0, 500),
     note: note?.slice(0, 280),
     campaignId,
-    signature,
-    signedMessage: activityMessage({
-      orgId: String(orgId),
-      advocate,
-      engagementTypeId,
-      proofUrl,
-      ts: Number(ts),
-    }),
+    submitTx,
   });
 
   if (!activity) {

@@ -108,6 +108,8 @@ describe("TangazaRewards", () => {
       const names = writable.map((f) => (f as any).name).sort();
 
       // Any new state-changing function must be reviewed against this list.
+      // submitActivity: reviewed — touches only submissionCount and emits; it cannot
+      // write emissionCapKES, issuedKES, or any Advocate field.
       expect(names).to.deep.equal([
         "approveActivity",
         "approveActivityBatch",
@@ -116,6 +118,7 @@ describe("TangazaRewards", () => {
         "renounceOwnership",
         "setApprover",
         "setOrgActive",
+        "submitActivity",
         "transferOwnership",
       ]);
 
@@ -159,6 +162,65 @@ describe("TangazaRewards", () => {
   // -------------------------------------------------------------------------
   // Milestone accounting
   // -------------------------------------------------------------------------
+  describe("submitActivity", () => {
+    it("records a submission from the caller's own wallet", async () => {
+      await expect(
+        rewards
+          .connect(advocate)
+          .submitActivity(orgId, ActivityType.SOCIAL_POST, proof("my-post"))
+      )
+        .to.emit(rewards, "ActivitySubmitted")
+        .withArgs(
+          orgId,
+          advocate.address, // msg.sender is the identity — nobody can submit as someone else
+          1n,
+          ActivityType.SOCIAL_POST,
+          proof("my-post"),
+          (t: bigint) => t > 0n
+        );
+      expect(await rewards.submissionCount()).to.equal(1n);
+    });
+
+    it("gives each submission its own id, across different callers", async () => {
+      await rewards.connect(advocate).submitActivity(orgId, ActivityType.REFERRAL, proof("p1"));
+      await expect(
+        rewards.connect(other).submitActivity(orgId, ActivityType.REFERRAL, proof("p2"))
+      )
+        .to.emit(rewards, "ActivitySubmitted")
+        .withArgs(orgId, other.address, 2n, ActivityType.REFERRAL, proof("p2"), (t: bigint) => t > 0n);
+    });
+
+    it("reverts for an unknown org", async () => {
+      await expect(
+        rewards.connect(advocate).submitActivity(99, ActivityType.REFERRAL, proof("p"))
+      )
+        .to.be.revertedWithCustomError(rewards, "OrgNotFound")
+        .withArgs(99);
+    });
+
+    it("reverts for a deactivated org", async () => {
+      await rewards.setOrgActive(orgId, false);
+      await expect(
+        rewards.connect(advocate).submitActivity(orgId, ActivityType.REFERRAL, proof("p"))
+      )
+        .to.be.revertedWithCustomError(rewards, "OrgInactive")
+        .withArgs(orgId);
+    });
+
+    it("moves nothing that approval owns: no activity count, no streak, no issuance", async () => {
+      await rewards
+        .connect(advocate)
+        .submitActivity(orgId, ActivityType.REFERRAL, proof("p"));
+
+      const a = await rewards.getAdvocate(orgId, advocate.address);
+      expect(a.approvedActivities).to.equal(0n);
+      expect(a.streak).to.equal(0n);
+      const org = await rewards.getOrg(orgId);
+      expect(org.issuedKES).to.equal(0n);
+      expect(org.approvedActivities).to.equal(0n);
+    });
+  });
+
   describe("approveActivity", () => {
     it("records the activity and bumps the advocate's count", async () => {
       await expect(

@@ -76,6 +76,7 @@ contract TangazaRewards is ERC2771Context, Ownable {
 
     uint256 public orgCount;
     uint256 public creditCount;
+    uint256 public submissionCount;
 
     mapping(uint256 => Org) private _orgs;
     mapping(uint256 => Credit) private _credits;
@@ -102,6 +103,14 @@ contract TangazaRewards is ERC2771Context, Ownable {
     );
     event ApproverUpdated(uint256 indexed orgId, address indexed approver);
     event OrgActiveSet(uint256 indexed orgId, bool active);
+    event ActivitySubmitted(
+        uint256 indexed orgId,
+        address indexed advocate,
+        uint256 indexed submissionId,
+        ActivityType activityType,
+        bytes32 proofHash,
+        uint256 timestamp
+    );
     event ActivityApproved(
         uint256 indexed orgId,
         address indexed advocate,
@@ -190,6 +199,37 @@ contract TangazaRewards is ERC2771Context, Ownable {
     // ---------------------------------------------------------------------
     // Advocacy
     // ---------------------------------------------------------------------
+
+    /// @notice An advocate records what they did, from their own wallet.
+    /// @dev The submission is bound to the caller by `msg.sender` itself — under
+    ///      ERC-4337 that is the advocate's smart account, which is stronger evidence
+    ///      than any off-chain signature the server could check. Event-only on purpose:
+    ///      the receipt is the proof, and per-submission storage would spend sponsored
+    ///      gas on a record nothing on-chain ever reads back.
+    ///
+    ///      Nothing mints here and streaks do not move — both stay with approval, or
+    ///      unreviewed submissions could farm them. Open to any caller and gas is
+    ///      sponsored, so a spammer costs the paymaster; acceptable on a testnet,
+    ///      production wants a paymaster rule or an on-chain per-day cap.
+    function submitActivity(
+        uint256 orgId,
+        ActivityType activityType,
+        bytes32 proofHash
+    ) external returns (uint256 submissionId) {
+        Org storage org = _orgs[orgId];
+        if (!org.exists) revert OrgNotFound(orgId);
+        if (!org.active) revert OrgInactive(orgId);
+
+        submissionId = ++submissionCount;
+        emit ActivitySubmitted(
+            orgId,
+            _msgSender(),
+            submissionId,
+            activityType,
+            proofHash,
+            block.timestamp
+        );
+    }
 
     /// @notice The org attests that an advocate completed a real activity.
     /// @dev Every `MILESTONE_ACTIVITIES` approvals mints one credit — unless doing so

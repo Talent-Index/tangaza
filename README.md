@@ -27,12 +27,12 @@ Blockchain Centre.
 
 | | |
 |---|---|
-| `TangazaRewards` | [`0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) |
-| Deployment tx | [`0xb93582f0…42cca9ca`](https://testnet.snowtrace.io/tx/0xb93582f0d10b1d3dc05116e5f490270a4908afa3405470c3325c824d42cca9ca) |
-| Deploy block | `57298496` — this is `NEXT_PUBLIC_DEPLOY_BLOCK`; event scanning starts here |
+| `TangazaRewards` | [`0x04AE7084ba8f52BEb6186885FD1A091f7d602086`](https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086) |
+| Deploy block | `57412439` — this is `NEXT_PUBLIC_DEPLOY_BLOCK`; event scanning starts here |
 | Owner | [`0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7`](https://testnet.snowtrace.io/address/0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7) |
 | Trusted forwarder | `0x0000000000000000000000000000000000000000` — deliberate, see [Architecture notes](#architecture-notes) |
 | Pilot org | `orgId` `1` — "Blockchain Centre Kenya", KES 50,000 cap |
+| Previous deployment | [`0xF8A2612e…b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) — superseded when `submitActivity` was added; contracts here are immutable, so new function = new address |
 
 Deploying yourself writes the same values to `contracts/deployments.json`, which is
 untracked. Point `web/.env.local` at whichever deployment you're using.
@@ -47,10 +47,11 @@ nothing in the app depends on it.
 
 ## The one-sentence version
 
-A customer submits proof off-chain → the business approves it on-chain → every 20
-approved activities mints one KES 500 reward credit → the customer claims it for
-airtime → the business's outstanding liability drops by KES 500. Nobody in that loop
-holds AVAX, sees a seed phrase, or pays gas.
+A customer submits an activity — their own wallet records it on-chain and the proof
+stays private → the business approves it on-chain → every 20 approved activities mints
+one KES 500 reward credit → the customer claims it for airtime → the business's
+outstanding liability drops by KES 500. Nobody in that loop holds AVAX, sees a seed
+phrase, or pays gas.
 
 ---
 
@@ -108,7 +109,7 @@ six advocates, mixed approved / pending / rejected.
 
 ```
 contracts/   Hardhat + TypeScript + Solidity 0.8.24 + OpenZeppelin v5
-             TangazaRewards.sol, 32 tests, deploy + seed scripts
+             TangazaRewards.sol, 45 tests, deploy + seed scripts
 web/         Next.js (App Router) + TypeScript + Tailwind v4 + thirdweb v5 + viem
              Advocate surface (/), business surface (/org)
              API: /api/activities, /api/engagement-types, /api/standings
@@ -145,7 +146,7 @@ Only the deployer needs AVAX — advocates and the org never do.
 cd contracts
 npm install
 cp .env.example .env        # fill in PRIVATE_KEY
-npx hardhat test            # 32 passing
+npx hardhat test            # 45 passing
 ```
 
 Rehearse the deploy for free against a local node first, if you like:
@@ -229,8 +230,11 @@ The judging story is one unbroken earn → redeem journey.
 1. **Sign in as a customer** at `/`. Google or X. No seed phrase appears, because the
    in-app wallet is an embedded key wrapped in an ERC-4337 smart account.
 2. **Submit an activity** at `/submit` — the form lists whatever the business
-   configured, each showing what it's worth. Paste the proof it asks for. This is
-   off-chain; it lands in the queue via `POST /api/activities`.
+   configured, each showing what it's worth. Paste the proof it asks for. **Your
+   wallet writes this on-chain**: submitting calls `submitActivity()` gaslessly, the
+   success screen links your own transaction, and the API only accepts the submission
+   after verifying that transaction's `ActivitySubmitted` log — `msg.sender` is the
+   identity, so nobody can file as someone else.
 3. **Sign in as the org** at `/org` (a second browser profile is easiest). The
    submission is in the approvals queue with its proof link.
 4. **Approve it.** That calls `approveActivityBatch()` on Fuji, gaslessly, with the

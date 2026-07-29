@@ -32,7 +32,11 @@ async function main() {
   }
 
   const Factory = await ethers.getContractFactory("TangazaRewards");
-  const rewards = await Factory.deploy(TRUSTED_FORWARDER);
+  // Explicit gasLimit because Fuji's RPC no longer serves eth_estimateGas against the
+  // "pending" tag, which is what hardhat-ethers defaults to — estimation dies with
+  // "state not available for pending block". You pay gas used, not the limit, and the
+  // deployment actually uses ~1.4M.
+  const rewards = await Factory.deploy(TRUSTED_FORWARDER, { gasLimit: 4_000_000 });
   console.log(`\nDeploying... tx ${rewards.deploymentTransaction()?.hash}`);
   await rewards.waitForDeployment();
 

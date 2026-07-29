@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { keccak256, toHex } from "viem";
 import { prepareContractCall } from "thirdweb";
 import { useSendAndConfirmTransaction } from "thirdweb/react";
 import { OrgShell, useIsApprover } from "@/components/org/Shell";
@@ -17,6 +16,7 @@ import {
   TxReceipt,
 } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
+import { proofHashOf } from "@/lib/proof";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
 import { useOrg, usePendingActivities } from "@/lib/hooks";
@@ -131,7 +131,7 @@ function ApprovalRow({
     setError(null);
 
     // The proof itself stays off-chain; only its fingerprint is recorded.
-    const proofHash = keccak256(toHex(item.proofUrl));
+    const proofHash = proofHashOf(item.proofUrl);
 
     /**
      * Weight is what the business priced this engagement at, and the chain has to

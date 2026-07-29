@@ -51,7 +51,7 @@ async function main() {
   console.log(`Org #${orgId}: ${before.name}`);
   console.log(`  approver ${before.approver} -> ${approver}`);
 
-  const tx = await rewards.setApprover(orgId, approver);
+  const tx = await rewards.setApprover(orgId, approver, { gasLimit: 120_000 });
   await tx.wait();
   console.log(`  done, tx ${tx.hash}`);
 

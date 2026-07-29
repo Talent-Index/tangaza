@@ -197,6 +197,49 @@ export const TANGAZA_ABI = [
       {
         "indexed": true,
         "internalType": "address",
+        "name": "advocate",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "submissionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum TangazaRewards.ActivityType",
+        "name": "activityType",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "proofHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "ActivitySubmitted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "orgId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "approver",
         "type": "address"
       }
@@ -884,6 +927,48 @@ export const TANGAZA_ABI = [
     ],
     "name": "setOrgActive",
     "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "submissionCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "orgId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum TangazaRewards.ActivityType",
+        "name": "activityType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "proofHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "submitActivity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "submissionId",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },

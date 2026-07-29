@@ -2,14 +2,16 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
+import { prepareContractCall } from "thirdweb";
+import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
 import type { Account } from "thirdweb/wallets";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
-import { Button, Card, EmptyState, ErrorNote, Spinner } from "@/components/ui";
+import { Button, Card, EmptyState, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
 import { useAdvocateProfile, useEngagementTypes } from "@/lib/hooks";
-import { activityMessage } from "@/lib/sign-message";
+import { contract } from "@/lib/client";
+import { proofHashOf } from "@/lib/proof";
 import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
@@ -54,9 +56,10 @@ function SubmitForm({ account }: { account: Account }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proof, setProof] = useState("");
   const [note, setNote] = useState("");
+  const { mutateAsync: sendTx, isPending: sending } = useSendAndConfirmTransaction();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<string | null>(null); // the submission tx hash
 
   const types = engagements.data ?? [];
   const selected = types.find((t) => t.id === selectedId) ?? null;
@@ -77,24 +80,21 @@ function SubmitForm({ account }: { account: Account }) {
 
     try {
       /**
-       * Sign what you're claiming before it's filed.
+       * Your wallet writes the submission to Avalanche before anything else happens.
        *
-       * The queue is what the business reads to decide who gets paid, so a submission
-       * needs to be provably yours rather than merely addressed to you. With an in-app
-       * wallet this is silent — no popup, no seed phrase — but it is a real signature
-       * from your account and the server checks it.
+       * This is a real transaction from your smart account — gas sponsored, so it
+       * costs you nothing — and msg.sender inside the contract is you. The server
+       * then verifies the receipt instead of trusting the request. The proof itself
+       * stays off-chain; the chain records its fingerprint.
        */
-      const ts = Date.now();
       const proofUrl = proof.trim() || undefined;
-      const signature = await account.signMessage({
-        message: activityMessage({
-          orgId: String(ORG_ID),
-          advocate: address,
-          engagementTypeId: selected.id,
-          proofUrl,
-          ts,
-        }),
-      });
+      const receipt = await sendTx(
+        prepareContractCall({
+          contract,
+          method: "submitActivity",
+          params: [ORG_ID, selected.chainCategory, proofHashOf(proofUrl)],
+        })
+      );
 
       const res = await fetch("/api/activities", {
         method: "POST",
@@ -107,16 +107,15 @@ function SubmitForm({ account }: { account: Account }) {
           proofUrl,
           note: note.trim() || undefined,
           campaignId: campaignId ?? undefined,
-          ts,
-          signature,
+          submitTx: receipt.transactionHash,
         }),
       });
 
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
 
-      setDone(true);
-      setTimeout(() => router.push("/"), 1600);
+      setDone(receipt.transactionHash);
+      setTimeout(() => router.push("/"), 3200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit");
     } finally {
@@ -130,11 +129,14 @@ function SubmitForm({ account }: { account: Account }) {
         <div className="mb-5 grid size-16 place-items-center rounded-full bg-jade-500/15 text-3xl">
           ✓
         </div>
-        <p className="text-xl font-bold">Sent for approval</p>
+        <p className="text-xl font-bold">Recorded on Avalanche</p>
         <p className="mt-2 max-w-xs text-sm text-mist-500">
-          The Centre will review your proof. You&rsquo;ll see it count as soon as they
-          approve.
+          Your wallet wrote this submission on-chain. The Centre reviews it next —
+          it counts the moment they approve.
         </p>
+        <div className="mt-5">
+          <TxReceipt hash={done} label="Your submission" />
+        </div>
       </div>
     );
   }
@@ -232,8 +234,8 @@ function SubmitForm({ account }: { account: Account }) {
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <Button type="submit" disabled={submitting || !canSubmit} className="w-full">
-        {submitting ? "Sending…" : "Send for approval"}
+      <Button type="submit" disabled={submitting || sending || !canSubmit} className="w-full">
+        {sending ? "Recording on Avalanche…" : submitting ? "Sending…" : "Send for approval"}
       </Button>
 
       <Card className="bg-ink-850/60">

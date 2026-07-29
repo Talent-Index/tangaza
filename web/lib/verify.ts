@@ -1,10 +1,8 @@
 import "server-only";
-import { createPublicClient, http, keccak256, parseAbiItem, parseEventLogs, toHex } from "viem";
+import { createPublicClient, http, parseAbiItem, parseEventLogs } from "viem";
 import { avalancheFuji } from "viem/chains";
 import { CONTRACT_ADDRESS } from "./client";
-import { activityMessage } from "./sign-message";
-
-export { activityMessage };
+import { proofHashOf } from "./proof";
 
 /**
  * Proving that the account named in a request actually sent it.
@@ -70,41 +68,6 @@ export async function verifySignedText(p: {
   }
 }
 
-export async function verifyActivitySignature(p: {
-  orgId: string;
-  advocate: string;
-  engagementTypeId: string;
-  proofUrl?: string;
-  ts: number;
-  signature: string;
-}): Promise<VerifyResult> {
-  if (!p.signature) return { ok: false, reason: "Signature is required" };
-  if (!Number.isFinite(p.ts)) return { ok: false, reason: "Signed-at timestamp is required" };
-
-  const age = Math.abs(Date.now() - p.ts);
-  if (age > SIGNATURE_WINDOW_MS) {
-    // Bounds replay without needing a nonce store, which a stateless function has
-    // nowhere to keep. Also catches a badly wrong device clock, which is worth
-    // rejecting loudly rather than silently accepting an unbounded signature.
-    return { ok: false, reason: "That signature has expired — please try again" };
-  }
-
-  const message = activityMessage(p);
-
-  try {
-    const valid = await publicClient.verifyMessage({
-      address: p.advocate as `0x${string}`,
-      message,
-      signature: p.signature as `0x${string}`,
-    });
-    return valid ? { ok: true } : { ok: false, reason: "Signature does not match that account" };
-  } catch (err) {
-    // A malformed signature throws rather than returning false.
-    const detail = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return { ok: false, reason: `Could not verify signature: ${detail}` };
-  }
-}
-
 /* ------------------------------------------------------------- approval receipts */
 
 const ACTIVITY_APPROVED = parseAbiItem(
@@ -155,7 +118,7 @@ export async function verifyApprovalReceipt(p: {
   }
 
   // Computed exactly as the org surface computes it before sending the transaction.
-  const expected = keccak256(toHex(p.proofUrl ?? ""));
+  const expected = proofHashOf(p.proofUrl);
   const advocate = p.advocate.toLowerCase();
 
   const match = logs.some(
@@ -173,4 +136,67 @@ export async function verifyApprovalReceipt(p: {
   }
 
   return { ok: true };
+}
+
+/* ----------------------------------------------------------- submission receipts */
+
+const ACTIVITY_SUBMITTED = parseAbiItem(
+  "event ActivitySubmitted(uint256 indexed orgId, address indexed advocate, uint256 indexed submissionId, uint8 activityType, bytes32 proofHash, uint256 timestamp)"
+);
+
+/**
+ * Checks that the advocate really wrote this submission on-chain from their own wallet.
+ *
+ * This replaced the signed-message check: instead of verifying an ERC-1271 signature,
+ * the server reads the transaction the advocate's smart account sent. `msg.sender`
+ * inside submitActivity IS the advocate under ERC-4337, so a matching
+ * ActivitySubmitted log is proof of origin the chain itself enforced.
+ *
+ * One tx could in principle back two POST bodies with the same proof — accepted: the
+ * org's manual approval is the gate on anything that pays, and duplicate queue rows
+ * with identical proof are visible to the reviewer.
+ */
+export async function verifySubmissionReceipt(p: {
+  txHash: string;
+  orgId: string;
+  advocate: string;
+  proofUrl?: string;
+}): Promise<VerifyResult> {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(p.txHash)) {
+    return { ok: false, reason: "That is not a transaction hash" };
+  }
+
+  let receipt;
+  try {
+    receipt = await publicClient.getTransactionReceipt({ hash: p.txHash as `0x${string}` });
+  } catch {
+    return { ok: false, reason: "No such transaction on Avalanche Fuji" };
+  }
+
+  if (receipt.status !== "success") {
+    return { ok: false, reason: "That transaction reverted" };
+  }
+
+  const logs = parseEventLogs({
+    abi: [ACTIVITY_SUBMITTED],
+    logs: receipt.logs,
+  }).filter((l) => l.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase());
+
+  if (logs.length === 0) {
+    return { ok: false, reason: "That transaction recorded no submission" };
+  }
+
+  const expected = proofHashOf(p.proofUrl);
+  const advocate = p.advocate.toLowerCase();
+
+  const match = logs.some(
+    (l) =>
+      String(l.args.orgId) === String(p.orgId) &&
+      l.args.advocate?.toLowerCase() === advocate &&
+      l.args.proofHash === expected
+  );
+
+  return match
+    ? { ok: true }
+    : { ok: false, reason: "That transaction was for a different submission" };
 }

@@ -77,7 +77,9 @@ async function main() {
     const org = await rewards.getOrg(orgId);
     console.log(`Reusing org #${orgId}: ${org.name} (cap ${org.emissionCapKES} KES)`);
   } else {
-    const tx = await rewards.registerOrg(ORG_NAME, approver, ORG_EMISSION_CAP_KES);
+    const tx = await rewards.registerOrg(ORG_NAME, approver, ORG_EMISSION_CAP_KES, {
+      gasLimit: 400_000, // skip estimation; see deploy.ts
+    });
     await tx.wait();
     orgId = 1n;
     console.log(
@@ -119,7 +121,9 @@ async function main() {
       orgId,
       Array(probe).fill(sample.address),
       Array(probe).fill(ActivityType.REFERRAL),
-      Array.from({ length: probe }, (_, i) => proof(`estimate${i}`))
+      Array.from({ length: probe }, (_, i) => proof(`estimate${i}`)),
+      // Fuji stopped serving estimation against "pending", hardhat-ethers' default.
+      { blockTag: "latest" }
     );
 
     const fee = await ethers.provider.getFeeData();
@@ -175,7 +179,10 @@ async function main() {
         orgId,
         Array(size).fill(advocate.address),
         types,
-        proofs
+        proofs,
+        // Skip estimation (see deploy.ts). Sized per entry with room for the
+        // milestone entries that also mint; unused gas is not charged.
+        { gasLimit: 200_000 * size + 200_000 }
       );
       await tx.wait();
       process.stdout.write(`[${size}]`);

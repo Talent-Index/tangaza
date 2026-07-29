@@ -30,6 +30,11 @@ export const redeemedEvent = prepareEvent({
     "event Redeemed(uint256 indexed orgId, address indexed advocate, uint256 indexed creditId, uint8 rewardType, uint256 valueKES, uint256 redeemedKES, uint256 timestamp)",
 });
 
+export const activitySubmittedEvent = prepareEvent({
+  signature:
+    "event ActivitySubmitted(uint256 indexed orgId, address indexed advocate, uint256 indexed submissionId, uint8 activityType, bytes32 proofHash, uint256 timestamp)",
+});
+
 export const activityApprovedEvent = prepareEvent({
   signature:
     "event ActivityApproved(uint256 indexed orgId, address indexed advocate, uint8 activityType, bytes32 proofHash, uint256 advocateActivityCount, uint256 streak, uint256 timestamp)",
