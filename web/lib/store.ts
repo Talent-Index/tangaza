@@ -130,6 +130,7 @@ interface SubmissionRow {
   note: string | null;
   status: PendingStatus;
   tx_hash: string | null;
+  submit_tx: string | null;
   rejection_reason: string | null;
   submitted_at: string;
   decided_at: string | null;
@@ -149,6 +150,7 @@ const toActivity = (r: SubmissionRow): PendingActivity => ({
   note: r.note ?? undefined,
   status: r.status,
   txHash: r.tx_hash ?? undefined,
+  submitTx: r.submit_tx ?? undefined,
   rejectionReason: r.rejection_reason ?? undefined,
   submittedAt: new Date(r.submitted_at).toISOString(),
   decidedAt: r.decided_at ? new Date(r.decided_at).toISOString() : undefined,

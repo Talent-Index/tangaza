@@ -268,6 +268,11 @@ function ApprovalRow({
             >
               {item.proofUrl}
             </a>
+            {item.submitTx ? (
+              <div className="mt-1">
+                <TxReceipt hash={item.submitTx} label="Submitted on-chain by their wallet" />
+              </div>
+            ) : null}
           </div>
 
           <div className="flex shrink-0 gap-2">

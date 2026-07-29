@@ -135,5 +135,7 @@ export interface PendingActivity {
   submittedAt: string;
   decidedAt?: string;
   txHash?: string;
+  /** The advocate's own on-chain submitActivity transaction. */
+  submitTx?: string;
   rejectionReason?: string;
 }
