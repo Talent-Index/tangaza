@@ -23,12 +23,12 @@ export default function RegisterPage() {
   const account = useActiveAccount();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-6 py-10">
-      <header className="mb-10 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <BrandMark />
+    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col overflow-x-clip px-4 py-8 sm:px-6 sm:py-10">
+      <header className="mb-8 flex items-center justify-between gap-3 sm:mb-10">
+        <Link href="/" className="min-w-0 shrink">
+          <BrandMark className="text-base sm:text-lg" />
         </Link>
-        <Link href="/org" className="text-xs text-mist-500 hover:text-mist-300">
+        <Link href="/org" className="shrink-0 text-xs text-mist-500 hover:text-mist-300">
           Already registered? →
         </Link>
       </header>

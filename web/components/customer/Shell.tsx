@@ -22,19 +22,21 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const name = useDisplayName(account?.address);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-6">
-      <header className="mb-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <BrandMark />
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5">
+      <header className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+        <Link href="/" className="min-w-0 shrink">
+          <BrandMark className="text-base sm:text-lg" />
         </Link>
 
         {account ? (
           <Link
             href="/profile"
             aria-label="Your profile"
-            className="flex items-center gap-2 rounded-full transition hover:opacity-80"
+            className="flex min-w-0 items-center gap-2 rounded-full transition hover:opacity-80"
           >
-            <span className="max-w-36 truncate text-sm text-mist-400">{name}</span>
+            <span className="max-w-28 truncate text-sm text-mist-400 sm:max-w-36">
+              {name}
+            </span>
             <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
               {name.replace(/^@/, "").slice(0, 1)}
             </span>
@@ -42,10 +44,10 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
 
       {account ? (
-        <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-5 pb-5">
+        <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-5">
           <div className="flex items-center justify-around rounded-full border border-ink-700 bg-ink-850/95 p-1.5 backdrop-blur">
             {NAV.map((item) => {
               const active =
@@ -55,7 +57,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
+                  className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
                     active
                       ? "bg-crimson-500/15 text-crimson-300"
                       : "text-mist-500 hover:text-mist-300"

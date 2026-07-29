@@ -22,16 +22,32 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 py-8">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-6">
-          <Link href="/org" className="flex items-center gap-2">
-            <BrandMark />
+    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col overflow-x-clip px-4 py-6 sm:px-6 sm:py-8">
+      <header className="mb-6 flex flex-col gap-4 sm:mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/org" className="flex min-w-0 items-center gap-2">
+            <BrandMark className="text-base sm:text-lg" />
             <span className="hidden text-sm text-mist-500 sm:inline">Business</span>
           </Link>
 
-          {account ? (
-            <nav className="flex flex-wrap items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1">
+          <div className="flex items-center gap-3">
+            {CONTRACT_ADDRESS ? (
+              <a
+                href={addressUrl(CONTRACT_ADDRESS)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden text-xs text-mist-500 hover:text-crimson-300 md:block"
+              >
+                Contract {shortAddress(CONTRACT_ADDRESS)} ↗
+              </a>
+            ) : null}
+            <SignedInAs />
+          </div>
+        </div>
+
+        {account ? (
+          <nav className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+            <div className="flex w-max min-w-full items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1 sm:w-auto sm:min-w-0 sm:flex-wrap">
               {NAV.map((item) => {
                 const active =
                   item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
@@ -40,7 +56,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${
                       active
                         ? "bg-crimson-500/15 text-crimson-300"
                         : "text-mist-500 hover:text-mist-300"
@@ -50,30 +66,14 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
-            </nav>
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-3">
-          {CONTRACT_ADDRESS ? (
-            <a
-              href={addressUrl(CONTRACT_ADDRESS)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden text-xs text-mist-500 hover:text-crimson-300 sm:block"
-            >
-              Contract {shortAddress(CONTRACT_ADDRESS)} ↗
-            </a>
-          ) : null}
-          <SignedInAs />
-        </div>
+            </div>
+          </nav>
+        ) : null}
       </header>
 
-      <main className="flex-1">
-        {account ? children : <OrgSignedOut />}
-      </main>
+      <main className="min-w-0 flex-1">{children}</main>
 
-      <footer className="mt-12 border-t border-ink-800 pt-5 text-xs text-mist-500">
+      <footer className="mt-10 border-t border-ink-800 pt-5 text-xs leading-relaxed text-mist-500 sm:mt-12">
         Avalanche Fuji · every approval and every redemption below is a real on-chain
         transaction.
       </footer>
@@ -106,28 +106,28 @@ function SignedInAs() {
 
 function OrgSignedOut() {
   return (
-    <div className="relative grid place-items-center py-16">
+    <div className="relative grid place-items-center py-10 sm:py-16">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
         aria-hidden
       />
       <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="rounded-md bg-ink-900 px-3 py-2">
-            <BrandMark className="text-base" />
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="min-w-0 rounded-md bg-ink-900 px-2.5 py-2 sm:px-3">
+            <BrandMark className="text-sm sm:text-base" />
           </div>
           <Link
             href="/"
-            className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200"
+            className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
           >
             Advocate portal →
           </Link>
         </div>
-        <div className="card px-6 py-8 sm:px-8">
+        <div className="card px-4 py-7 sm:px-8 sm:py-8">
           <p className="text-center text-sm text-mist-500">
             Log in to approve advocacy and manage liability
           </p>
-          <h1 className="mt-3 text-center font-display text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl">
+          <h1 className="mt-3 text-center font-display text-2xl font-bold uppercase tracking-tight text-white sm:text-4xl">
             Business portal.
           </h1>
           <p className="mx-auto mt-4 max-w-sm text-center text-sm text-mist-500">
