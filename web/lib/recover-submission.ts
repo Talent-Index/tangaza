@@ -1,5 +1,5 @@
 import { getContractEvents } from "thirdweb";
-import { eth_blockNumber, getRpcClient } from "thirdweb/rpc";
+import { eth_blockNumber, eth_getCode, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "./chain";
 import { client, contract } from "./client";
 import { activityApprovedEvent, activitySubmittedEvent } from "./events";
@@ -125,4 +125,33 @@ export async function awaitApprovalOnChain(
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   return null;
+}
+
+
+/**
+ * Waits for the account contract to exist. AA10 means a deployment op for this
+ * sender is already sitting in the bundler mempool — usually the sign-in warmup.
+ * When that op mines, the account has code, initCode conflicts disappear, and the
+ * caller can simply retry its real operation as a light op.
+ */
+export async function awaitAccountDeployed(
+  address: string,
+  timeoutMs = 3 * 60_000,
+  intervalMs = 6_000
+): Promise<boolean> {
+  const rpc = getRpcClient({ client, chain: CHAIN });
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    try {
+      const code = await eth_getCode(rpc, {
+        address: address as `0x${string}`,
+        blockTag: "latest",
+      });
+      if (code && code !== "0x") return true;
+    } catch {
+      // transient RPC hiccup — keep watching
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return false;
 }

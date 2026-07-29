@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 
 import { proofHashOf } from "@/lib/proof";
-import { awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
+import { awaitAccountDeployed, awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
 import { useOrg, usePendingActivities } from "@/lib/hooks";
@@ -200,7 +200,26 @@ function ApprovalRow({
       await finish(r.transactionHash);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
+      if (/AA10|already constructed/i.test(msg) && approverAccount) {
+        // A deployment op for the approver is already in the mempool (the warmup).
+        // Once it mines, retrying is a light op. See the submit flow's twin branch.
+        setWaitingChain(true);
+        try {
+          const deployed = await awaitAccountDeployed(approverAccount.address);
+          if (deployed) {
+            const retry = await sendTx(tx);
+            return await finish(retry.transactionHash);
+          }
+          const note =
+            "Your approver account is still being set up on Avalanche. Give it a " +
+            "minute and press Approve again — a landed approval will be picked up, " +
+            "never duplicated.";
+          setError(note);
+          toastError(note);
+        } finally {
+          setWaitingChain(false);
+        }
+      } else if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
         // The op is usually still in flight — the bundler literally says so for
         // AA25. Hold the button and watch the chain rather than inviting a re-send.
         setWaitingChain(true);

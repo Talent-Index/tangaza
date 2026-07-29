@@ -13,7 +13,7 @@ import { ORG_ID } from "@/lib/chain";
 import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks";
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
-import { awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
+import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
 import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
@@ -137,7 +137,37 @@ function SubmitForm({ account }: { account: Account }) {
           txHash = receipt.transactionHash;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
+          if (/AA10|already constructed/i.test(msg)) {
+            /**
+             * A deployment op for this account — usually the sign-in warmup — is
+             * already in the bundler mempool, and this op's initCode conflicts with
+             * it. When the earlier op mines, the account exists and a retry is a
+             * light op with no initCode at all. So: wait for the account to have
+             * code, then send this submission again automatically.
+             */
+            setWaitingChain(true);
+            try {
+              const deployed = await awaitAccountDeployed(address);
+              if (deployed) {
+                const retry = await sendTx(
+                  prepareContractCall({
+                    contract,
+                    method: "submitActivity",
+                    params: [orgId, selected.chainCategory, proofHash],
+                  })
+                );
+                txHash = retry.transactionHash;
+              } else {
+                throw new Error(
+                  "Your account is still being set up on Avalanche and the network is slow. " +
+                    "Leave this page open and press Send again in a minute — we'll pick up " +
+                    "anything that already went through."
+                );
+              }
+            } finally {
+              setWaitingChain(false);
+            }
+          } else if (/Timeout waiting for userOp|AA25|already being processed/i.test(msg)) {
             /**
              * The op is out of our hands but very likely still in flight — a timed-out
              * userOp usually mines after the SDK gives up, and AA25 means the bundler

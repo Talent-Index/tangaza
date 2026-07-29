@@ -55,8 +55,8 @@ function Home({ address }: { address: string }) {
         <section className="flex flex-col items-center pt-2 text-center">
           <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
           <p className="mt-5 max-w-xs text-sm text-mist-400">
-            Every 20 approved activities earns {kesLabel(CREDIT_VALUE_KES)}, at any
-            business here. Join a campaign below and start.
+            Every journey we move together, we grow together. Join our campaigns and
+            get good deals from our partners.
           </p>
         </section>
       ) : (
@@ -129,8 +129,8 @@ function Home({ address }: { address: string }) {
       </section>
 
       <p className="pt-2 text-center text-[11px] leading-relaxed text-mist-500">
-        Every reward comes from a business&rsquo;s own fixed budget, written once on
-        Avalanche. No budget can ever be raised — not by them, not by us.
+        Every activity for a business does not go unrewarded — share what you do,
+        and get to have what we have.
       </p>
     </div>
   );
