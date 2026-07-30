@@ -837,3 +837,29 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
 }
+
+/* --------------------------------------------------------------- wallets */
+
+/**
+ * Records that a wallet connected, at connect time.
+ *
+ * Submissions only know about people who got as far as submitting. This is the earlier
+ * fact — who showed up at all — keyed by the acting address, with the signing wallet
+ * behind it kept alongside so "which extension was this person using" stays answerable.
+ */
+export async function recordWalletConnection(p: {
+  address: string;
+  adminAddress?: string;
+  walletId?: string;
+}): Promise<void> {
+  await sql`
+    insert into wallets (address, admin_address, wallet_id)
+    values (${p.address.toLowerCase()},
+            ${p.adminAddress?.toLowerCase() ?? null},
+            ${p.walletId ?? null})
+    on conflict (address) do update
+      set last_seen_at  = now(),
+          connect_count = wallets.connect_count + 1,
+          admin_address = coalesce(excluded.admin_address, wallets.admin_address),
+          wallet_id     = coalesce(excluded.wallet_id, wallets.wallet_id)`;
+}

@@ -2,6 +2,7 @@
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
 import { AccountWarmup } from "@/components/AccountWarmup";
+import { WalletRegistrar } from "@/components/WalletRegistrar";
 import { ToastProvider } from "@/components/toast";
 import { accountAbstraction, client, externalWallets, wallets } from "@/lib/client";
 
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         timeout={8_000}
       />
       <AccountWarmup />
+      <WalletRegistrar />
       <ToastProvider>{children}</ToastProvider>
     </ThirdwebProvider>
   );
