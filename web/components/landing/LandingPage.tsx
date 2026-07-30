@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BrandMark, Button } from "@/components/ui";
-import { CREDIT_VALUE_KES, MILESTONE_ACTIVITIES } from "@/lib/chain";
-import { kesLabel } from "@/lib/format";
+import { MILESTONE_ACTIVITIES } from "@/lib/chain";
 
 const NAV = [
   { href: "#about", label: "About" },
@@ -267,7 +266,7 @@ function Solutions() {
             {
               step: "03",
               title: "Claim",
-              body: `Every ${MILESTONE_ACTIVITIES} approved activities unlocks ${kesLabel(CREDIT_VALUE_KES)} you can redeem.`,
+              body: `Every ${MILESTONE_ACTIVITIES} approved activities unlocks in-house offers, rewards and discounts you can redeem.`,
             },
           ].map((item) => (
             <div key={item.step}>
@@ -344,7 +343,7 @@ function WhyUs() {
             {[
               "No seed phrase. No gas fees. Social sign-in only.",
               "Pilot with Blockchain Centre Kenya — built for Team1 Kenya.",
-              `${kesLabel(CREDIT_VALUE_KES)} per milestone, paid as real rewards.`,
+              "Real in-house rewards every milestone — offers, discounts, vouchers.",
             ].map((line) => (
               <li key={line} className="flex gap-3 text-sm text-mist-300">
                 <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-crimson-400" />

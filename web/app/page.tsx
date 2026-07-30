@@ -6,9 +6,9 @@ import { CustomerShell } from "@/components/customer/Shell";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { ProgressRing } from "@/components/customer/ProgressRing";
 import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner } from "@/components/ui";
-import { MILESTONE_ACTIVITIES, ORG_ID, CREDIT_VALUE_KES } from "@/lib/chain";
+import { MILESTONE_ACTIVITIES, ORG_ID } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
-import { kesLabel, timeAgo } from "@/lib/format";
+import { timeAgo } from "@/lib/format";
 import {
   useAllCampaigns,
   useCredits,
@@ -74,8 +74,8 @@ function Home({ address }: { address: string }) {
               <p className="text-sm font-semibold text-crimson-300">
                 {available.length} reward{available.length === 1 ? "" : "s"} ready
               </p>
-              <p className="tabular mt-1 text-2xl font-black">
-                {kesLabel(available.reduce((sum, c) => sum + Number(c.valueKES), 0))}
+              <p className="mt-1 text-lg font-black">
+                Redeem for in-house offers, discounts or vouchers
               </p>
             </div>
             <Button href="/rewards">Claim</Button>
@@ -172,8 +172,8 @@ function CommunityCard({
         />
       </div>
       <p className="mt-2 text-xs text-mist-500">
-        <span className="tabular text-mist-300">{done} of {total}</span> toward your next{" "}
-        {kesLabel(CREDIT_VALUE_KES)} reward
+        <span className="tabular text-mist-300">{done} of {total}</span> toward your next
+        reward from the house
       </p>
 
       <LevelCard address={address} orgId={community.orgId} />
