@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { prepareContractCall } from "thirdweb";
 import { useActiveAccount } from "thirdweb/react";
-import type { Account } from "thirdweb/wallets";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
@@ -23,20 +22,16 @@ import { proofHint, type EngagementType } from "@/lib/types";
 /* ------------------------------------------------------------------ screen 3 */
 
 export default function SubmitPage() {
-  const account = useActiveAccount();
-
   return (
     <CustomerShell>
-      {account ? (
-        <Suspense fallback={null}>
-          <SubmitForm account={account} />
-        </Suspense>
-      ) : (
-        <div className="pt-16 text-center">
-          <p className="mb-6 text-mist-400">Sign in to submit an activity.</p>
-          <SignIn />
-        </div>
-      )}
+      {/*
+       * The form renders for everyone. Connection is asked for at the moment it is
+       * needed — pressing Send — not as a toll at the door. Filling in what you did
+       * requires no wallet; recording it on Avalanche does.
+       */}
+      <Suspense fallback={null}>
+        <SubmitForm />
+      </Suspense>
     </CustomerShell>
   );
 }
@@ -47,8 +42,9 @@ export default function SubmitPage() {
  * of engagement types: a new one appears here the moment the org adds it, and the proof
  * field changes shape to match what that engagement actually asks for.
  */
-function SubmitForm({ account }: { account: Account }) {
-  const address = account.address;
+function SubmitForm() {
+  const account = useActiveAccount();
+  const address = account?.address;
   const router = useRouter();
   /**
    * Arriving from a shared campaign link changes whose form this is: the submission —
@@ -95,6 +91,10 @@ function SubmitForm({ account }: { account: Account }) {
   const [settingUp, setSettingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null); // the submission tx hash
+  // Pressing Send while disconnected opens the connect dialog and remembers the
+  // intent, so the submission continues by itself the moment a wallet is connected.
+  const [showConnect, setShowConnect] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const { success, error: toastError } = useToast();
 
   // Inside a campaign, only the engagements that campaign counts are offered.
@@ -113,9 +113,35 @@ function SubmitForm({ account }: { account: Account }) {
   const needsProof = selected ? selected.proofKind !== "none" : true;
   const canSubmit = Boolean(selected) && (!needsProof || proof.trim().length > 0);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selected || !account) return;
+  /**
+   * Resumes a Send that was interrupted by the connect dialog. Waits for the funds
+   * gate to answer first: if the freshly connected wallet is under 0.005 AVAX the
+   * honest next step is the funding notice, not a transaction that the gate exists
+   * to prevent.
+   */
+  useEffect(() => {
+    if (!pendingSubmit || !account) return;
+    if (funds.loading) return;
+    setShowConnect(false);
+    setPendingSubmit(false);
+    if (!funds.ok) return;
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSubmit, account, funds.loading, funds.ok]);
+
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!selected) return;
+
+    // Not connected yet: this click's job is the connection. The submission itself
+    // resumes automatically once a wallet is in place — see the effect below.
+    if (!account) {
+      setPendingSubmit(true);
+      setShowConnect(true);
+      return;
+    }
+    const address = account.address;
+
     setError(null);
     setSubmitting(true);
 
@@ -369,11 +395,17 @@ function SubmitForm({ account }: { account: Account }) {
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <FundsNotice funds={funds} />
+      {/* Meaningless before a wallet exists to fund — connection comes first. */}
+      {account ? <FundsNotice funds={funds} /> : null}
 
       <Button
         type="submit"
-        disabled={submitting || sending || !canSubmit || (!funds.loading && !funds.ok)}
+        disabled={
+          submitting ||
+          sending ||
+          !canSubmit ||
+          (Boolean(account) && !funds.loading && !funds.ok)
+        }
         className="w-full"
       >
         {settingUp
@@ -390,8 +422,51 @@ function SubmitForm({ account }: { account: Account }) {
                   ? "Sending…"
                   : submitting
                     ? "Preparing…"
-                    : "Send for approval"}
+                    : account
+                      ? "Send for approval"
+                      : "Connect wallet & send"}
       </Button>
+
+      {!account ? (
+        <p className="text-center text-xs text-mist-500">
+          You&rsquo;ll be asked to connect Core or MetaMask (or a social login) — then
+          your wallet signs, and the submission is recorded on Avalanche.
+        </p>
+      ) : null}
+
+      {showConnect && !account ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Connect a wallet"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+        >
+          <div className="w-full max-w-sm animate-pop rounded-2xl border border-ink-700 bg-ink-900 p-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">Connect to record this</p>
+                <p className="mt-1 text-xs leading-relaxed text-mist-500">
+                  Your own wallet signs the submission on Avalanche — that&rsquo;s what
+                  makes it yours. Once connected, we&rsquo;ll continue right where you
+                  left off.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => {
+                  setShowConnect(false);
+                  setPendingSubmit(false);
+                }}
+                className="shrink-0 text-mist-500 transition hover:text-mist-300"
+              >
+                ✕
+              </button>
+            </div>
+            <SignIn />
+          </div>
+        </div>
+      ) : null}
 
       {settingUp ? (
         <p className="text-center text-xs text-mist-500">
