@@ -15,12 +15,14 @@
     "@x402/core": "^2.19.0",
     "@x402/evm": "^2.19.0",
     "@x402/svm": "^2.19.0",
+    "mcp-handler": "^2.0.1",
     "next": "^16.2.11",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "server-only": "^0.0.1",
     "thirdweb": "^5.120.1",
-    "viem": "^2.55.8"
+    "viem": "^2.55.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

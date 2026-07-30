@@ -1,0 +1,76 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Ubu-Tangaza API",
+    "version": "1.0.0",
+    "description": "Proof-of-advocacy rewards on Avalanche Fuji. Reads are public; writes are authorized by on-chain receipts, not API keys — see /agents.md. Contract: 0x04AE7084ba8f52BEb6186885FD1A091f7d602086 (verified)."
+  },
+  "servers": [{ "url": "https://ubu-tangaza.vercel.app" }],
+  "paths": {
+    "/api/campaigns": {
+      "get": {
+        "summary": "List campaigns (all=true for every business), or one by slug",
+        "parameters": [
+          { "name": "all", "in": "query", "schema": { "type": "string", "enum": ["true"] } },
+          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
+          { "name": "slug", "in": "query", "schema": { "type": "string" } },
+          { "name": "address", "in": "query", "schema": { "type": "string" }, "description": "with slug: also return whether this wallet joined" }
+        ],
+        "responses": { "200": { "description": "campaigns or campaign+joined" } }
+      },
+      "post": {
+        "summary": "Join a campaign",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "address"], "properties": { "slug": { "type": "string" }, "address": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "joined" }, "404": { "description": "no such campaign" } }
+      }
+    },
+    "/api/engagement-types": {
+      "get": {
+        "summary": "What a business rewards: label, proof kind, chain category, weight",
+        "parameters": [{ "name": "orgId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "types" } }
+      }
+    },
+    "/api/tiers": {
+      "get": {
+        "summary": "A business's reward levels; with address, a wallet's standing on them",
+        "parameters": [
+          { "name": "orgId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "address", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "tiers, standing?" } }
+      }
+    },
+    "/api/standings": {
+      "get": {
+        "summary": "Leaderboard ranked by approved weight",
+        "parameters": [{ "name": "orgId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "standings" } }
+      }
+    },
+    "/api/directory": {
+      "get": {
+        "summary": "The business's advocate directory (levels, X handles, activity)",
+        "parameters": [{ "name": "orgId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "directory" } }
+      }
+    },
+    "/api/activities": {
+      "get": {
+        "summary": "Submissions queue",
+        "parameters": [
+          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
+          { "name": "advocate", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "approved", "rejected"] } }
+        ],
+        "responses": { "200": { "description": "activities" } }
+      },
+      "post": {
+        "summary": "File a submission already recorded on-chain by the advocate's wallet",
+        "description": "The server fetches submitTx's receipt and requires an ActivitySubmitted log matching orgId, advocate (the tx sender) and keccak256(proofUrl). 401 otherwise.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["orgId", "advocate", "engagementTypeId", "submitTx"], "properties": { "orgId": { "type": "string" }, "advocate": { "type": "string" }, "engagementTypeId": { "type": "string", "format": "uuid" }, "proofUrl": { "type": "string" }, "note": { "type": "string", "maxLength": 280 }, "advocateLabel": { "type": "string", "maxLength": 60 }, "campaignId": { "type": "string", "format": "uuid" }, "submitTx": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" } } } } } },
+        "responses": { "201": { "description": "created, pending approval" }, "401": { "description": "receipt missing or does not prove this submission" } }
+      }
+    }
+  }
+}

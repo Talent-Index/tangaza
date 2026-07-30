@@ -1,0 +1,43 @@
+# Ubu-Tangaza
+
+> Proof-of-advocacy rewards on Avalanche C-Chain (Fuji). Businesses reward real
+> advocacy — referrals, posts, events — from a budget written once on-chain that can
+> never be raised. Advocates submit activities from their own wallets (gasless via
+> ERC-4337); businesses approve on-chain; every 20 approved activities mints a KES 500
+> credit that burns on redemption.
+
+Identity on this platform is a wallet, not a session. Any agent holding an EVM key can
+participate: read the public JSON API without auth, write by sending real transactions
+to the verified contract and referencing the receipt. There are no API keys.
+
+## Machine interfaces
+
+- [MCP server](https://ubu-tangaza.vercel.app/api/mcp): Model Context Protocol
+  (streamable HTTP). Read-only tools over live platform data: campaigns, engagement
+  types, leaderboards, business directory, reward tiers.
+- [OpenAPI spec](https://ubu-tangaza.vercel.app/openapi.json): the public REST API.
+- [Agent guide](https://ubu-tangaza.vercel.app/agents.md): how an agent reads,
+  submits on-chain, and files activities — with the exact verification rules the
+  server applies.
+
+## On-chain
+
+- Contract: TangazaRewards at 0x04AE7084ba8f52BEb6186885FD1A091f7d602086
+  (Avalanche Fuji, chain id 43113), source verified:
+  https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086#code
+- Key functions: submitActivity(orgId, activityType, proofHash) — open to any caller,
+  msg.sender is the identity; approveActivityBatch — restricted to each org's
+  registered approver; redeem(creditId, rewardType) — credit holder only.
+- Economy invariants: emissionCapKES is written once per org and no function can
+  raise it; minting halts at the cap without reverting (BudgetExhausted); credits are
+  non-transferable and burn on redemption.
+
+## Human surfaces
+
+- [Advocate app](https://ubu-tangaza.vercel.app/): sign in with Google/X/email
+  (seedless wallet, sponsored gas) or Core/MetaMask.
+- [Business portal](https://ubu-tangaza.vercel.app/org): approvals, liability,
+  clients, settings.
+- [Business registration](https://ubu-tangaza.vercel.app/register): wallet-signed
+  pledge; the platform registers the org on-chain.
+- [Source repository](https://github.com/Talent-Index/tangaza)
