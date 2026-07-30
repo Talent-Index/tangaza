@@ -19,6 +19,7 @@ import {
 
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
+import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
 import { useOrg, usePendingActivities } from "@/lib/hooks";
@@ -136,6 +137,8 @@ function ApprovalRow({
   // Locked while a userOp is out of our hands but unconfirmed — clicking Approve
   // again during that window is exactly what creates duplicates and AA25 lockouts.
   const [waitingChain, setWaitingChain] = useState(false);
+  // Locked while the approver's account is still being deployed by the sign-in warmup.
+  const [settingUp, setSettingUp] = useState(false);
   // Recorded with every decision, so the queue knows which wallet approved what —
   // the chain already enforces it, this makes it visible in the database too.
   const approverAccount = useActiveAccount();
@@ -195,14 +198,32 @@ function ApprovalRow({
       ],
     });
 
+    /**
+     * Don't race the sign-in warmup. While its deployment op is in flight thirdweb
+     * reports the approver's account as deployed and then parks this transaction on an
+     * in-memory lock for 60 seconds before failing it — without ever sending it. An
+     * approval that silently never reaches the bundler is the worst failure this screen
+     * has, so wait for the warmup rather than start a race. See web/lib/warmup.ts.
+     */
+    if (approverAccount && isWarmingUp(approverAccount.address)) {
+      setSettingUp(true);
+      try {
+        await waitForAccountReady(approverAccount.address);
+      } finally {
+        setSettingUp(false);
+      }
+    }
+
     try {
       const r = await sendTx(tx);
       await finish(r.transactionHash);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (/AA10|already constructed/i.test(msg) && approverAccount) {
-        // A deployment op for the approver is already in the mempool (the warmup).
-        // Once it mines, retrying is a light op. See the submit flow's twin branch.
+      if ((/AA10|already constructed/i.test(msg) || isDeploymentStall(msg)) && approverAccount) {
+        // Either a deployment op for the approver is already in the mempool (the
+        // warmup) and this op's initCode collides with it, or thirdweb timed out on a
+        // deployment it was tracking and sent nothing. Both clear once the account has
+        // code, after which retrying is a light op. See the submit flow's twin branch.
         setWaitingChain(true);
         try {
           const deployed = await awaitAccountDeployed(approverAccount.address);
@@ -330,9 +351,13 @@ function ApprovalRow({
             </Button>
             <Button
               onClick={approve}
-              disabled={!canApprove || isPending || waitingChain || rejecting}
+              disabled={!canApprove || isPending || waitingChain || settingUp || rejecting}
             >
-              {waitingChain ? (
+              {settingUp ? (
+                <>
+                  <Spinner /> Setting up your account…
+                </>
+              ) : waitingChain ? (
                 <>
                   <Spinner /> Waiting for Avalanche…
                 </>

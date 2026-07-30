@@ -1,8 +1,9 @@
 import { getContractEvents } from "thirdweb";
-import { eth_blockNumber, eth_getCode, getRpcClient } from "thirdweb/rpc";
+import { eth_blockNumber, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "./chain";
 import { client, contract } from "./client";
 import { activityApprovedEvent, activitySubmittedEvent } from "./events";
+import { accountHasCode } from "./warmup";
 
 /**
  * Finds an ActivitySubmitted the advocate already managed to get on-chain.
@@ -139,18 +140,11 @@ export async function awaitAccountDeployed(
   timeoutMs = 3 * 60_000,
   intervalMs = 6_000
 ): Promise<boolean> {
-  const rpc = getRpcClient({ client, chain: CHAIN });
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
-    try {
-      const code = await eth_getCode(rpc, {
-        address: address as `0x${string}`,
-        blockTag: "latest",
-      });
-      if (code && code !== "0x") return true;
-    } catch {
-      // transient RPC hiccup — keep watching
-    }
+    // Shared with the warmup registry, so a confirmed deployment is remembered once
+    // rather than re-queried by every caller.
+    if (await accountHasCode(address).catch(() => false)) return true;
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   return false;

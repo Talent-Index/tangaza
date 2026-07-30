@@ -2,9 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useActiveAccount, useActiveWallet } from "thirdweb/react";
-import { eth_getCode, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "@/lib/chain";
-import { client } from "@/lib/client";
+import { accountHasCode, trackWarmup } from "@/lib/warmup";
 
 /**
  * Deploys the advocate's smart account in the background, at sign-in.
@@ -22,6 +21,10 @@ import { client } from "@/lib/client";
  * Fire-and-forget on purpose. If this times out client-side the op usually still
  * mines; if it fails outright, the submit flow's own recovery handles first-tx
  * deployment exactly as before. This is an optimisation, never a gate.
+ *
+ * It is registered with `trackWarmup` so real transactions can *join* it rather than
+ * race it. Racing is what produced "Account deployment is taking too long (over 1
+ * minute)" on the one action we most need to work — see web/lib/warmup.ts.
  */
 export function AccountWarmup() {
   const account = useActiveAccount();
@@ -30,8 +33,9 @@ export function AccountWarmup() {
 
   useEffect(() => {
     if (!account) return;
-    // Only smart accounts have anything to deploy. A plain EOA (Core) has no code by
-    // nature, and a warmup tx from it would just spend the user's own gas on nothing.
+    // Only smart accounts have anything to deploy. Core and MetaMask arrive wrapped by
+    // `accountAbstraction`, so the active wallet is "smart" and their account needs
+    // deploying too — an unwrapped EOA would just spend the user's own gas on nothing.
     if (wallet && wallet.id !== "inApp" && wallet.id !== "smart") return;
     const address = account.address;
     if (attempted.current.has(address)) return;
@@ -39,19 +43,20 @@ export function AccountWarmup() {
 
     (async () => {
       try {
-        const rpc = getRpcClient({ client, chain: CHAIN });
-        const code = await eth_getCode(rpc, {
-          address: address as `0x${string}`,
-          blockTag: "latest",
-        });
-        if (code && code !== "0x") return; // already deployed — nothing to warm
+        // A hit here also records the account as deployed, so nothing later waits on us.
+        if (await accountHasCode(address)) return;
 
-        await account.sendTransaction({
-          to: address as `0x${string}`,
-          value: 0n,
-          data: "0x",
-          chainId: CHAIN.id,
-        });
+        // Registered before it is awaited: the window that matters is the one where a
+        // user presses Send while this op is still out, and that starts now.
+        await trackWarmup(
+          address,
+          account.sendTransaction({
+            to: address as `0x${string}`,
+            value: 0n,
+            data: "0x",
+            chainId: CHAIN.id,
+          })
+        );
       } catch {
         // Best-effort by design; see the note above.
       }

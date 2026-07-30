@@ -14,6 +14,7 @@ import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
+import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { proofHint, type EngagementType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 3 */
@@ -79,6 +80,10 @@ function SubmitForm({ account }: { account: Account }) {
   // locked through this — re-sending while the first op is in flight is exactly what
   // produces AA25 "another deployment operation is already being processed".
   const [waitingChain, setWaitingChain] = useState(false);
+  // True while we're waiting on the sign-in warmup to finish deploying this account.
+  // Separate from waitingChain because the honest thing to say is different: nothing
+  // of theirs is in flight yet, we're just not starting a race we'd lose.
+  const [settingUp, setSettingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null); // the submission tx hash
   const { success, error: toastError } = useToast();
@@ -125,37 +130,51 @@ function SubmitForm({ account }: { account: Account }) {
        */
       let txHash = await findSubmissionOnChain(onChain).catch(() => null);
 
+      const call = () =>
+        prepareContractCall({
+          contract,
+          method: "submitActivity",
+          params: [orgId, selected.chainCategory, proofHash],
+        });
+
+      /**
+       * Never race our own sign-in warmup.
+       *
+       * While the warmup's deployment op is in flight, thirdweb reports this account
+       * as already deployed and then parks any second transaction on an in-memory
+       * lock — for exactly 60 seconds, after which it throws "Account deployment is
+       * taking too long" without ever having sent anything. Waiting for the warmup
+       * costs the same wall clock, says so on the button, and leaves the account
+       * existing, which makes this send a light op that lands in seconds.
+       */
+      if (!txHash && isWarmingUp(address)) {
+        setSettingUp(true);
+        try {
+          await waitForAccountReady(address);
+        } finally {
+          setSettingUp(false);
+        }
+      }
+
       if (!txHash) {
         try {
-          const receipt = await sendTx(
-            prepareContractCall({
-              contract,
-              method: "submitActivity",
-              params: [orgId, selected.chainCategory, proofHash],
-            })
-          );
+          const receipt = await sendTx(call());
           txHash = receipt.transactionHash;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (/AA10|already constructed/i.test(msg)) {
+          if (/AA10|already constructed/i.test(msg) || isDeploymentStall(msg)) {
             /**
-             * A deployment op for this account — usually the sign-in warmup — is
-             * already in the bundler mempool, and this op's initCode conflicts with
-             * it. When the earlier op mines, the account exists and a retry is a
-             * light op with no initCode at all. So: wait for the account to have
-             * code, then send this submission again automatically.
+             * Either a deployment op for this account is already in the bundler
+             * mempool and this op's initCode conflicts with it (AA10), or thirdweb
+             * timed out on a deployment it was tracking in memory and sent nothing at
+             * all. Both clear the same way: once the account has code, a retry is a
+             * light op with no initCode, so wait for that and send again.
              */
             setWaitingChain(true);
             try {
               const deployed = await awaitAccountDeployed(address);
               if (deployed) {
-                const retry = await sendTx(
-                  prepareContractCall({
-                    contract,
-                    method: "submitActivity",
-                    params: [orgId, selected.chainCategory, proofHash],
-                  })
-                );
+                const retry = await sendTx(call());
                 txHash = retry.transactionHash;
               } else {
                 throw new Error(
@@ -342,16 +361,23 @@ function SubmitForm({ account }: { account: Account }) {
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       <Button type="submit" disabled={submitting || sending || !canSubmit} className="w-full">
-        {waitingChain
-          ? "Waiting for Avalanche to confirm…"
-          : sending
-            ? "Recording on Avalanche…"
-            : submitting
-              ? "Sending…"
-              : "Send for approval"}
+        {settingUp
+          ? "Setting up your account…"
+          : waitingChain
+            ? "Waiting for Avalanche to confirm…"
+            : sending
+              ? "Recording on Avalanche…"
+              : submitting
+                ? "Sending…"
+                : "Send for approval"}
       </Button>
 
-      {waitingChain ? (
+      {settingUp ? (
+        <p className="text-center text-xs text-mist-500">
+          Your account is being created on Avalanche — this happens once, on your first
+          activity. We&rsquo;ll send your submission the moment it&rsquo;s ready.
+        </p>
+      ) : waitingChain ? (
         <p className="text-center text-xs text-mist-500">
           Your account&rsquo;s first transaction includes setting the account up
           on-chain, which can take a couple of minutes. Leave this page open —
