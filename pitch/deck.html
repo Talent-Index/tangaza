@@ -43,12 +43,13 @@
 <section class="slide" style="justify-content:center">
   <div class="logo"><div class="logomark">U</div><span style="font-size:17pt;font-weight:700">Ubu-Tangaza</span></div>
   <h1>Get paid for the<br>word you spread.</h1>
-  <p style="margin-top:.35in; font-size:19pt; max-width:9.5in"><strong>Proof-of-advocacy rewards on Avalanche.</strong>
-     Real behaviour, attested by the business, paid from a budget written once on-chain — that can never be raised.</p>
+  <p style="margin-top:.35in; font-size:19pt; max-width:9.8in"><strong>Every activity you do for a business gets rewarded.</strong>
+     It&rsquo;s recorded on Avalanche, and you redeem it as in-house benefits — offers, rewards and discounts —
+     from a budget written once on-chain that can never be raised.</p>
   <p style="margin-top:.3in; font-size:14pt"><span class="accent">ubu</span> — from <em>ubuntu</em>: a person is a person through other people ·
      <span class="accent">tangaza</span> — Swahili: <em>to announce</em></p>
   <div class="footer"><span>Team1 Kenya · Avalanche Game Jam 2026</span>
-    <span class="mono">live on Fuji · ubu-tangaza.vercel.app</span></div>
+    <span class="mono">ubu-tangaza.vercel.app · <a href="https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086" style="color:#7d8598">contract on Snowtrace ↗</a></span></div>
 </section>
 
 <!-- 2 · PROBLEM -->
@@ -68,13 +69,13 @@
 <!-- 3 · ROUTLEDGE -->
 <section class="slide">
   <div class="kicker">Name the behaviour · name the metric</div>
-  <h2>Bring a friend. Post about us.<br>Measured to the shilling.</h2>
+  <h2>Bring a friend. Post about us.<br>Every action counted, every reward real.</h2>
   <div class="grid3" style="margin-top:.15in">
     <div class="card"><div class="lbl">The behaviour</div>
       <p style="font-size:14.5pt"><strong>A member brings a person through the door, or posts about the business</strong> — and their own wallet records it on-chain.</p></div>
-    <div class="card"><div class="lbl">The metric — live today</div>
-      <div class="big">KES 15</div>
-      <p style="font-size:12.5pt; margin-top:.14in">per <strong>verified</strong> advocacy action<br>= committed budget &divide; approved activities, computed from chain state</p></div>
+    <div class="card"><div class="lbl">What they get</div>
+      <p style="font-size:20pt; font-weight:800; color:#e8eaf0; line-height:1.25">In-house offers, rewards &amp; discounts</p>
+      <p style="font-size:12.5pt; margin-top:.16in">The metric: <strong>verified advocacy actions</strong>, counted on-chain — every 20 unlocks a reward from the house.</p></div>
     <div class="card"><div class="lbl">Repeat behaviour</div>
       <p style="font-size:14.5pt"><strong>Streaks</strong> (consecutive active days, on-chain) and <strong>levels</strong> — Regular &rarr; Champion &rarr; Founder&rsquo;s Circle — set by each business.</p></div>
   </div>
@@ -88,8 +89,8 @@
   <div style="max-width:10.8in">
     <div class="step"><div class="stepn">1</div><p><strong>Advocate&rsquo;s wallet writes the activity on-chain</strong> — <span class="mono">submitActivity()</span>, gas sponsored, <span class="mono">msg.sender</span> is the identity</p></div>
     <div class="step"><div class="stepn">2</div><p><strong>Business approves with its wallet</strong> — the contract rejects every other signer (<span class="mono">NotApprover</span>)</p></div>
-    <div class="step"><div class="stepn">3</div><p><strong>Every 20 approved activities mints a KES 500 credit</strong> — engagement weights set by the business price each act</p></div>
-    <div class="step"><div class="stepn">4</div><p><strong>Burn-on-redeem</strong> — airtime, data or voucher; every redemption shrinks the business&rsquo;s liability</p></div>
+    <div class="step"><div class="stepn">3</div><p><strong>Every 20 approved activities mints a reward credit</strong> — engagement weights set by the business price each act</p></div>
+    <div class="step"><div class="stepn">4</div><p><strong>Burn-on-redeem</strong> — the credit becomes an in-house offer, discount or voucher; every redemption shrinks the business&rsquo;s liability</p></div>
   </div>
   <p style="margin-top:.24in">Composed from the cohort&rsquo;s building blocks — capped token + streaks + tiers — in one contract, <strong>45 tests passing</strong>.</p>
   <div class="footer"><span>Ubu-Tangaza</span><span>4</span></div>
@@ -119,7 +120,7 @@
   <div class="kicker">Can it survive success?</div>
   <h2>The chain enforces the CFO</h2>
   <div class="grid2" style="margin-top:.05in">
-    <div class="card"><div class="lbl">1 · Budget-backed</div><p style="font-size:13.5pt">No org exists without committing <span class="mono">emissionCapKES</span>. Every credit is KES 500 of airtime, data or voucher.</p></div>
+    <div class="card"><div class="lbl">1 · Budget-backed</div><p style="font-size:13.5pt">No org exists without committing its <span class="mono">emissionCap</span>. Every credit is a real in-house reward — an offer, a discount, a voucher — budgeted before it exists.</p></div>
     <div class="card"><div class="lbl">2 · Capped emission</div><p style="font-size:13.5pt">Written once. <strong>No function can raise it</strong> — CI pins the contract&rsquo;s full function list; verified source on Snowtrace.</p></div>
     <div class="card"><div class="lbl">3 · Sinks that work</div><p style="font-size:13.5pt">Burn-on-redeem shrinks outstanding liability — and redemptions <strong>never reopen minting headroom</strong>.</p></div>
     <div class="card"><div class="lbl">4 · Value from the product</div><p style="font-size:13.5pt">Earned by attested behaviour, spent on real rewards. Non-transferable: no market, no speculation loop.</p></div>
@@ -134,13 +135,14 @@
   <h2>Verify us while we talk</h2>
   <table style="margin-top:.05in">
     <tr><th>Proof</th><th>Where</th></tr>
-    <tr><td>Contract, <strong>source verified</strong></td><td class="mono">TangazaRewards · 0x04AE7084&hellip;2086 · testnet.snowtrace.io</td></tr>
-    <tr><td>Advocate&rsquo;s own wallet submits</td><td class="mono">0x10500913&hellip;d06d44e4 <span class="ok">&#10003; mined</span></td></tr>
-    <tr><td>Business approves (weighted batch)</td><td class="mono">0x7f56ad34&hellip;a851417a5 <span class="ok">&#10003; mined</span></td></tr>
-    <tr><td>20th activity &rarr; KES 500 credit mints</td><td class="mono">0x0954b9a9&hellip;ede3f6cc0 <span class="ok">&#10003; mined</span></td></tr>
-    <tr><td>Advocate burns credit for reward</td><td class="mono">0xfddaaebd&hellip;b31686c2b <span class="ok">&#10003; mined</span></td></tr>
-    <tr><td>2nd business self-served via the product</td><td class="mono">FitTribe · org #2 · 0x09346bec&hellip;30877bdf <span class="ok">&#10003;</span></td></tr>
+    <tr><td>Contract, <strong>source verified</strong></td><td class="mono"><a href="https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086#code" style="color:#aab2c5">TangazaRewards · 0x04AE7084&hellip;2086 ↗</a></td></tr>
+    <tr><td>Advocate&rsquo;s own wallet submits</td><td class="mono"><a href="https://testnet.snowtrace.io/tx/0x1050091353b84481879b1884f85721e54c3d4b2a09b4b2eebb646f1ad06d44e4" style="color:#aab2c5">0x10500913&hellip;d06d44e4 ↗</a> <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>Business approves (weighted batch)</td><td class="mono"><a href="https://testnet.snowtrace.io/tx/0x7f56ad34f2d0625c0f5ecbc4c047ac29efff6c0a565e8463837bb86a851417a5" style="color:#aab2c5">0x7f56ad34&hellip;a851417a5 ↗</a> <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>20th activity &rarr; reward credit mints</td><td class="mono"><a href="https://testnet.snowtrace.io/tx/0x0954b9a9131eea9e054a9575b7d93ac0570f9a3722dd4edbf32d476ede3f6cc0" style="color:#aab2c5">0x0954b9a9&hellip;ede3f6cc0 ↗</a> <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>Advocate burns credit for reward</td><td class="mono"><a href="https://testnet.snowtrace.io/tx/0xfddaaebd447a57be41de5c5371740607d7932828b04bca0a18b31686c2b764b5" style="color:#aab2c5">0xfddaaebd&hellip;b31686c2b ↗</a> <span class="ok">&#10003; mined</span></td></tr>
+    <tr><td>2nd business self-served via the product</td><td class="mono"><a href="https://testnet.snowtrace.io/tx/0x09346bec7dc5868d02279f1608ac63518c202504857faef7ec1281db30877bdf" style="color:#aab2c5">FitTribe · org #2 · 0x09346bec&hellip;30877bdf ↗</a> <span class="ok">&#10003;</span></td></tr>
   </table>
+  <p style="margin-top:.22in; font-size:11.5pt; color:#7d8598">Every row is a live link — app: <span class="mono">ubu-tangaza.vercel.app</span> · explorer: <span class="mono">testnet.snowtrace.io</span></p>
   <div class="footer"><span>Ubu-Tangaza</span><span>7</span></div>
 </section>
 
@@ -166,10 +168,10 @@
   <div class="grid3" style="margin-top:.45in; max-width:11in">
     <div class="card"><div class="lbl">Businesses on-chain</div><div class="big">2</div></div>
     <div class="card"><div class="lbl">Advocates taking part</div><div class="big">7+</div></div>
-    <div class="card"><div class="lbl">Cost per verified action</div><div class="big">KES 15</div></div>
+    <div class="card"><div class="lbl">Verified activities on-chain</div><div class="big">150+</div></div>
   </div>
   <p style="margin-top:.4in; font-size:17pt"><strong>Ubu-Tangaza</strong> — we grow together.
-     <span class="mono" style="font-size:12pt; color:#7d8598">&nbsp;&nbsp;ubu-tangaza.vercel.app · Fuji 0x04AE7084&hellip;2086</span></p>
+     <span class="mono" style="font-size:12pt; color:#7d8598">&nbsp;&nbsp;ubu-tangaza.vercel.app · <a href="https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086" style="color:#7d8598">Fuji 0x04AE7084&hellip;2086 ↗</a></span></p>
 </section>
 
 </body></html>
