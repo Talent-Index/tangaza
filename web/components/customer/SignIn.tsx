@@ -5,13 +5,7 @@ import { useConnect } from "thirdweb/react";
 import { injectedProvider } from "thirdweb/wallets";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
-import {
-  accountAbstraction,
-  client,
-  coreWallet,
-  metamaskWallet,
-  wallets,
-} from "@/lib/client";
+import { client, coreWallet, metamaskWallet, wallets } from "@/lib/client";
 import { Button, ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
@@ -55,15 +49,12 @@ const EXTERNAL_WALLETS = [
  */
 export function SignIn() {
   /**
-   * `accountAbstraction` is what keeps this gasless for Core and MetaMask users: their
-   * wallet becomes the admin key of a sponsored ERC-4337 account rather than the payer.
-   * The in-app wallet is already a smart account, and the connection manager checks
-   * isSmartWallet() before wrapping, so it is not double-wrapped.
+   * No accountAbstraction here, on purpose: a browser wallet connects as itself. The
+   * address the app acts as is the extension's own, transactions pop the extension,
+   * and gas comes from its balance. Only the in-app wallet (social login) is a smart
+   * account, by its own config in lib/client.ts.
    */
-  const { connect, isConnecting, error: connectError } = useConnect({
-    client,
-    accountAbstraction,
-  });
+  const { connect, isConnecting, error: connectError } = useConnect({ client });
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 
@@ -120,9 +111,8 @@ export function SignIn() {
     });
 
   /**
-   * Connecting a browser wallet. The extension signs, and `accountAbstraction` on
-   * useConnect turns it into the admin key of a sponsored smart account — so the
-   * address the app sees is the smart account's, and the user still needs no AVAX.
+   * Connecting a browser wallet — as itself. What the extension shows is what the
+   * app acts as, and what pays.
    */
   const connectExternal = useCallback(
     (entry: (typeof EXTERNAL_WALLETS)[number]) =>

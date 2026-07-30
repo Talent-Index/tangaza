@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { sendAndConfirmTransaction, type PreparedTransaction } from "thirdweb";
+import {
+  sendAndConfirmTransaction,
+  sendTransaction,
+  waitForReceipt,
+  type PreparedTransaction,
+} from "thirdweb";
 import type { Abi } from "thirdweb/utils";
-import { useActiveAccount, useAdminWallet } from "thirdweb/react";
+import { useActiveAccount, useActiveWallet, useAdminWallet } from "thirdweb/react";
 import {
   bundleUserOp,
   createAndSignUserOp,
@@ -31,6 +36,11 @@ import { client } from "./client";
  *                 and will be a real transaction; now "recording on Avalanche" is
  *                 a fact rather than a promise.
  *
+ * A plain EOA — Core or MetaMask connected as itself — has the same two phases and
+ * they are even easier to observe: `sendTransaction` resolves when the extension's
+ * popup has been confirmed and the raw transaction is broadcast, and `waitForReceipt`
+ * is the mining. The user pays their own gas on this path, which is the point of it.
+ *
  * The risk in rebuilding the pipeline is config drift: if the factory or salt here
  * ever disagreed with what the wallet connected with, the op would send from a
  * different smart account than the one on screen. So before trusting our config we
@@ -55,6 +65,7 @@ export interface TwoPhaseReceipt {
 
 export function useTwoPhaseSend() {
   const account = useActiveAccount();
+  const wallet = useActiveWallet();
   const adminWallet = useAdminWallet();
   const [phase, setPhase] = useState<SendPhase>("idle");
 
@@ -63,7 +74,25 @@ export function useTwoPhaseSend() {
       if (!account) throw new Error("No active account");
       const adminAccount = adminWallet?.getAccount();
 
+      // A bare EOA connection: no smart wallet in play, so the wallet's own
+      // transaction flow IS the pipeline. Popup, broadcast, then mining.
+      const isEoa =
+        wallet?.id !== "smart" &&
+        wallet?.id !== "inApp" &&
+        (!adminAccount ||
+          adminAccount.address.toLowerCase() === account.address.toLowerCase());
+
       try {
+        if (isEoa) {
+          setPhase("signing");
+          const sent = await sendTransaction({ account, transaction: tx });
+          // The extension confirmed and the raw tx is broadcast — it is out of the
+          // user's hands from here.
+          setPhase("confirming");
+          const receipt = await waitForReceipt(sent);
+          return { transactionHash: receipt.transactionHash };
+        }
+
         // Same options the wallet connected with (lib/client.ts): default factory,
         // no salt override, sponsored gas. The prediction below is what proves it.
         const smartWalletOptions = { chain: CHAIN, sponsorGas: true };
@@ -80,8 +109,8 @@ export function useTwoPhaseSend() {
           ).toLowerCase() === account.address.toLowerCase();
 
         if (!usable) {
-          // Unknown wiring — an EOA connection, or an account this config does not
-          // reproduce. Send the safe way and label the phase as the blend it is.
+          // Unknown wiring — an account this config does not reproduce. Send the safe
+          // way and label the phase as the blend it is.
           setPhase("sending");
           const receipt = await sendAndConfirmTransaction({ account, transaction: tx });
           return { transactionHash: receipt.transactionHash };

@@ -52,11 +52,13 @@ nothing in the app depends on it.
 A customer submits an activity — their own wallet records it on-chain and the proof
 stays private → the business approves it on-chain → every 20 approved activities mints
 one KES 500 reward credit → the customer claims it for airtime → the business's
-outstanding liability drops by KES 500. Nobody in that loop sees a seed phrase or pays
-gas — every transaction is sponsored. Acting does require a one-off 0.005 testnet AVAX
-top-up from the [Core faucet](https://core.app/tools/testnet-faucet/), held in either
-the app account or the wallet behind it: skin in the game against drive-by spam, not a
-fee, and it is never spent by the app.
+outstanding liability drops by KES 500. Social-login users never see a seed phrase or
+pay gas — their smart-account transactions are sponsored. Core and MetaMask users act
+as their own wallet: the extension pops for every signature and gas comes from their
+balance, which is what a wallet owner expects. Everyone needs at least 0.005 testnet
+AVAX from the [Core faucet](https://core.app/tools/testnet-faucet/) before acting —
+skin in the game against drive-by spam, and for wallet users it's also what pays
+their gas.
 
 ---
 
@@ -304,15 +306,17 @@ without ever sending anything. `web/lib/warmup.ts` makes the warmup *joinable* s
 transactions wait on it rather than race it; the flag is released in the warmup send's
 own `finally`, so awaiting that promise is the guarantee.
 
-**Bring-your-own wallets are wrapped, not used directly.** Core and MetaMask are
+**Bring-your-own wallets are used directly, as themselves.** Core and MetaMask are
 discovered over EIP-6963 — `window.ethereum` alone cannot tell two extensions apart —
-and `accountAbstraction` in `web/lib/client.ts` makes each the *admin key* of a
-sponsored ERC-4337 account. That keeps the no-AVAX promise for people who arrive with
-their own wallet, at the cost of one sharp edge: **the address the contract sees is the
-smart account's, not the extension's**, so an org that registered its bare EOA as
-approver must re-register the wrapped address or every approval reverts `NotApprover`.
-The option has to be passed to `useConnect` *and* `<AutoConnect />` — exporting it
-alone silently connects a bare EOA, which is what it used to do.
+and connect as plain EOAs: the address on screen is the extension's own, every submit
+and approve pops the extension for a signature, and gas comes out of the user's
+balance. They were briefly wrapped into sponsored smart accounts instead, which kept
+the no-AVAX story uniform and made the product lie about who was acting — the wallet
+never showed a transaction, and an approver who funded their own address had funded
+the wrong account. Social logins keep the sponsored smart-account path, because a
+Google user has no extension to pop and nowhere to hold gas. The standing sharp edge,
+either direction: **the contract's registered approver must match the address the
+connection actually produces**, or every approval reverts `NotApprover`.
 
 **Why `viaIR` is on.** The contract hits "stack too deep" without the IR pipeline.
 Optimizer runs: 200.

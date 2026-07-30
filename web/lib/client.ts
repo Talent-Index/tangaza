@@ -67,22 +67,22 @@ export const metamaskWallet = createWallet("io.metamask");
 export const externalWallets = [coreWallet, metamaskWallet];
 
 /**
- * Wraps any non-smart wallet — Core's EOA, MetaMask's — in an ERC-4337 smart account
- * with sponsored gas, so a browser-wallet user gets the same no-AVAX experience as
- * somebody who signed in with Google. thirdweb's connection manager checks
- * isSmartWallet() first, so the in-app wallet — already a smart account by
- * construction — is never double-wrapped by this.
+ * Browser wallets are deliberately NOT wrapped in a smart account.
  *
- * This has to be handed to *every* entry point that establishes a connection —
- * `useConnect` and `<AutoConnect />` both. Exporting it is not enough: it was exported
- * and passed nowhere, which quietly connected Core as a bare EOA paying its own gas,
- * with a comment here insisting otherwise.
+ * They were, briefly — an `accountAbstraction` option handed to every connection made
+ * Core and MetaMask the admin key of a sponsored ERC-4337 account. It kept the no-AVAX
+ * story uniform, and it made the product lie about who was acting: the address on
+ * screen wasn't the user's wallet, the wallet never showed a plain transaction, and an
+ * approver who funded their own address had funded the wrong account.
  *
- * Note the address a person gets is the smart account's, not their wallet's. Two
- * different people as far as the contract is concerned — see README on re-registering
- * an org's approver after changing this.
+ * The model now matches what a wallet owner expects: connect Core or MetaMask and you
+ * ARE that address. Every submit and approve is an ordinary transaction — the
+ * extension pops, you sign, gas comes out of your balance, msg.sender is you, and the
+ * hash on Snowtrace is yours. The in-app wallet keeps its own smart-account +
+ * sponsored-gas config above, because a Google user has no extension to pop and no way
+ * to hold gas.
+ *
+ * If this flips again, remember the sharp edge both directions: the contract's
+ * registered approver must match the address the connection actually produces, or
+ * every approval reverts NotApprover.
  */
-export const accountAbstraction = {
-  chain: CHAIN,
-  sponsorGas: true,
-};
