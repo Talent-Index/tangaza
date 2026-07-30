@@ -103,6 +103,15 @@ export interface OrgAccess {
   isApprover: boolean;
   /** Who IS allowed to approve for that org — so the UI can say so by name. */
   approver: string;
+  /**
+   * Why this account is seeing this org.
+   *
+   * `approver` — it runs this business. `visitor` — it runs no business on this
+   * contract, and `orgId` below is only the default org it happens to be looking at.
+   * The distinction matters because presenting somebody else's business as though it
+   * were yours is worse than showing nothing.
+   */
+  kind: "approver" | "visitor";
 }
 
 /**
@@ -122,10 +131,19 @@ export async function resolveOrgAccess(
   const me = address.toLowerCase();
   const count = await getOrgCount();
 
-  for (let i = 1n; i <= count; i++) {
+  // Newest first: a business that just registered is the one asking, and its org is the
+  // highest id. Walking upward handed the earliest match to anyone who somehow approves
+  // for two, which in practice meant the seeded pilot org shadowed a real one.
+  for (let i = count; i >= 1n; i--) {
     const org = await getOrg(i);
     if (org.approver.toLowerCase() === me) {
-      return { orgId: i, orgName: org.name, isApprover: true, approver: org.approver };
+      return {
+        orgId: i,
+        orgName: org.name,
+        isApprover: true,
+        approver: org.approver,
+        kind: "approver",
+      };
     }
   }
 
@@ -135,6 +153,7 @@ export async function resolveOrgAccess(
     orgName: fallback.name,
     isApprover: false,
     approver: fallback.approver,
+    kind: "visitor",
   };
 }
 

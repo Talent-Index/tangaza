@@ -9,8 +9,8 @@ import { useToast } from "@/components/toast";
 import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
-import { shortAddress } from "@/lib/format";
-import { useOrgAccess } from "@/lib/hooks";
+import { kesLabel, shortAddress } from "@/lib/format";
+import { useMyApplications, useOrgAccess, type ApplicationSummary } from "@/lib/hooks";
 import type { OrgAccess } from "@/lib/reads";
 
 const NAV = [
@@ -160,6 +160,7 @@ const OrgAccessContext = createContext<OrgAccess>({
   orgName: "",
   isApprover: false,
   approver: "",
+  kind: "visitor",
 });
 
 /**
@@ -179,6 +180,7 @@ function WithOrgAccess({
   children: React.ReactNode;
 }) {
   const access = useOrgAccess(address);
+  const mine = useMyApplications(address);
 
   if (access.loading && !access.data) {
     return (
@@ -188,12 +190,118 @@ function WithOrgAccess({
     );
   }
 
+  /**
+   * This account runs no business on this contract.
+   *
+   * It used to be handed the default org's dashboard read-only, which meant a business
+   * that had just signed its pledge saw somebody else's name, somebody else's
+   * advocates, and no explanation. Say what is actually true instead — and wait for the
+   * application lookup before deciding, so a pending registration is never mislabelled
+   * as "you have no business here".
+   */
+  if (access.data && access.data.kind === "visitor") {
+    if (mine.loading && !mine.data) {
+      return (
+        <div className="grid place-items-center py-24">
+          <Spinner className="size-6" />
+        </div>
+      );
+    }
+    return <NoBusinessYet address={address} applications={mine.data ?? []} />;
+  }
+
   return (
     <OrgAccessContext.Provider
-      value={access.data ?? { orgId: ORG_ID, orgName: "", isApprover: false, approver: "" }}
+      value={
+        access.data ?? {
+          orgId: ORG_ID,
+          orgName: "",
+          isApprover: false,
+          approver: "",
+          kind: "visitor",
+        }
+      }
     >
       {children}
     </OrgAccessContext.Provider>
+  );
+}
+
+/**
+ * What a wallet with no on-chain business sees.
+ *
+ * Three genuinely different situations, and conflating them is what made this confusing:
+ * they never applied, they applied and it is still being registered, or their
+ * application says registered but the contract disagrees — which is what happens when a
+ * pledge was registered against an older deployment.
+ */
+function NoBusinessYet({
+  address,
+  applications,
+}: {
+  address: string;
+  applications: ApplicationSummary[];
+}) {
+  const pending = applications.find((a) => a.status === "signed");
+  const registered = applications.find((a) => a.status === "registered");
+
+  return (
+    <div className="mx-auto max-w-lg py-12">
+      <div className="card px-6 py-8 text-center">
+        {pending ? (
+          <>
+            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-amber-500/15 text-2xl">
+              ⏳
+            </div>
+            <h1 className="text-xl font-bold">{pending.name} is being registered</h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm text-mist-500">
+              Your pledge is signed and on file with a {kesLabel(pending.emissionCapKes)}{" "}
+              budget. The platform writes the registration on Avalanche — once it lands,
+              this page becomes your approvals queue. It refreshes itself.
+            </p>
+          </>
+        ) : registered ? (
+          <>
+            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-crimson-500/15 text-2xl">
+              ⚠️
+            </div>
+            <h1 className="text-xl font-bold">{registered.name} isn&rsquo;t on this contract</h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm text-mist-500">
+              Your application says registered
+              {registered.orgId ? ` as org #${registered.orgId}` : ""}, but the contract
+              this app points at has no org with your wallet as approver. That happens
+              when the org was registered against an earlier deployment. It needs
+              registering again on{" "}
+              <code className="tabular text-mist-300">{shortAddress(CONTRACT_ADDRESS)}</code>.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-ink-700 text-2xl">
+              🏪
+            </div>
+            <h1 className="text-xl font-bold">No business on this wallet</h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm text-mist-500">
+              Nothing on Avalanche names{" "}
+              <code className="tabular text-mist-300">{shortAddress(address)}</code> as an
+              approver. Register your business and its budget is written once, on-chain,
+              with this wallet holding approval rights.
+            </p>
+            <Link
+              href="/register"
+              className="mt-6 inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
+            >
+              Register your business →
+            </Link>
+          </>
+        )}
+        <p className="mt-6 text-xs text-mist-500">
+          Signed in as <code className="tabular">{shortAddress(address)}</code>. Every
+          login mints its own account, so if you pledged with a different one, sign out
+          and back in with that.
+        </p>
+      </div>
+    </div>
   );
 }
 

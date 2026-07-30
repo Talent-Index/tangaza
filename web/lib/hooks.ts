@@ -135,6 +135,30 @@ export function useApplications() {
   );
 }
 
+/**
+ * This wallet's own business applications, newest first.
+ *
+ * The business portal needs it to tell an applicant whose org isn't on-chain yet why
+ * their queue is empty — previously they were shown the pilot org's dashboard instead,
+ * which reads as "your pledge did nothing" at best and somebody else's business at worst.
+ *
+ * Polled, because registration can land while they're looking at the page.
+ */
+export function useMyApplications(address?: string) {
+  return useAsync<ApplicationSummary[]>(
+    async () => {
+      const res = await fetch(`/api/applications?approver=${address}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Could not load your application (${res.status})`);
+      return ((await res.json()) as { applications: ApplicationSummary[] }).applications;
+    },
+    [address],
+    Boolean(address),
+    POLL_ORG
+  );
+}
+
 /** The contract owner — the only account allowed to register orgs on-chain. */
 export function useContractOwner() {
   return useAsync<string>(() => getContractOwner(), [], isConfigured);
