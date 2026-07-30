@@ -27,12 +27,14 @@ Blockchain Centre.
 
 | | |
 |---|---|
-| `TangazaRewards` | [`0x04AE7084ba8f52BEb6186885FD1A091f7d602086`](https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086) |
-| Deploy block | `57412439` — this is `NEXT_PUBLIC_DEPLOY_BLOCK`; event scanning starts here |
+| `TangazaRewards` | [`0xECa2c9067355410EdFc1622246c64d6F1b29038E`](https://testnet.snowtrace.io/address/0xECa2c9067355410EdFc1622246c64d6F1b29038E) |
+| Deploy block | `57436704` — this is `NEXT_PUBLIC_DEPLOY_BLOCK`; event scanning starts here |
 | Owner | [`0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7`](https://testnet.snowtrace.io/address/0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7) |
 | Trusted forwarder | `0x0000000000000000000000000000000000000000` — deliberate, see [Architecture notes](#architecture-notes) |
 | Pilot org | `orgId` `1` — "Blockchain Centre Kenya", KES 50,000 cap |
-| Previous deployment | [`0xF8A2612e…b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) — superseded when `submitActivity` was added; contracts here are immutable, so new function = new address |
+| Second org | `orgId` `2` — "FitTribe", KES 5,000 cap, with the "Founding 20" campaign at [`/c/founding-members`](https://ubu-tangaza.vercel.app/c/founding-members). Proof that a second business is configuration, not a second app |
+| Source | [verified on Snowtrace](https://testnet.snowtrace.io/address/0xECa2c9067355410EdFc1622246c64d6F1b29038E#code) |
+| Previous deployments | [`0x04AE7084…02086`](https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086) — identical source, carries the earlier demo state; [`0xF8A2612e…b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) — superseded when `submitActivity` was added. Contracts here are immutable, so a redeploy is always a new address and always starts empty |
 
 Deploying yourself writes the same values to `contracts/deployments.json`, which is
 untracked. Point `web/.env.local` at whichever deployment you're using.
@@ -227,8 +229,11 @@ then `cd ../web && npm run sync:abi`.
 
 The judging story is one unbroken earn → redeem journey.
 
-1. **Sign in as a customer** at `/`. Google or X. No seed phrase appears, because the
-   in-app wallet is an embedded key wrapped in an ERC-4337 smart account.
+1. **Sign in as a customer** at `/`. Google, X, email, **Core** or **MetaMask**. No
+   seed phrase appears for the social logins, because the in-app wallet is an embedded
+   key wrapped in an ERC-4337 smart account — and a browser wallet gets the same
+   treatment, signing as the admin key of a sponsored smart account rather than paying
+   its own gas. Either way the address the app sees is the smart account's.
 2. **Submit an activity** at `/submit` — the form lists whatever the business
    configured, each showing what it's worth. Paste the proof it asks for. **Your
    wallet writes this on-chain**: submitting calls `submitActivity()` gaslessly, the
@@ -286,6 +291,25 @@ on-chain until its first transaction, so whatever a user did first carried the
 account deployment with it — and that heavier op could outlive the SDK's wait.
 `AccountWarmup` now deploys the account in the background at sign-in with a sponsored
 no-op, so by the time someone submits, their account already exists.
+
+**Why a warmup can strand the transaction it was meant to help.** thirdweb keys an
+in-memory "this account is deploying" flag by chain and address and holds it for the
+whole life of the deploying userOp. A second transaction started inside that window is
+told the account already exists, builds an op with no initCode, then parks on that flag
+and gives up after exactly 60 seconds — "Account deployment is taking too long" —
+without ever sending anything. `web/lib/warmup.ts` makes the warmup *joinable* so real
+transactions wait on it rather than race it; the flag is released in the warmup send's
+own `finally`, so awaiting that promise is the guarantee.
+
+**Bring-your-own wallets are wrapped, not used directly.** Core and MetaMask are
+discovered over EIP-6963 — `window.ethereum` alone cannot tell two extensions apart —
+and `accountAbstraction` in `web/lib/client.ts` makes each the *admin key* of a
+sponsored ERC-4337 account. That keeps the no-AVAX promise for people who arrive with
+their own wallet, at the cost of one sharp edge: **the address the contract sees is the
+smart account's, not the extension's**, so an org that registered its bare EOA as
+approver must re-register the wrapped address or every approval reverts `NotApprover`.
+The option has to be passed to `useConnect` *and* `<AutoConnect />` — exporting it
+alone silently connects a bare EOA, which is what it used to do.
 
 **Why `viaIR` is on.** The contract hits "stack too deep" without the IR pipeline.
 Optimizer runs: 200.
