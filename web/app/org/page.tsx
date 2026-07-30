@@ -25,7 +25,7 @@ import { useTwoPhaseSend } from "@/lib/send-two-phase";
 import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
-import { useOrg, usePendingActivities } from "@/lib/hooks";
+import { useCampaigns, useOrg, usePendingActivities } from "@/lib/hooks";
 import type { PendingActivity } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 6 */
@@ -44,9 +44,15 @@ function Approvals() {
   const isApprover = useIsApprover();
   const pending = usePendingActivities({ orgId: String(access.orgId), status: "pending" });
   const [receipts, setReceipts] = useState<Record<string, string>>({});
-  // Approving carries the same 0.005 AVAX requirement as submitting. Gas is still
-  // sponsored; this is the org holding the same stake it asks of its advocates.
+  // Approving carries the same 0.005 AVAX requirement as submitting — it is also
+  // what pays the (near-zero) gas on each approval the org signs.
   const funds = useFundsGate();
+  // So a submission that came through a campaign says which one, right in the queue —
+  // the approver shouldn't have to guess which push produced which proof.
+  const campaigns = useCampaigns(access.orgId);
+  const campaignTitles = new Map(
+    (campaigns.data ?? []).map((c) => [c.id, c.title] as const)
+  );
 
   if (!isConfigured) return <ConfigWarning />;
 
@@ -114,6 +120,7 @@ function Approvals() {
             <ApprovalRow
               key={item.id}
               item={item}
+              campaignTitle={item.campaignId ? campaignTitles.get(item.campaignId) : undefined}
               canApprove={isApprover && (funds.loading || funds.ok)}
               receipt={receipts[item.id]}
               onDone={(hash) => {
@@ -131,12 +138,14 @@ function Approvals() {
 
 function ApprovalRow({
   item,
+  campaignTitle,
   canApprove,
   receipt,
   onDone,
   onRejected,
 }: {
   item: PendingActivity;
+  campaignTitle?: string;
   canApprove: boolean;
   receipt?: string;
   onDone: (txHash: string) => void;
@@ -332,6 +341,7 @@ function ApprovalRow({
                 {item.advocateLabel ?? advocateName(item.advocate)}
               </p>
               <Pill>{item.typeLabel} · +{item.weight}</Pill>
+              {campaignTitle ? <Pill tone="neutral">📣 {campaignTitle}</Pill> : null}
               <span className="text-xs text-mist-500">
                 {timeAgo(new Date(item.submittedAt).getTime())}
               </span>

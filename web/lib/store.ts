@@ -122,6 +122,7 @@ interface SubmissionRow {
   advocate: string;
   advocate_label: string | null;
   engagement_type_id: string | null;
+  campaign_id: string | null;
   type_label: string;
   type_icon: string;
   chain_category: number;
@@ -142,6 +143,7 @@ const toActivity = (r: SubmissionRow): PendingActivity => ({
   advocate: r.advocate,
   advocateLabel: r.advocate_label ?? undefined,
   engagementTypeId: r.engagement_type_id ?? undefined,
+  campaignId: r.campaign_id ?? undefined,
   typeLabel: r.type_label,
   typeIcon: r.type_icon,
   activityType: Number(r.chain_category),

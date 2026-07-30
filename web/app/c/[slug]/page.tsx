@@ -7,6 +7,9 @@ import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
+import { addressUrl } from "@/lib/chain";
+import { CONTRACT_ADDRESS } from "@/lib/client";
+import { shortAddress } from "@/lib/format";
 import { useCampaign, useEngagementTypes } from "@/lib/hooks";
 
 /**
@@ -109,6 +112,27 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
             ? ` · ${closed ? "ended" : "ends"} ${new Date(c.endsAt).toLocaleDateString()}`
             : ""}
         </p>
+        {/*
+         * The campaign's on-chain anchor. A campaign is an off-chain framing, but every
+         * approval it produces is written to one contract under one orgId — this line is
+         * the auditable link between "the thing the business posted" and "the ledger the
+         * rewards actually live on".
+         */}
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-mist-500">
+          <span>
+            Org&nbsp;#{c.orgId} on{" "}
+            <a
+              href={addressUrl(CONTRACT_ADDRESS)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+            >
+              {shortAddress(CONTRACT_ADDRESS)} ↗
+            </a>
+          </span>
+          <span aria-hidden>·</span>
+          <ShareLink slug={c.slug} />
+        </p>
       </div>
 
       {!address ? (
@@ -180,5 +204,23 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
         </p>
       </Card>
     </div>
+  );
+}
+
+/** Copies this campaign's shareable URL — the link a business posts is this page. */
+function ShareLink({ slug }: { slug: string }) {
+  const { success } = useToast();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard
+          .writeText(`${window.location.origin}/c/${slug}`)
+          .then(() => success("Campaign link copied"));
+      }}
+      className="text-crimson-300 underline underline-offset-4 transition hover:text-crimson-400"
+    >
+      Copy campaign link
+    </button>
   );
 }

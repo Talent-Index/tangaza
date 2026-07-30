@@ -122,6 +122,8 @@ export interface PendingActivity {
   advocate: string;
   advocateLabel?: string;
   engagementTypeId?: string;
+  /** Set when the submission arrived through a campaign link. */
+  campaignId?: string;
   /** Copied from the engagement type at submission time so history cannot shift. */
   typeLabel: string;
   typeIcon: string;
