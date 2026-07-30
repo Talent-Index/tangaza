@@ -1,7 +1,6 @@
 "use client";
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
-import { AccountWarmup } from "@/components/AccountWarmup";
 import { WalletRegistrar } from "@/components/WalletRegistrar";
 import { ToastProvider } from "@/components/toast";
 import { client, externalWallets, wallets } from "@/lib/client";
@@ -28,7 +27,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         wallets={[...wallets, ...externalWallets]}
         timeout={8_000}
       />
-      <AccountWarmup />
+      {/*
+       * No AccountWarmup any more: every connection is an EOA now, and an EOA never
+       * has code to deploy — a warmup would just spend the user's gas on a no-op
+       * every session. It only made sense when smart accounts existed to pre-deploy.
+       */}
       <WalletRegistrar />
       <ToastProvider>{children}</ToastProvider>
     </ThirdwebProvider>

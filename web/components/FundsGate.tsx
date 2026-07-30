@@ -25,8 +25,8 @@ export function FundsNotice({ funds }: { funds: FundsGateState }) {
         You need {MIN_ACTION_AVAX} AVAX on Fuji to do this
       </p>
       <p className="text-xs leading-relaxed text-mist-500">
-        Gas is still covered for you — this is a once-off top-up that shows you&rsquo;re
-        real. Grab free testnet AVAX from the{" "}
+        This pays the tiny gas fee on each transaction you sign — fractions of a cent
+        on Fuji, so 0.005 lasts a very long time. Grab free testnet AVAX from the{" "}
         <a
           href={FAUCET_URL}
           target="_blank"

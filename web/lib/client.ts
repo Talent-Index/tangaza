@@ -35,17 +35,26 @@ export const contract = getContract({
 });
 
 /**
- * Social login -> embedded self-custodial wallet -> ERC-4337 smart account with
- * sponsored gas. The user never sees a seed phrase and never holds AVAX.
+ * Social login -> embedded self-custodial EOA. No seed phrase, and no smart account.
+ *
+ * There WAS a smart account here — `smartAccount: { chain, sponsorGas: true }` — and
+ * it is gone for an empirical reason, not a stylistic one: thirdweb's Fuji bundler
+ * accepts sponsored userOps and then never mines them. Measured directly (2026-07-30,
+ * headless, production client id, Origin set): gas estimation OK, paymaster signs,
+ * eth_sendUserOperation returns a hash, and the op is still unmined minutes later.
+ * Every stuck "Sending…", every AA25 lockout, every timeout this app has fought — and
+ * the fact that not one smart-account submission has ever reached the contract — was
+ * this. A plain transaction on Fuji mines in ~2 seconds.
+ *
+ * So every path is now bundler-free. The embedded key signs silently (no popup, no
+ * seed phrase — that story survives) and pays its own gas from the 0.005 AVAX the
+ * funds gate already requires. If sponsorship ever comes back, this is the one place
+ * to restore it — and check the approver addresses before you do; see the note below.
  */
 export const wallets = [
   inAppWallet({
     auth: {
       options: ["google", "x", "email"],
-    },
-    smartAccount: {
-      chain: CHAIN,
-      sponsorGas: true,
     },
   }),
 ];

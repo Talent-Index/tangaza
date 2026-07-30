@@ -21,8 +21,11 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const name = useDisplayName(account?.address);
 
+  // Bottom padding must clear the floating nav with room to spare: the submit button
+  // lives at the end of a long form, and a too-tight clearance leaves it half-hidden
+  // behind the nav pill on short viewports — "nothing to click".
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5">
       <header className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <Link href="/" className="min-w-0 shrink">
           <BrandMark className="text-base sm:text-lg" />

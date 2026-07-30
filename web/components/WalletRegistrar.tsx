@@ -6,9 +6,9 @@ import { useActiveAccount, useActiveWallet, useAdminWallet } from "thirdweb/reac
 /**
  * Writes "this wallet connected" to the database the moment an account connects.
  *
- * Sits next to AccountWarmup in the providers: both react to a connection, neither
- * renders anything. This one records the acting address plus the wallet that signs for
- * it, so the platform knows who has shown up — not just who got as far as submitting.
+ * Reacts to a connection and renders nothing. Records the acting address plus the
+ * wallet that signs for it, so the platform knows who has shown up — not just who got
+ * as far as submitting.
  *
  * Fire-and-forget: a lost row here must never interfere with the session itself.
  */

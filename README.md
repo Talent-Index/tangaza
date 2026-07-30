@@ -52,13 +52,12 @@ nothing in the app depends on it.
 A customer submits an activity — their own wallet records it on-chain and the proof
 stays private → the business approves it on-chain → every 20 approved activities mints
 one KES 500 reward credit → the customer claims it for airtime → the business's
-outstanding liability drops by KES 500. Social-login users never see a seed phrase or
-pay gas — their smart-account transactions are sponsored. Core and MetaMask users act
-as their own wallet: the extension pops for every signature and gas comes from their
-balance, which is what a wallet owner expects. Everyone needs at least 0.005 testnet
-AVAX from the [Core faucet](https://core.app/tools/testnet-faucet/) before acting —
-skin in the game against drive-by spam, and for wallet users it's also what pays
-their gas.
+outstanding liability drops by KES 500. Everyone acts as a plain EOA: social login
+gives you an embedded self-custodial key (no seed phrase, signs without prompts), Core
+and MetaMask users sign in their own extension. Every transaction pays its own gas —
+fractions of a cent on Fuji — from the 0.005 testnet AVAX the app requires you to hold
+(free from the [Core faucet](https://core.app/tools/testnet-faucet/)) before you can
+submit or approve.
 
 ---
 
@@ -291,32 +290,25 @@ done, not to how old the chain is. If the Data API is unreachable it falls back 
 scanning `eth_getLogs` in 900-block windows (Avalanche's RPC caps ranges at 1000).
 Set `NEXT_PUBLIC_AVACLOUD_API_KEY` for production rate limits.
 
-**Why first transactions used to feel slow.** An ERC-4337 account doesn't exist
-on-chain until its first transaction, so whatever a user did first carried the
-account deployment with it — and that heavier op could outlive the SDK's wait.
-`AccountWarmup` now deploys the account in the background at sign-in with a sponsored
-no-op, so by the time someone submits, their account already exists.
+**Why there are no smart accounts, measured.** The app shipped with ERC-4337 smart
+accounts and sponsored gas, and fought a long war with them: first transactions
+outliving the SDK's wait, AA25 lockouts, a warmup that could strand the very
+transaction it existed to speed up. The war ended with a headless measurement
+(2026-07-30, production client id, Origin set): thirdweb's Fuji bundler estimates gas,
+gets the paymaster signature, **accepts the userOp — and never mines it**. Not one
+smart-account submission ever reached the contract. A plain Fuji transaction mines in
+about 2 seconds. So every path is bundler-free now: social login yields an embedded
+self-custodial EOA that signs silently; Core and MetaMask — discovered over EIP-6963,
+since `window.ethereum` can't tell two extensions apart — sign in the extension.
+Everyone pays their own (near-zero) gas from the 0.005 AVAX the funds gate requires.
+The recovery machinery this fight produced (`web/lib/warmup.ts`, the AA10 branches in
+the submit and approve flows) stays in the code: inert while nothing registers a
+warmup, and exactly what you'll need again if sponsorship ever returns.
 
-**Why a warmup can strand the transaction it was meant to help.** thirdweb keys an
-in-memory "this account is deploying" flag by chain and address and holds it for the
-whole life of the deploying userOp. A second transaction started inside that window is
-told the account already exists, builds an op with no initCode, then parks on that flag
-and gives up after exactly 60 seconds — "Account deployment is taking too long" —
-without ever sending anything. `web/lib/warmup.ts` makes the warmup *joinable* so real
-transactions wait on it rather than race it; the flag is released in the warmup send's
-own `finally`, so awaiting that promise is the guarantee.
-
-**Bring-your-own wallets are used directly, as themselves.** Core and MetaMask are
-discovered over EIP-6963 — `window.ethereum` alone cannot tell two extensions apart —
-and connect as plain EOAs: the address on screen is the extension's own, every submit
-and approve pops the extension for a signature, and gas comes out of the user's
-balance. They were briefly wrapped into sponsored smart accounts instead, which kept
-the no-AVAX story uniform and made the product lie about who was acting — the wallet
-never showed a transaction, and an approver who funded their own address had funded
-the wrong account. Social logins keep the sponsored smart-account path, because a
-Google user has no extension to pop and nowhere to hold gas. The standing sharp edge,
-either direction: **the contract's registered approver must match the address the
-connection actually produces**, or every approval reverts `NotApprover`.
+**The standing sharp edge**: the contract's registered approver must match the address
+the connection actually produces, or every approval reverts `NotApprover`. Changing
+the wallet model changes the addresses — orgs 1 and 2 were re-registered to their
+EOAs when the wrapping came off.
 
 **Why `viaIR` is on.** The contract hits "stack too deep" without the IR pipeline.
 Optimizer runs: 200.

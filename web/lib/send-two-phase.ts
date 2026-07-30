@@ -72,15 +72,16 @@ export function useTwoPhaseSend() {
   const send = useCallback(
     async (tx: PreparedTransaction<Abi>): Promise<TwoPhaseReceipt> => {
       if (!account) throw new Error("No active account");
-      const adminAccount = adminWallet?.getAccount();
+      // useAdminWallet only finds an admin that is itself in the connected list; an
+      // in-app wallet keeps its admin internal, so ask the wallet directly as well.
+      const adminAccount = adminWallet?.getAccount() ?? wallet?.getAdminAccount?.();
 
-      // A bare EOA connection: no smart wallet in play, so the wallet's own
-      // transaction flow IS the pipeline. Popup, broadcast, then mining.
+      // A bare EOA connection — browser extension or the in-app embedded key: no
+      // smart account in play, so the wallet's own transaction flow IS the pipeline.
+      // Sign (popup for extensions, silent for in-app), broadcast, then mining.
       const isEoa =
-        wallet?.id !== "smart" &&
-        wallet?.id !== "inApp" &&
-        (!adminAccount ||
-          adminAccount.address.toLowerCase() === account.address.toLowerCase());
+        !adminAccount ||
+        adminAccount.address.toLowerCase() === account.address.toLowerCase();
 
       try {
         if (isEoa) {
