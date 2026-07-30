@@ -121,6 +121,13 @@ export interface PendingActivity {
   orgId: string;
   advocate: string;
   advocateLabel?: string;
+  /**
+   * The name the advocate goes by right now, resolved across every business at read
+   * time — unlike advocateLabel, which is whatever travelled with the submission.
+   * Display should prefer this: people fix their names after the fact and expect the
+   * fix to take everywhere.
+   */
+  advocateCurrentName?: string;
   engagementTypeId?: string;
   /** Set when the submission arrived through a campaign link. */
   campaignId?: string;

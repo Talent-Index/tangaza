@@ -68,7 +68,7 @@ function Approvals() {
           <h1 className="text-2xl font-black">Approvals</h1>
           <p className="mt-1 text-sm text-mist-500">
             You sign each approval in your wallet, and that signature is what writes it
-            to Avalanche. It costs you nothing — gas is sponsored.
+            to Avalanche. Gas comes from your balance — fractions of a cent each.
           </p>
         </div>
         {remaining !== null ? (
@@ -317,7 +317,7 @@ function ApprovalRow({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">
               Approved {item.typeLabel} for{" "}
-              {item.advocateLabel ?? advocateName(item.advocate)}
+              {item.advocateCurrentName ?? item.advocateLabel ?? advocateName(item.advocate)}
             </p>
             <p className="text-xs text-mist-500">Their count and streak just went up.</p>
           </div>
@@ -338,7 +338,7 @@ function ApprovalRow({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-semibold">
-                {item.advocateLabel ?? advocateName(item.advocate)}
+                {item.advocateCurrentName ?? item.advocateLabel ?? advocateName(item.advocate)}
               </p>
               <Pill>{item.typeLabel} · +{item.weight}</Pill>
               {campaignTitle ? <Pill tone="neutral">📣 {campaignTitle}</Pill> : null}

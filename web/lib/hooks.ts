@@ -464,9 +464,9 @@ export function useAdvocateLabels(orgId: bigint = ORG_ID) {
   return useMemo(() => {
     const labels = new Map<string, string>();
     for (const activity of all.data ?? []) {
-      if (activity.advocateLabel) {
-        labels.set(activity.advocate.toLowerCase(), activity.advocateLabel);
-      }
+      // The name they go by now beats whatever label travelled with the submission.
+      const label = activity.advocateCurrentName ?? activity.advocateLabel;
+      if (label) labels.set(activity.advocate.toLowerCase(), label);
     }
     return labels;
   }, [all.data]);

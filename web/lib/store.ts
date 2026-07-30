@@ -121,6 +121,7 @@ interface SubmissionRow {
   org_id: string;
   advocate: string;
   advocate_label: string | null;
+  current_name: string | null;
   engagement_type_id: string | null;
   campaign_id: string | null;
   type_label: string;
@@ -142,6 +143,7 @@ const toActivity = (r: SubmissionRow): PendingActivity => ({
   orgId: String(r.org_id),
   advocate: r.advocate,
   advocateLabel: r.advocate_label ?? undefined,
+  advocateCurrentName: r.current_name ?? undefined,
   engagementTypeId: r.engagement_type_id ?? undefined,
   campaignId: r.campaign_id ?? undefined,
   typeLabel: r.type_label,
@@ -201,6 +203,16 @@ export async function createActivity(
             on conflict (org_id, address) do update
               set last_active_at = now()`;
 
+  // First contact with a new business inherits the name the person already goes by
+  // elsewhere — the standings view resolves names per org, and a null here would
+  // present a named person as a pseudonym on this org's leaderboard.
+  await sql`update advocates a set display_name = src.display_name
+            from (select display_name from advocates
+                   where address = ${advocate} and display_name is not null
+                   order by last_active_at desc limit 1) src
+            where a.org_id = ${input.orgId} and a.address = ${advocate}
+              and a.display_name is null`;
+
   const rows = await sql`insert into submissions
       (org_id, advocate, advocate_label, engagement_type_id,
        type_label, type_icon, chain_category, weight, proof_url, note,
@@ -221,17 +233,43 @@ export async function listActivities(filter: {
   status?: PendingStatus;
 }): Promise<PendingActivity[]> {
   const advocate = filter.advocate?.toLowerCase() ?? null;
+  /**
+   * `current_name` is resolved at read time, across businesses: the name row scoped
+   * to this org wins, else the newest name the person set anywhere. Names are per-org
+   * in the schema, but people are not — someone who typed their name once, on
+   * whichever screen happened to be scoped to whichever org, expects every business
+   * to see it. Without the lateral fallback the org page invented a pseudonym for a
+   * person who had told us their name.
+   */
   const rows = await sql`
-    select * from submissions
-    where (${filter.orgId ?? null}::bigint  is null or org_id  = ${filter.orgId ?? null}::bigint)
-      and (${advocate}::text                is null or advocate = ${advocate}::text)
-      and (${filter.status ?? null}::text   is null or status   = (${filter.status ?? null})::submission_status)
-    order by submitted_at desc`;
+    select s.*, coalesce(a_same.display_name, a_any.display_name) as current_name
+    from submissions s
+    left join advocates a_same
+           on a_same.org_id = s.org_id and a_same.address = s.advocate
+    left join lateral (
+           select display_name from advocates
+            where address = s.advocate and display_name is not null
+            order by last_active_at desc limit 1
+         ) a_any on true
+    where (${filter.orgId ?? null}::bigint  is null or s.org_id  = ${filter.orgId ?? null}::bigint)
+      and (${advocate}::text                is null or s.advocate = ${advocate}::text)
+      and (${filter.status ?? null}::text   is null or s.status   = (${filter.status ?? null})::submission_status)
+    order by s.submitted_at desc`;
   return (rows as SubmissionRow[]).map(toActivity);
 }
 
 export async function getActivity(id: string): Promise<PendingActivity | undefined> {
-  const rows = (await sql`select * from submissions where id = ${id}`) as SubmissionRow[];
+  const rows = (await sql`
+    select s.*, coalesce(a_same.display_name, a_any.display_name) as current_name
+    from submissions s
+    left join advocates a_same
+           on a_same.org_id = s.org_id and a_same.address = s.advocate
+    left join lateral (
+           select display_name from advocates
+            where address = s.advocate and display_name is not null
+            order by last_active_at desc limit 1
+         ) a_any on true
+    where s.id = ${id}`) as SubmissionRow[];
   return rows[0] ? toActivity(rows[0]) : undefined;
 }
 
@@ -374,9 +412,19 @@ export async function getAdvocateProfile(
     where a.org_id = ${orgId} and a.address = ${addr}`) as Array<Record<string, unknown>>;
 
   const r = rows[0];
+  let displayName = (r?.display_name as string) ?? undefined;
+  if (!displayName) {
+    // The name may have been saved while scoped to a different business — a person
+    // has one name, wherever they typed it.
+    const any = (await sql`select display_name from advocates
+                            where address = ${addr} and display_name is not null
+                            order by last_active_at desc limit 1`) as Array<Record<string, unknown>>;
+    displayName = (any[0]?.display_name as string) ?? undefined;
+  }
+
   return {
     address: addr,
-    displayName: (r?.display_name as string) ?? undefined,
+    displayName,
     xUsername: (r?.x_username as string) ?? undefined,
     xLinkStatus: (r?.x_link_status as XLinkStatus) ?? undefined,
   };
@@ -399,6 +447,11 @@ export async function setAdvocateDisplayName(
             values (${orgId}, ${addr}, ${displayName})
             on conflict (org_id, address) do update
               set display_name = ${displayName}, last_active_at = now()`;
+  // A name belongs to the person, not to one business relationship. Setting it (or
+  // clearing it) applies to every org that knows this address, so nobody is "Dan" to
+  // one business and an address-derived pseudonym to the next.
+  await sql`update advocates set display_name = ${displayName}
+            where address = ${addr} and org_id != ${orgId}`;
   return getAdvocateProfile(orgId, addr);
 }
 
