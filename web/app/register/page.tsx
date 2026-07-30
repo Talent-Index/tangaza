@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
-import { BrandMark, Button, Card, ErrorNote, SectionTitle } from "@/components/ui";
+import { BrandMark, Button, Card, ErrorNote, SectionTitle, TxReceipt } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
 
@@ -74,7 +74,11 @@ function ApplyForm({ address }: { address: string }) {
   const [pledge, setPledge] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  // Null until the pledge is filed. Then it carries what actually happened on-chain,
+  // because "we'll register you" and "you are registered" are different promises.
+  const [done, setDone] = useState<
+    { registered: boolean; orgId?: string; txHash?: string } | null
+  >(null);
   const { success, error: toastError } = useToast();
 
   const account = useActiveAccount();
@@ -111,10 +115,19 @@ function ApplyForm({ address }: { address: string }) {
         }),
       });
 
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json()) as {
+        error?: string;
+        registered?: boolean;
+        orgId?: string;
+        txHash?: string;
+      };
       if (!res.ok) throw new Error(json.error ?? "Could not submit");
-      setDone(true);
-      success("Pledge signed");
+      setDone({
+        registered: Boolean(json.registered),
+        orgId: json.orgId,
+        txHash: json.txHash,
+      });
+      success(json.registered ? `Registered on Avalanche as org #${json.orgId}` : "Pledge signed");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not submit";
       setError(msg);
@@ -130,11 +143,36 @@ function ApplyForm({ address }: { address: string }) {
         <div className="mx-auto mb-5 grid size-16 place-items-center rounded-full bg-jade-500/15 text-3xl">
           ✓
         </div>
-        <p className="text-xl font-bold">Pledge signed</p>
-        <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
-          We&rsquo;ll register {name} on Avalanche with a {kesLabel(cap)} budget and send
-          you the contract address. Your signature is on file against the pledge.
-        </p>
+        {done.registered ? (
+          <>
+            <p className="text-xl font-bold">{name} is live on Avalanche</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
+              Registered as org #{done.orgId} with a {kesLabel(cap)} budget that can never
+              be raised. Your wallet is the approver — open the business portal and your
+              queue is already there.
+            </p>
+            {done.txHash ? (
+              <div className="mt-5 flex justify-center">
+                <TxReceipt hash={done.txHash} label="Registration" />
+              </div>
+            ) : null}
+            <Link
+              href="/org"
+              className="mt-6 inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
+            >
+              Open the business portal →
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="text-xl font-bold">Pledge signed</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
+              We&rsquo;ll register {name} on Avalanche with a {kesLabel(cap)} budget and
+              send you the contract address. Your signature is on file against the
+              pledge, and your budget is exactly what you signed for.
+            </p>
+          </>
+        )}
       </div>
     );
   }

@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
-import { createApplication, listApplications, type ApplicationStatus } from "@/lib/store";
+import {
+  createApplication,
+  listApplications,
+  listApplicationsForApprover,
+  markApplicationRegistered,
+  type ApplicationStatus,
+} from "@/lib/store";
 import { pledgeMessage } from "@/lib/pledge";
+import { canAutoRegister, registerOrgOnChain } from "@/lib/registrar";
 import { verifySignedText } from "@/lib/verify";
 
 /**
@@ -20,6 +27,18 @@ import { verifySignedText } from "@/lib/verify";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  // ?approver= scopes the answer to one wallet's own pledges, which is what the business
+  // portal asks for. Without it this is the platform's queue.
+  const approver = req.nextUrl.searchParams.get("approver");
+  if (approver) {
+    if (!isAddress(approver)) {
+      return NextResponse.json({ error: "approver must be an address" }, { status: 400 });
+    }
+    return NextResponse.json({
+      applications: await listApplicationsForApprover(approver),
+    });
+  }
+
   const status = req.nextUrl.searchParams.get("status") as ApplicationStatus | null;
   const applications = await listApplications(status ?? undefined);
   return NextResponse.json({ applications });
@@ -91,5 +110,43 @@ export async function POST(req: NextRequest) {
     signedMessage: message,
   });
 
-  return NextResponse.json({ application }, { status: 201 });
+  /**
+   * Register it now rather than leaving them staring at a receipt.
+   *
+   * A signed pledge that sits in Postgres until an operator runs a script reads, from
+   * the business's side, as nothing having happened — they signed, and their org never
+   * appeared. So the platform makes its on-chain call here, in the same request.
+   *
+   * A failure is not fatal: the pledge is already stored and verified, so the
+   * application stays 'signed' and the /admin queue picks it up exactly as before. The
+   * business is told which of the two happened instead of being told it's done when it
+   * isn't.
+   */
+  if (!canAutoRegister()) {
+    return NextResponse.json({ application, registered: false }, { status: 201 });
+  }
+
+  try {
+    const { orgId, txHash } = await registerOrgOnChain({
+      name: application.name,
+      approverAddress: application.approverAddress,
+      emissionCapKes: application.emissionCapKes,
+    });
+    const registeredApp = await markApplicationRegistered(application.id, orgId, txHash);
+    return NextResponse.json(
+      { application: registeredApp ?? application, registered: true, orgId, txHash },
+      { status: 201 }
+    );
+  } catch (err) {
+    console.error("[applications] instant registration failed", err);
+    return NextResponse.json(
+      {
+        application,
+        registered: false,
+        registrationError:
+          err instanceof Error ? err.message : "Could not register on Avalanche",
+      },
+      { status: 201 }
+    );
+  }
 }

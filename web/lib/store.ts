@@ -710,6 +710,22 @@ export async function listApplications(
   return (rows as Array<Record<string, unknown>>).map(toApplication);
 }
 
+/**
+ * The applications a particular wallet signed.
+ *
+ * Scoped by approver on purpose: the business portal needs to tell one applicant "yours
+ * is still being registered", and it must not do that by shipping every other
+ * business's pledge to the browser.
+ */
+export async function listApplicationsForApprover(
+  approverAddress: string
+): Promise<OrgApplication[]> {
+  const rows = (await sql`select * from org_applications
+                           where lower(approver_address) = ${approverAddress.toLowerCase()}
+                           order by created_at desc`) as Array<Record<string, unknown>>;
+  return rows.map(toApplication);
+}
+
 export async function getApplication(id: string): Promise<OrgApplication | undefined> {
   const rows = (await sql`select * from org_applications where id = ${id}`) as Array<
     Record<string, unknown>
