@@ -38,6 +38,32 @@ export const SIGNATURE_WINDOW_MS = 5 * 60 * 1000;
 export type VerifyResult = { ok: true } | { ok: false; reason: string };
 
 /**
+ * Reads a receipt, giving the node a moment to catch up.
+ *
+ * The hash we are handed came from the bundler's view of the chain. This reads the
+ * public Avalanche RPC — a different, load-balanced set of nodes — and the two are
+ * routinely a block or two apart. A single immediate read therefore fails sometimes
+ * on transactions that genuinely landed, and the cost of that is the worst kind of
+ * wrong: the advocate's submission *is* on-chain, and the app tells them it isn't.
+ *
+ * So retry across a couple of Fuji blocks before believing the answer. Deliberately
+ * short — this runs inside a serverless request, and a hash that was never real
+ * should still fail quickly rather than burn the whole function budget.
+ */
+const RECEIPT_RETRIES = [1_500, 3_000];
+
+async function receiptFor(txHash: `0x${string}`) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await publicClient.getTransactionReceipt({ hash: txHash });
+    } catch {
+      if (attempt >= RECEIPT_RETRIES.length) return null;
+      await new Promise((r) => setTimeout(r, RECEIPT_RETRIES[attempt]));
+    }
+  }
+}
+
+/**
  * The generic form: does this account vouch for this exact text, recently?
  *
  * Both the activity signature and the business pledge reduce to this. Smart accounts
@@ -96,11 +122,9 @@ export async function verifyApprovalReceipt(p: {
     return { ok: false, reason: "That is not a transaction hash" };
   }
 
-  let receipt;
-  try {
-    receipt = await publicClient.getTransactionReceipt({ hash: p.txHash as `0x${string}` });
-  } catch {
-    // Also the "invented hash" case: no such transaction on this chain.
+  // Also the "invented hash" case: no such transaction on this chain.
+  const receipt = await receiptFor(p.txHash as `0x${string}`);
+  if (!receipt) {
     return { ok: false, reason: "No such transaction on Avalanche Fuji" };
   }
 
@@ -166,11 +190,14 @@ export async function verifySubmissionReceipt(p: {
     return { ok: false, reason: "That is not a transaction hash" };
   }
 
-  let receipt;
-  try {
-    receipt = await publicClient.getTransactionReceipt({ hash: p.txHash as `0x${string}` });
-  } catch {
-    return { ok: false, reason: "No such transaction on Avalanche Fuji" };
+  const receipt = await receiptFor(p.txHash as `0x${string}`);
+  if (!receipt) {
+    return {
+      ok: false,
+      reason:
+        "Avalanche hasn't caught up with that transaction yet — press Send again in " +
+        "a moment and we'll reuse the one you already sent, not file a second.",
+    };
   }
 
   if (receipt.status !== "success") {
