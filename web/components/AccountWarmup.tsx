@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useActiveAccount, useActiveWallet } from "thirdweb/react";
+import { useActiveAccount, useActiveWallet, useAdminWallet } from "thirdweb/react";
 import { CHAIN } from "@/lib/chain";
 import { accountHasCode, trackWarmup } from "@/lib/warmup";
 
@@ -29,14 +29,28 @@ import { accountHasCode, trackWarmup } from "@/lib/warmup";
 export function AccountWarmup() {
   const account = useActiveAccount();
   const wallet = useActiveWallet();
+  const admin = useAdminWallet();
   const attempted = useRef(new Set<string>());
 
   useEffect(() => {
     if (!account) return;
-    // Only smart accounts have anything to deploy. Core and MetaMask arrive wrapped by
-    // `accountAbstraction`, so the active wallet is "smart" and their account needs
-    // deploying too — an unwrapped EOA would just spend the user's own gas on nothing.
+    // Only smart accounts have anything to deploy.
     if (wallet && wallet.id !== "inApp" && wallet.id !== "smart") return;
+
+    /**
+     * Only warm an account whose admin signs silently.
+     *
+     * Every smart-account send is a signed userOp, and signUserOp goes to the admin
+     * account — so warming a Core or MetaMask user meant their extension popped a
+     * signature request, at sign-in, for a no-op they never asked for. The first thing
+     * they were asked to authorise was something they hadn't done.
+     *
+     * The in-app wallet holds an embedded key and signs without a prompt, so it can
+     * still be warmed. A browser wallet gets no background transaction at all: its
+     * first signature is the one it asked for, and that op carries the deployment with
+     * the recovery in lib/warmup.ts and the AA10 branches behind it.
+     */
+    if (admin && admin.id !== "inApp") return;
     const address = account.address;
     if (attempted.current.has(address)) return;
     attempted.current.add(address);
@@ -61,7 +75,7 @@ export function AccountWarmup() {
         // Best-effort by design; see the note above.
       }
     })();
-  }, [account, wallet]);
+  }, [account, wallet, admin]);
 
   return null;
 }

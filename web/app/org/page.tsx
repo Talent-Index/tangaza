@@ -55,7 +55,8 @@ function Approvals() {
         <div>
           <h1 className="text-2xl font-black">Approvals</h1>
           <p className="mt-1 text-sm text-mist-500">
-            Approving writes to Avalanche. It costs you nothing — gas is sponsored.
+            You sign each approval in your wallet, and that signature is what writes it
+            to Avalanche. It costs you nothing — gas is sponsored.
           </p>
         </div>
         {remaining !== null ? (
@@ -362,8 +363,11 @@ function ApprovalRow({
                   <Spinner /> Waiting for Avalanche…
                 </>
               ) : isPending ? (
+                // The signature comes first; the on-chain approval follows from it.
+                // Saying "Approving…" while the wallet prompt is still open claims a
+                // write that hasn't been authorised yet.
                 <>
-                  <Spinner /> Approving…
+                  <Spinner /> Sign in your wallet…
                 </>
               ) : (
                 "Approve"

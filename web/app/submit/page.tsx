@@ -366,9 +366,16 @@ function SubmitForm({ account }: { account: Account }) {
           : waitingChain
             ? "Waiting for Avalanche to confirm…"
             : sending
-              ? "Recording on Avalanche…"
+              ? /**
+                 * Names the signature, not the write. This said "Recording on
+                 * Avalanche…" from the instant the button was pressed — while the
+                 * wallet prompt was still sitting there unanswered, claiming a write
+                 * that could not happen until the user signed. Nothing is recorded
+                 * until they do.
+                 */
+                "Confirm in your wallet…"
               : submitting
-                ? "Sending…"
+                ? "Preparing…"
                 : "Send for approval"}
       </Button>
 
@@ -376,6 +383,11 @@ function SubmitForm({ account }: { account: Account }) {
         <p className="text-center text-xs text-mist-500">
           Your account is being created on Avalanche — this happens once, on your first
           activity. We&rsquo;ll send your submission the moment it&rsquo;s ready.
+        </p>
+      ) : sending ? (
+        <p className="text-center text-xs text-mist-500">
+          Approve the request in your wallet. Nothing is written to Avalanche until you
+          sign — once you do, this becomes your own transaction, and gas is covered.
         </p>
       ) : waitingChain ? (
         <p className="text-center text-xs text-mist-500">
