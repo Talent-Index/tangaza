@@ -5,10 +5,11 @@ import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { ProgressRing } from "@/components/customer/ProgressRing";
-import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner } from "@/components/ui";
+import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { MILESTONE_ACTIVITIES, ORG_ID } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { timeAgo } from "@/lib/format";
+import type { PendingActivity } from "@/lib/types";
 import {
   useAllCampaigns,
   useCredits,
@@ -34,6 +35,9 @@ function Home({ address }: { address: string }) {
   const credits = useCredits(address);
   // Everything waiting, across every business.
   const pending = usePendingActivities({ advocate: address, status: "pending" });
+  // Names for the expanded view: which business a pending item is with, and which
+  // campaign carried it there. Campaigns are already fetched for the strip below.
+  const campaigns = useAllCampaigns();
 
   if (!isConfigured) return <ConfigWarning />;
 
@@ -48,6 +52,11 @@ function Home({ address }: { address: string }) {
   const mine = communities.data ?? [];
   const available = (credits.data ?? []).filter((c) => !c.redeemed);
   const pendingItems = pending.data ?? [];
+
+  const orgNames = new Map(mine.map((c) => [String(c.orgId), c.name] as const));
+  const campaignTitles = new Map(
+    (campaigns.data ?? []).map((c) => [c.id, { title: c.title, org: c.orgName }] as const)
+  );
 
   return (
     <div className="animate-rise space-y-6">
@@ -106,24 +115,19 @@ function Home({ address }: { address: string }) {
           />
         ) : (
           <ul className="space-y-2">
-            {pendingItems.map((item) => (
-              <li key={item.id}>
-                <Card className="flex items-center gap-3 py-4">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink-700 text-lg">
-                    {item.typeIcon}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {item.typeLabel}
-                    </p>
-                    <p className="truncate text-xs text-mist-500">
-                      {timeAgo(new Date(item.submittedAt).getTime())}
-                    </p>
-                  </div>
-                  <Pill tone="warn">Pending</Pill>
-                </Card>
-              </li>
-            ))}
+            {pendingItems.map((item) => {
+              const campaign = item.campaignId
+                ? campaignTitles.get(item.campaignId)
+                : undefined;
+              return (
+                <PendingRow
+                  key={item.id}
+                  item={item}
+                  orgName={orgNames.get(item.orgId) ?? campaign?.org}
+                  campaignTitle={campaign?.title}
+                />
+              );
+            })}
           </ul>
         )}
       </section>
@@ -133,6 +137,123 @@ function Home({ address }: { address: string }) {
         and get to have what we have.
       </p>
     </div>
+  );
+}
+
+/**
+ * One pending submission, expandable to its full story.
+ *
+ * The closed row is a glance — what and how long ago. Opening it answers the
+ * questions someone actually has while they wait: which business is this with, what
+ * proof did I hand them, which campaign carried it, and where is my transaction on
+ * Avalanche. A native <details> keeps it keyboard- and screen-reader-friendly with no
+ * state to manage.
+ */
+function PendingRow({
+  item,
+  orgName,
+  campaignTitle,
+}: {
+  item: PendingActivity;
+  orgName?: string;
+  campaignTitle?: string;
+}) {
+  const proofIsLink = /^https?:\/\//i.test(item.proofUrl);
+
+  return (
+    <li>
+      <details className="group rounded-2xl border border-ink-700 bg-ink-850 transition open:border-ink-600">
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink-700 text-lg">
+            {item.typeIcon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{item.typeLabel}</p>
+            <p className="truncate text-xs text-mist-500">
+              {orgName ? `${orgName} · ` : ""}
+              {timeAgo(new Date(item.submittedAt).getTime())}
+            </p>
+          </div>
+          <Pill tone="warn">Pending</Pill>
+          <span
+            aria-hidden
+            className="shrink-0 text-mist-500 transition-transform group-open:rotate-180"
+          >
+            ⌄
+          </span>
+        </summary>
+
+        <div className="space-y-3 border-t border-ink-700/60 px-4 py-4 text-sm">
+          <dl className="space-y-2">
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                With
+              </dt>
+              <dd className="min-w-0 text-mist-300">
+                {orgName ?? `Business #${item.orgId}`}
+              </dd>
+            </div>
+            {campaignTitle ? (
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                  Campaign
+                </dt>
+                <dd className="min-w-0 text-mist-300">📣 {campaignTitle}</dd>
+              </div>
+            ) : null}
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                Worth
+              </dt>
+              <dd className="text-mist-300">
+                +{item.weight} {item.weight === 1 ? "activity" : "activities"} when approved
+              </dd>
+            </div>
+            {item.proofUrl ? (
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                  Proof
+                </dt>
+                <dd className="min-w-0 flex-1">
+                  {proofIsLink ? (
+                    <a
+                      href={item.proofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+                    >
+                      {item.proofUrl}
+                    </a>
+                  ) : (
+                    <span className="break-words text-mist-300">{item.proofUrl}</span>
+                  )}
+                </dd>
+              </div>
+            ) : null}
+            {item.note ? (
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                  Note
+                </dt>
+                <dd className="min-w-0 break-words text-mist-300">{item.note}</dd>
+              </div>
+            ) : null}
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+                Sent
+              </dt>
+              <dd className="text-mist-300">
+                {new Date(item.submittedAt).toLocaleString()}
+              </dd>
+            </div>
+          </dl>
+
+          {item.submitTx ? (
+            <TxReceipt hash={item.submitTx} label="Your wallet recorded this on Avalanche" />
+          ) : null}
+        </div>
+      </details>
+    </li>
   );
 }
 
