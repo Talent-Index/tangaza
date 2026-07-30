@@ -52,8 +52,11 @@ nothing in the app depends on it.
 A customer submits an activity — their own wallet records it on-chain and the proof
 stays private → the business approves it on-chain → every 20 approved activities mints
 one KES 500 reward credit → the customer claims it for airtime → the business's
-outstanding liability drops by KES 500. Nobody in that loop holds AVAX, sees a seed
-phrase, or pays gas.
+outstanding liability drops by KES 500. Nobody in that loop sees a seed phrase or pays
+gas — every transaction is sponsored. Acting does require a one-off 0.005 testnet AVAX
+top-up from the [Core faucet](https://core.app/tools/testnet-faucet/), held in either
+the app account or the wallet behind it: skin in the game against drive-by spam, not a
+fee, and it is never spent by the app.
 
 ---
 
