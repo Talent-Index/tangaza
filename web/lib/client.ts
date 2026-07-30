@@ -51,17 +51,36 @@ export const wallets = [
 ];
 
 /**
- * Avalanche's own wallet, as a bring-your-own option. Core does seedless accounts
- * from social logins on its side, so "sign in with Google" and "use my Core wallet"
- * can be the same person on different days.
+ * Bring-your-own browser wallets, for people who already have one.
+ *
+ * Core is Avalanche's own, and does seedless accounts from social logins on its side,
+ * so "sign in with Google" and "use my Core wallet" can be the same person on
+ * different days. MetaMask is what most people arrive already holding.
+ *
+ * Both are discovered over EIP-6963 rather than by sniffing `window.ethereum`, which
+ * is the only way to tell two extensions apart when both are installed.
  */
 export const coreWallet = createWallet("app.core.extension");
+export const metamaskWallet = createWallet("io.metamask");
+
+/** The bring-your-own options the sign-in screen offers, in display order. */
+export const externalWallets = [coreWallet, metamaskWallet];
 
 /**
- * Wraps any non-smart wallet (i.e. Core's EOA) in an ERC-4337 smart account with
- * sponsored gas, so a Core user gets the same no-AVAX experience as everyone else.
- * thirdweb's connection manager checks isSmartWallet() first, so the in-app wallet —
- * already a smart account by construction — is never double-wrapped by this.
+ * Wraps any non-smart wallet — Core's EOA, MetaMask's — in an ERC-4337 smart account
+ * with sponsored gas, so a browser-wallet user gets the same no-AVAX experience as
+ * somebody who signed in with Google. thirdweb's connection manager checks
+ * isSmartWallet() first, so the in-app wallet — already a smart account by
+ * construction — is never double-wrapped by this.
+ *
+ * This has to be handed to *every* entry point that establishes a connection —
+ * `useConnect` and `<AutoConnect />` both. Exporting it is not enough: it was exported
+ * and passed nowhere, which quietly connected Core as a bare EOA paying its own gas,
+ * with a comment here insisting otherwise.
+ *
+ * Note the address a person gets is the smart account's, not their wallet's. Two
+ * different people as far as the contract is concerned — see README on re-registering
+ * an org's approver after changing this.
  */
 export const accountAbstraction = {
   chain: CHAIN,

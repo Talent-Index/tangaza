@@ -1,12 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnect } from "thirdweb/react";
+import { injectedProvider } from "thirdweb/wallets";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
-import { client, coreWallet, wallets } from "@/lib/client";
+import {
+  accountAbstraction,
+  client,
+  coreWallet,
+  metamaskWallet,
+  wallets,
+} from "@/lib/client";
 import { Button, ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
+
+/**
+ * The bring-your-own wallets, and where to get them.
+ *
+ * `id` is the EIP-6963 rdns, which is what makes "is this installed?" answerable when
+ * somebody has both extensions — `window.ethereum` alone cannot tell them apart.
+ */
+const EXTERNAL_WALLETS = [
+  {
+    wallet: coreWallet,
+    id: "app.core.extension",
+    label: "Core",
+    mark: "🔺",
+    installUrl: "https://core.app",
+    installHost: "core.app",
+  },
+  {
+    wallet: metamaskWallet,
+    id: "io.metamask",
+    label: "MetaMask",
+    mark: "🦊",
+    installUrl: "https://metamask.io/download",
+    installHost: "metamask.io",
+  },
+] as const;
 
 /**
  * Social sign-in. One tap, no seed phrase, no gas — the whole point of the demo.
@@ -22,7 +54,16 @@ import { useToast } from "@/components/toast";
  * reload, because that came free with ConnectButton.
  */
 export function SignIn() {
-  const { connect, isConnecting, error: connectError } = useConnect({ client });
+  /**
+   * `accountAbstraction` is what keeps this gasless for Core and MetaMask users: their
+   * wallet becomes the admin key of a sponsored ERC-4337 account rather than the payer.
+   * The in-app wallet is already a smart account, and the connection manager checks
+   * isSmartWallet() before wrapping, so it is not double-wrapped.
+   */
+  const { connect, isConnecting, error: connectError } = useConnect({
+    client,
+    accountAbstraction,
+  });
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 
@@ -36,14 +77,22 @@ export function SignIn() {
   const busy = isConnecting || sending;
   const error = emailError ?? connectError?.message ?? null;
 
-  // Core injects window.avalanche (and announces via EIP-6963). Checking up front
-  // means the button can say "get Core" before the click instead of erroring after.
-  const [coreInstalled, setCoreInstalled] = useState(false);
+  /**
+   * Which extensions are actually here. Checking up front means a button can say
+   * "get MetaMask" before the click instead of erroring after it.
+   *
+   * Extensions announce themselves over EIP-6963 at page load, which can land either
+   * side of React mounting, so this re-checks a couple of times rather than trusting
+   * one read on mount and permanently offering an install link to someone who has the
+   * wallet installed.
+   */
+  const [installed, setInstalled] = useState<string[]>([]);
   useEffect(() => {
-    setCoreInstalled(
-      typeof window !== "undefined" &&
-        Boolean((window as unknown as { avalanche?: unknown }).avalanche)
-    );
+    const scan = () =>
+      setInstalled(EXTERNAL_WALLETS.filter((w) => injectedProvider(w.id)).map((w) => w.id));
+    scan();
+    const timers = [250, 1000].map((ms) => setTimeout(scan, ms));
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   useEffect(() => {
@@ -69,6 +118,26 @@ export function SignIn() {
       success("Signed in");
       return wallet;
     });
+
+  /**
+   * Connecting a browser wallet. The extension signs, and `accountAbstraction` on
+   * useConnect turns it into the admin key of a sponsored smart account — so the
+   * address the app sees is the smart account's, and the user still needs no AVAX.
+   */
+  const connectExternal = useCallback(
+    (entry: (typeof EXTERNAL_WALLETS)[number]) =>
+      void connect(async () => {
+        await entry.wallet.connect({ client, chain: CHAIN });
+        success(`Signed in with ${entry.label}`);
+        return entry.wallet;
+      }).catch((err: unknown) => {
+        const msg =
+          err instanceof Error ? err.message : `Could not connect ${entry.label}`;
+        setEmailError(msg);
+        toastError(msg);
+      }),
+    [connect, success, toastError]
+  );
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -122,37 +191,29 @@ export function SignIn() {
         Continue with 𝕏
       </Button>
 
-      {coreInstalled ? (
-        <Button
-          variant="ghost"
-          className="w-full"
-          disabled={busy}
-          onClick={() =>
-            void connect(async () => {
-              // Bring-your-own Core wallet. The EOA it exposes gets wrapped in a
-              // sponsored smart account by the accountAbstraction option above, so a
-              // Core user never needs AVAX either.
-              await coreWallet.connect({ client });
-              success("Signed in with Core");
-              return coreWallet;
-            }).catch((err: unknown) => {
-              const msg = err instanceof Error ? err.message : "Could not connect Core";
-              setEmailError(msg);
-              toastError(msg);
-            })
-          }
-        >
-          Continue with Core 🔺
-        </Button>
-      ) : (
-        <a
-          href="https://core.app"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full rounded-full border border-ink-600 py-3 text-center text-sm font-semibold text-mist-400 transition hover:border-ink-500 hover:text-mist-200"
-        >
-          Get Core Wallet 🔺 <span className="font-normal text-mist-500">— core.app</span>
-        </a>
+      {EXTERNAL_WALLETS.map((entry) =>
+        installed.includes(entry.id) ? (
+          <Button
+            key={entry.id}
+            variant="ghost"
+            className="w-full"
+            disabled={busy}
+            onClick={() => connectExternal(entry)}
+          >
+            Continue with {entry.label} {entry.mark}
+          </Button>
+        ) : (
+          <a
+            key={entry.id}
+            href={entry.installUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full rounded-full border border-ink-600 py-3 text-center text-sm font-semibold text-mist-400 transition hover:border-ink-500 hover:text-mist-200"
+          >
+            Get {entry.label} {entry.mark}{" "}
+            <span className="font-normal text-mist-500">— {entry.installHost}</span>
+          </a>
+        )
       )}
 
       {emailStage === "hidden" ? (

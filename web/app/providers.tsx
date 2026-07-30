@@ -3,7 +3,7 @@
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
 import { AccountWarmup } from "@/components/AccountWarmup";
 import { ToastProvider } from "@/components/toast";
-import { client, coreWallet, wallets } from "@/lib/client";
+import { accountAbstraction, client, externalWallets, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -18,9 +18,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
        * enough for the in-app wallet plus the smart-account lookup, and giving up early
        * only costs a tap on "Continue with Google" — the session itself survives.
        */}
+      {/*
+       * accountAbstraction has to be repeated here, not just on useConnect: restoring a
+       * session is a connection too, and without it a refresh would silently hand back
+       * the bare Core/MetaMask EOA — a different address from the one the user signed
+       * in as, with no gas sponsorship behind it.
+       */}
       <AutoConnect
         client={client}
-        wallets={[...wallets, coreWallet]}
+        wallets={[...wallets, ...externalWallets]}
+        accountAbstraction={accountAbstraction}
         timeout={8_000}
       />
       <AccountWarmup />
