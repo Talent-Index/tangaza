@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { prepareContractCall } from "thirdweb";
-import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
+import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
 import {
@@ -17,8 +17,11 @@ import {
   TxReceipt,
 } from "@/components/ui";
 
+import { FundsNotice } from "@/components/FundsGate";
+import { useFundsGate } from "@/lib/funds";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
+import { useTwoPhaseSend } from "@/lib/send-two-phase";
 import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { contract, isConfigured } from "@/lib/client";
 import { advocateName, kesLabel, timeAgo } from "@/lib/format";
@@ -41,6 +44,9 @@ function Approvals() {
   const isApprover = useIsApprover();
   const pending = usePendingActivities({ orgId: String(access.orgId), status: "pending" });
   const [receipts, setReceipts] = useState<Record<string, string>>({});
+  // Approving carries the same 0.005 AVAX requirement as submitting. Gas is still
+  // sponsored; this is the org holding the same stake it asks of its advocates.
+  const funds = useFundsGate();
 
   if (!isConfigured) return <ConfigWarning />;
 
@@ -78,6 +84,8 @@ function Approvals() {
         </ErrorNote>
       ) : null}
 
+      <FundsNotice funds={funds} />
+
       <SectionTitle
         action={
           <span className="text-xs text-mist-500">
@@ -106,7 +114,7 @@ function Approvals() {
             <ApprovalRow
               key={item.id}
               item={item}
-              canApprove={isApprover}
+              canApprove={isApprover && (funds.loading || funds.ok)}
               receipt={receipts[item.id]}
               onDone={(hash) => {
                 setReceipts((r) => ({ ...r, [item.id]: hash }));
@@ -134,7 +142,9 @@ function ApprovalRow({
   onDone: (txHash: string) => void;
   onRejected: () => void;
 }) {
-  const { mutateAsync: sendTx, isPending } = useSendAndConfirmTransaction();
+  // Two phases so the button can tell the truth: "sign" while the wallet prompt is
+  // open, "writing" only after the signed op is with the bundler.
+  const { send: sendTx, signing, confirming, isPending } = useTwoPhaseSend();
   // Locked while a userOp is out of our hands but unconfirmed — clicking Approve
   // again during that window is exactly what creates duplicates and AA25 lockouts.
   const [waitingChain, setWaitingChain] = useState(false);
@@ -362,12 +372,17 @@ function ApprovalRow({
                 <>
                   <Spinner /> Waiting for Avalanche…
                 </>
-              ) : isPending ? (
-                // The signature comes first; the on-chain approval follows from it.
-                // Saying "Approving…" while the wallet prompt is still open claims a
-                // write that hasn't been authorised yet.
+              ) : signing ? (
                 <>
                   <Spinner /> Sign in your wallet…
+                </>
+              ) : confirming ? (
+                <>
+                  <Spinner /> Writing to Avalanche…
+                </>
+              ) : isPending ? (
+                <>
+                  <Spinner /> Sending…
                 </>
               ) : (
                 "Approve"

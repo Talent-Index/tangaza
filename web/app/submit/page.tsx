@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { prepareContractCall } from "thirdweb";
-import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
+import { useActiveAccount } from "thirdweb/react";
 import type { Account } from "thirdweb/wallets";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
@@ -14,6 +14,9 @@ import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
+import { FundsNotice } from "@/components/FundsGate";
+import { useFundsGate } from "@/lib/funds";
+import { useTwoPhaseSend } from "@/lib/send-two-phase";
 import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { proofHint, type EngagementType } from "@/lib/types";
 
@@ -74,7 +77,13 @@ function SubmitForm({ account }: { account: Account }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proof, setProof] = useState("");
   const [note, setNote] = useState("");
-  const { mutateAsync: sendTx, isPending: sending } = useSendAndConfirmTransaction();
+  // Two phases, reported separately: "signing" while the wallet prompt may be open
+  // (nothing sent), "confirming" once the signed op is with the bundler (a write is
+  // now genuinely happening). See lib/send-two-phase.ts.
+  const { send: sendTx, signing, confirming, phase, isPending: sending } = useTwoPhaseSend();
+  // Skin in the game: submitting needs 0.005 AVAX across their account and wallet.
+  // Gas itself is still sponsored — see lib/funds.ts.
+  const funds = useFundsGate();
   const [submitting, setSubmitting] = useState(false);
   // True while the userOp is out of our hands but not yet confirmed. The button stays
   // locked through this — re-sending while the first op is in flight is exactly what
@@ -360,23 +369,28 @@ function SubmitForm({ account }: { account: Account }) {
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <Button type="submit" disabled={submitting || sending || !canSubmit} className="w-full">
+      <FundsNotice funds={funds} />
+
+      <Button
+        type="submit"
+        disabled={submitting || sending || !canSubmit || (!funds.loading && !funds.ok)}
+        className="w-full"
+      >
         {settingUp
           ? "Setting up your account…"
           : waitingChain
             ? "Waiting for Avalanche to confirm…"
-            : sending
-              ? /**
-                 * Names the signature, not the write. This said "Recording on
-                 * Avalanche…" from the instant the button was pressed — while the
-                 * wallet prompt was still sitting there unanswered, claiming a write
-                 * that could not happen until the user signed. Nothing is recorded
-                 * until they do.
-                 */
-                "Confirm in your wallet…"
-              : submitting
-                ? "Preparing…"
-                : "Send for approval"}
+            : signing
+              ? "Confirm in your wallet…"
+              : confirming
+                ? // Truthful now: this label only appears after the signature exists
+                  // and the op is with the bundler.
+                  "Recording on Avalanche…"
+                : phase === "sending"
+                  ? "Sending…"
+                  : submitting
+                    ? "Preparing…"
+                    : "Send for approval"}
       </Button>
 
       {settingUp ? (
@@ -384,10 +398,14 @@ function SubmitForm({ account }: { account: Account }) {
           Your account is being created on Avalanche — this happens once, on your first
           activity. We&rsquo;ll send your submission the moment it&rsquo;s ready.
         </p>
-      ) : sending ? (
+      ) : signing ? (
         <p className="text-center text-xs text-mist-500">
           Approve the request in your wallet. Nothing is written to Avalanche until you
           sign — once you do, this becomes your own transaction, and gas is covered.
+        </p>
+      ) : confirming ? (
+        <p className="text-center text-xs text-mist-500">
+          Signed. Your transaction is with Avalanche now — usually a few seconds.
         </p>
       ) : waitingChain ? (
         <p className="text-center text-xs text-mist-500">
