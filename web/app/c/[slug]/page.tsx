@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, use, useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
@@ -25,12 +26,17 @@ export default function CampaignPage({ params }: { params: Promise<{ slug: strin
 
   return (
     <CustomerShell>
-      <CampaignView slug={slug} address={account?.address} />
+      <Suspense fallback={null}>
+        <CampaignView slug={slug} address={account?.address} />
+      </Suspense>
     </CustomerShell>
   );
 }
 
 function CampaignView({ slug, address }: { slug: string; address?: string }) {
+  // Present when this visit arrived through someone's /s/<code> link — the join
+  // carries it so the sharer gets the credit.
+  const via = useSearchParams().get("via");
   const campaign = useCampaign(slug, address);
   // The campaign's own business, not the app's default org — a FitTribe campaign
   // must list FitTribe's engagements, or "what counts" lies.
@@ -83,7 +89,7 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, address }),
+        body: JSON.stringify({ slug, address, via: via ?? undefined }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not join");
@@ -162,6 +168,10 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
+      {address && joined && !closed ? (
+        <ShareCard slug={slug} address={address} />
+      ) : null}
+
       <section>
         <SectionTitle>What counts</SectionTitle>
         {counted.length === 0 ? (
@@ -222,5 +232,80 @@ function ShareLink({ slug }: { slug: string }) {
     >
       Copy campaign link
     </button>
+  );
+}
+
+
+/**
+ * Your personal link for this campaign. Every click and every join that arrives
+ * through it is credited to you — shares stop being anonymous the moment there is
+ * something to measure.
+ */
+function ShareCard({ slug, address }: { slug: string; address: string }) {
+  const { success, error: toastError } = useToast();
+  const [link, setLink] = useState<{
+    url: string;
+    clickCount: number;
+    joinCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/campaigns/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, address }),
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          url: string;
+          clickCount: number;
+          joinCount: number;
+        };
+        if (!cancelled) setLink(json);
+      } catch {
+        // The card simply doesn't render its numbers; sharing the plain URL still works.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, address]);
+
+  if (!link) return null;
+
+  async function share() {
+    if (!link) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Join me on this campaign", url: link.url });
+        return;
+      }
+      await navigator.clipboard.writeText(link.url);
+      success("Your link is copied — every join through it counts as yours");
+    } catch {
+      toastError("Could not copy the link");
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">Share this campaign</p>
+          <p className="mt-1 text-xs text-mist-500">
+            Your link: <span className="tabular text-mist-300">{link.clickCount}</span> click
+            {link.clickCount === 1 ? "" : "s"} ·{" "}
+            <span className="tabular text-mist-300">{link.joinCount}</span> joined through you
+          </p>
+        </div>
+        <code className="tabular truncate rounded-lg border border-ink-700 bg-ink-850 px-2 py-1 text-xs text-mist-400">
+          {link.url.replace(/^https?:\/\//, "")}
+        </code>
+        <Button onClick={share}>Share</Button>
+      </div>
+    </Card>
   );
 }

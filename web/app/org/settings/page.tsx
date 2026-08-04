@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
@@ -325,6 +326,7 @@ const EMPTY_DRAFT: CampaignDraft = { title: "", blurb: "", endsAt: "", engagemen
  * now" and the campaign page as soon as they next load.
  */
 function CampaignEditor({ orgId }: { orgId: bigint }) {
+  const account = useActiveAccount();
   const campaigns = useCampaigns(orgId);
   const engagements = useEngagementTypes(orgId);
   const [draft, setDraft] = useState<CampaignDraft>(EMPTY_DRAFT);
@@ -411,10 +413,30 @@ function CampaignEditor({ orgId }: { orgId: bigint }) {
                 </code>
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard?.writeText(url)}
+                  onClick={async () => {
+                    // The business's own attributed link — its shares are measured
+                    // exactly like an advocate's.
+                    try {
+                      if (account) {
+                        const res = await fetch("/api/campaigns/share", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ slug: c.slug, address: account.address }),
+                        });
+                        if (res.ok) {
+                          const { url: shareUrl } = (await res.json()) as { url: string };
+                          await navigator.clipboard?.writeText(shareUrl);
+                          return;
+                        }
+                      }
+                      await navigator.clipboard?.writeText(url);
+                    } catch {
+                      await navigator.clipboard?.writeText(url);
+                    }
+                  }}
                   className="text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
                 >
-                  Copy link
+                  Copy your link
                 </button>
                 <button
                   type="button"
@@ -438,6 +460,7 @@ function CampaignEditor({ orgId }: { orgId: bigint }) {
                 >
                   {c.active ? "Close" : "Reopen"}
                 </button>
+                <CampaignSharers campaignId={c.id} />
               </Card>
             </li>
           );
@@ -509,5 +532,50 @@ function CampaignEditor({ orgId }: { orgId: bigint }) {
         {error ? <div className="mt-3"><ErrorNote>{error}</ErrorNote></div> : null}
       </Card>
     </section>
+  );
+}
+
+/**
+ * Who is spreading this campaign — the word-of-mouth ledger. Only renders once
+ * somebody actually has.
+ */
+function CampaignSharers({ campaignId }: { campaignId: string }) {
+  const [sharers, setSharers] = useState<
+    Array<{ sharer: string; displayName?: string; clickCount: number; joinCount: number }>
+  >([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/campaigns/share?campaignId=${campaignId}`)
+      .then((r) => (r.ok ? r.json() : { sharers: [] }))
+      .then((j: { sharers: typeof sharers }) => {
+        if (!cancelled) setSharers(j.sharers ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  if (sharers.length === 0) return null;
+
+  return (
+    <div className="w-full border-t border-ink-800 pt-3">
+      <p className="mb-1 text-[11px] uppercase tracking-[0.14em] text-mist-500">
+        Who&rsquo;s spreading this
+      </p>
+      <ul className="space-y-1">
+        {sharers.slice(0, 5).map((s) => (
+          <li key={s.sharer} className="flex justify-between text-xs text-mist-400">
+            <span className="truncate">
+              {s.displayName ?? `${s.sharer.slice(0, 6)}…${s.sharer.slice(-4)}`}
+            </span>
+            <span className="tabular shrink-0">
+              {s.clickCount} clicks · {s.joinCount} joined
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

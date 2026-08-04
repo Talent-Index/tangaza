@@ -5,6 +5,7 @@ import {
   hasJoinedCampaign,
   joinCampaign,
   listAllActiveCampaigns,
+  peekShareCode,
   listCampaigns,
   upsertCampaign,
 } from "@/lib/store";
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { slug, address } = body as { slug?: string; address?: string };
+  const { slug, address, via } = body as { slug?: string; address?: string; via?: string };
 
   if (!slug) {
     return NextResponse.json({ error: "slug is required" }, { status: 400 });
@@ -125,7 +126,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "That campaign has closed" }, { status: 409 });
   }
 
-  const joinedNow = await joinCampaign(campaign.id, campaign.orgId, address);
+  // An unknown or absent code is never an error — attribution is a bonus, not a gate.
+  const referredBy = via ? (await peekShareCode(via).catch(() => undefined))?.sharer : undefined;
+  const joinedNow = await joinCampaign(campaign.id, campaign.orgId, address, referredBy);
 
   // Re-read: the copy above was fetched before the insert, so its participant count
   // is one short of the truth the caller just created.

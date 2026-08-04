@@ -646,14 +646,142 @@ export async function getCampaignBySlug(slug: string): Promise<Campaign | undefi
 export async function joinCampaign(
   campaignId: string,
   orgId: string,
-  address: string
+  address: string,
+  referredBy?: string
 ): Promise<boolean> {
+  const joiner = address.toLowerCase();
+  // Sharing your own link to yourself is not a referral.
+  const referrer =
+    referredBy && referredBy.toLowerCase() !== joiner ? referredBy.toLowerCase() : null;
+
   const rows = await sql`
-    insert into campaign_participants (campaign_id, org_id, address)
-    values (${campaignId}, ${orgId}, ${address.toLowerCase()})
+    insert into campaign_participants (campaign_id, org_id, address, referred_by)
+    values (${campaignId}, ${orgId}, ${joiner}, ${referrer})
     on conflict (campaign_id, address) do nothing
     returning campaign_id`;
-  return (rows as unknown[]).length > 0;
+  const joinedNow = (rows as unknown[]).length > 0;
+
+  // Credit the sharer only when the join actually happened — a re-click on an
+  // already-joined account must not inflate anyone's tally.
+  if (joinedNow && referrer) {
+    await sql`update campaign_shares set join_count = join_count + 1
+              where campaign_id = ${campaignId} and sharer = ${referrer}`;
+  }
+  return joinedNow;
+}
+
+/* ------------------------------------------------------------ share links */
+
+export interface ShareLink {
+  code: string;
+  clickCount: number;
+  joinCount: number;
+}
+
+/**
+ * One personal share link per person per campaign. The code is opaque on purpose —
+ * short enough for an X post, revealing nothing about who is behind it until the
+ * business looks at its own tally.
+ */
+export async function getOrCreateShareLink(
+  slug: string,
+  sharer: string
+): Promise<ShareLink | undefined> {
+  const campaign = await getCampaignBySlug(slug);
+  if (!campaign) return undefined;
+  const who = sharer.toLowerCase();
+
+  const existing = (await sql`
+    select code, click_count, join_count from campaign_shares
+    where campaign_id = ${campaign.id} and sharer = ${who}`) as Array<Record<string, unknown>>;
+  if (existing[0]) {
+    return {
+      code: existing[0].code as string,
+      clickCount: Number(existing[0].click_count),
+      joinCount: Number(existing[0].join_count),
+    };
+  }
+
+  // 8 chars of base36 from a uuid: compact, unguessable enough, retried on the
+  // vanishing chance of a collision — the same posture as campaign slug minting.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const rows = (await sql`
+        insert into campaign_shares (campaign_id, org_id, sharer, code)
+        values (${campaign.id}, ${campaign.orgId}, ${who},
+                upper(substr(md5(gen_random_uuid()::text), 1, 8)))
+        on conflict (code) do nothing
+        returning code`) as Array<Record<string, unknown>>;
+      if (rows[0]) return { code: rows[0].code as string, clickCount: 0, joinCount: 0 };
+      // code collided — loop and mint a different one.
+    } catch {
+      // Two first-time calls raced past the pre-select and hit the
+      // (campaign_id, sharer) unique — whoever won holds the answer.
+      const raced = (await sql`
+        select code, click_count, join_count from campaign_shares
+        where campaign_id = ${campaign.id} and sharer = ${who}`) as Array<
+        Record<string, unknown>
+      >;
+      if (raced[0]) {
+        return {
+          code: raced[0].code as string,
+          clickCount: Number(raced[0].click_count),
+          joinCount: Number(raced[0].join_count),
+        };
+      }
+      throw new Error("Could not mint a share code");
+    }
+  }
+  throw new Error("Could not mint a share code");
+}
+
+/** Resolves a /s/<code> hit and counts the click in the same statement. */
+export async function resolveShareCode(
+  code: string
+): Promise<{ slug: string; sharer: string } | undefined> {
+  const rows = (await sql`
+    update campaign_shares set click_count = click_count + 1
+    where code = ${code.toUpperCase()}
+    returning sharer, (select slug from campaigns where id = campaign_id) as slug`) as Array<
+    Record<string, unknown>
+  >;
+  if (!rows[0]) return undefined;
+  return { slug: rows[0].slug as string, sharer: rows[0].sharer as string };
+}
+
+/** Looks up who a code belongs to without counting a click (used at join time). */
+export async function peekShareCode(
+  code: string
+): Promise<{ sharer: string } | undefined> {
+  const rows = (await sql`select sharer from campaign_shares
+                          where code = ${code.toUpperCase()}`) as Array<Record<string, unknown>>;
+  return rows[0] ? { sharer: rows[0].sharer as string } : undefined;
+}
+
+export interface CampaignSharer {
+  sharer: string;
+  displayName?: string;
+  code: string;
+  clickCount: number;
+  joinCount: number;
+}
+
+/** Who is spreading a campaign, best first — the business's word-of-mouth view. */
+export async function listCampaignShares(campaignId: string): Promise<CampaignSharer[]> {
+  const rows = (await sql`
+    select s.sharer, s.code, s.click_count, s.join_count, a.display_name
+    from campaign_shares s
+    left join advocates a on a.org_id = s.org_id and a.address = s.sharer
+    where s.campaign_id = ${campaignId}
+    order by s.join_count desc, s.click_count desc
+    limit 20`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    sharer: r.sharer as string,
+    displayName: (r.display_name as string) ?? undefined,
+    code: r.code as string,
+    clickCount: Number(r.click_count),
+    joinCount: Number(r.join_count),
+  }));
 }
 
 export async function hasJoinedCampaign(
