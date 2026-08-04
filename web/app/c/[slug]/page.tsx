@@ -71,6 +71,33 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
 
   const { campaign: c, joined } = campaign.data;
 
+  /**
+   * Signed-out visitors get the doorway, not the room: the campaign's name and how
+   * many are in, then a sign-in. The full brief — what counts, what it pays, the
+   * share tooling — is for people with an account, which every share link is trying
+   * to create in the first place.
+   */
+  if (!address) {
+    return (
+      <div className="animate-rise space-y-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-crimson-400">
+            Campaign
+          </p>
+          <h1 className="mt-1 text-2xl font-black leading-tight">{c.title}</h1>
+          <p className="mt-3 text-xs text-mist-500">{c.participantCount} taking part</p>
+        </div>
+        <Card>
+          <p className="mb-4 text-sm text-mist-400">
+            Sign in to see what counts, what it earns you, and to take part. No seed
+            phrase, no fees — your social login is your account.
+          </p>
+          <SignIn />
+        </Card>
+      </div>
+    );
+  }
+
   // Which of the business's engagements this campaign counts. Falls back to all of
   // them when the org didn't narrow it, which is what an empty list means.
   const all = engagements.data ?? [];
@@ -141,12 +168,7 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
         </p>
       </div>
 
-      {!address ? (
-        <Card>
-          <p className="mb-4 text-sm text-mist-400">Sign in to take part.</p>
-          <SignIn />
-        </Card>
-      ) : closed ? (
+      {closed ? (
         <Card className="bg-ink-850/60">
           <p className="text-sm text-mist-400">
             This campaign has closed. Anything you already submitted still counts.

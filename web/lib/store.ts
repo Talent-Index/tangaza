@@ -1046,3 +1046,76 @@ export async function recordWalletConnection(p: {
           admin_address = coalesce(excluded.admin_address, wallets.admin_address),
           wallet_id     = coalesce(excluded.wallet_id, wallets.wallet_id)`;
 }
+
+/* ------------------------------------------------------- campaign overview */
+
+export interface CampaignParticipant {
+  address: string;
+  displayName?: string;
+  referredBy?: string;
+  referredByName?: string;
+  joinedAt: string;
+}
+
+export interface CampaignOverviewRow {
+  id: string;
+  slug: string;
+  title: string;
+  active: boolean;
+  participants: CampaignParticipant[];
+}
+
+export interface OrgCampaignOverview {
+  campaigns: CampaignOverviewRow[];
+  /** Distinct people across every campaign this business runs. */
+  totalUniqueParticipants: number;
+}
+
+/**
+ * The business's campaign roster: each campaign it runs, exactly who joined it (with
+ * who brought them), and the org-wide count of distinct people — because "how many
+ * people are my campaigns reaching, total" is a different question from any one
+ * campaign's count, and the same person joining three campaigns is one person.
+ */
+export async function getOrgCampaignOverview(orgId: string): Promise<OrgCampaignOverview> {
+  const campaigns = (await sql`
+    select id, slug, title, active from campaigns
+    where org_id = ${orgId}
+    order by active desc, starts_at desc`) as Array<Record<string, unknown>>;
+
+  const participants = (await sql`
+    select p.campaign_id, p.address, p.referred_by, p.joined_at,
+           a.display_name,
+           ref.display_name as referrer_name
+    from campaign_participants p
+    left join advocates a   on a.org_id = p.org_id and a.address = p.address
+    left join advocates ref on ref.org_id = p.org_id and ref.address = p.referred_by
+    where p.org_id = ${orgId}
+    order by p.joined_at desc`) as Array<Record<string, unknown>>;
+
+  const byCampaign = new Map<string, CampaignParticipant[]>();
+  const unique = new Set<string>();
+  for (const r of participants) {
+    unique.add(r.address as string);
+    const list = byCampaign.get(r.campaign_id as string) ?? [];
+    list.push({
+      address: r.address as string,
+      displayName: (r.display_name as string) ?? undefined,
+      referredBy: (r.referred_by as string) ?? undefined,
+      referredByName: (r.referrer_name as string) ?? undefined,
+      joinedAt: new Date(r.joined_at as string).toISOString(),
+    });
+    byCampaign.set(r.campaign_id as string, list);
+  }
+
+  return {
+    campaigns: campaigns.map((c) => ({
+      id: c.id as string,
+      slug: c.slug as string,
+      title: c.title as string,
+      active: Boolean(c.active),
+      participants: byCampaign.get(c.id as string) ?? [],
+    })),
+    totalUniqueParticipants: unique.size,
+  };
+}

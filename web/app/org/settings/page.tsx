@@ -389,6 +389,8 @@ function CampaignEditor({ orgId }: { orgId: bigint }) {
     <section>
       <SectionTitle>Campaigns</SectionTitle>
 
+      <CampaignOverview orgId={orgId} />
+
       <ul className="mb-4 space-y-2">
         {list.map((c) => {
           const url = `${typeof window !== "undefined" ? window.location.origin : ""}/c/${c.slug}`;
@@ -461,6 +463,7 @@ function CampaignEditor({ orgId }: { orgId: bigint }) {
                   {c.active ? "Close" : "Reopen"}
                 </button>
                 <CampaignSharers campaignId={c.id} />
+                <CampaignRoster campaignId={c.id} />
               </Card>
             </li>
           );
@@ -575,6 +578,111 @@ function CampaignSharers({ campaignId }: { campaignId: string }) {
             </span>
           </li>
         ))}
+      </ul>
+    </div>
+  );
+}
+
+interface OverviewData {
+  campaigns: Array<{
+    id: string;
+    title: string;
+    participants: Array<{
+      address: string;
+      displayName?: string;
+      referredByName?: string;
+      referredBy?: string;
+    }>;
+  }>;
+  totalUniqueParticipants: number;
+}
+
+let overviewCache: { orgId: string; data: OverviewData } | null = null;
+
+/** One fetch shared by the summary line and every campaign's roster. */
+function useCampaignOverview(orgId: bigint) {
+  const [data, setData] = useState<OverviewData | null>(
+    overviewCache?.orgId === String(orgId) ? overviewCache.data : null
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/campaigns/overview?orgId=${orgId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: OverviewData | null) => {
+        if (!cancelled && j) {
+          overviewCache = { orgId: String(orgId), data: j };
+          setData(j);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
+
+  return data;
+}
+
+/**
+ * The org-wide truth above the per-campaign cards: how many distinct people all the
+ * campaigns reach together — one person in three campaigns is one person.
+ */
+function CampaignOverview({ orgId }: { orgId: bigint }) {
+  const data = useCampaignOverview(orgId);
+  if (!data || data.campaigns.length === 0) return null;
+
+  return (
+    <Card className="mb-4 flex flex-wrap items-center gap-4">
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">
+          Across all campaigns
+        </p>
+        <p className="tabular mt-1 text-2xl font-bold">
+          {data.totalUniqueParticipants}
+          <span className="ml-2 text-sm font-normal text-mist-500">
+            distinct {data.totalUniqueParticipants === 1 ? "person" : "people"} taking part
+          </span>
+        </p>
+      </div>
+      <p className="min-w-0 flex-1 text-right text-xs text-mist-500">
+        {data.campaigns.length} campaign{data.campaigns.length === 1 ? "" : "s"} — each
+        roster below shows exactly who, and who brought them.
+      </p>
+    </Card>
+  );
+}
+
+/** Who joined this campaign, newest first, with referral credit where it exists. */
+function CampaignRoster({ campaignId }: { campaignId: string }) {
+  const { orgId } = useOrgAccessContext();
+  const data = useCampaignOverview(orgId);
+  const participants = data?.campaigns.find((c) => c.id === campaignId)?.participants ?? [];
+  if (participants.length === 0) return null;
+
+  return (
+    <div className="w-full border-t border-ink-800 pt-3">
+      <p className="mb-1 text-[11px] uppercase tracking-[0.14em] text-mist-500">
+        Who joined
+      </p>
+      <ul className="space-y-1">
+        {participants.slice(0, 8).map((p) => (
+          <li key={p.address} className="flex justify-between gap-3 text-xs text-mist-400">
+            <span className="truncate">
+              {p.displayName ?? `${p.address.slice(0, 6)}…${p.address.slice(-4)}`}
+            </span>
+            {p.referredBy ? (
+              <span className="shrink-0 text-mist-500">
+                via {p.referredByName ?? `${p.referredBy.slice(0, 6)}…`}
+              </span>
+            ) : (
+              <span className="shrink-0 text-mist-600">direct</span>
+            )}
+          </li>
+        ))}
+        {participants.length > 8 ? (
+          <li className="text-xs text-mist-600">…and {participants.length - 8} more</li>
+        ) : null}
       </ul>
     </div>
   );

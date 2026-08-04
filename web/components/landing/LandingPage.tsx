@@ -31,6 +31,7 @@ export function LandingPage() {
     <div className="min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
       <LandingNav />
       <Hero />
+      <LiveCampaigns />
       <Solutions />
       <WhyUs />
       <footer className="border-t border-ink-700/80 px-4 py-8 sm:px-6 sm:py-10">
@@ -364,6 +365,66 @@ function WhyUs() {
             That rule is enforced by the contract, not by a settings toggle. Advocacy is a
             community act; the return should be something the community can verify.
           </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+/**
+ * What's happening right now, shown to everyone — the door is visible from the
+ * street. Opening a campaign asks you to sign in: viewing is the hook, taking part
+ * is the account.
+ */
+function LiveCampaigns() {
+  const [campaigns, setCampaigns] = useState<
+    Array<{ id: string; slug: string; title: string; blurb?: string; orgName: string; participantCount: number }>
+  >([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/campaigns?all=true")
+      .then((r) => (r.ok ? r.json() : { campaigns: [] }))
+      .then((j: { campaigns: typeof campaigns }) => {
+        if (!cancelled) setCampaigns(j.campaigns ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (campaigns.length === 0) return null;
+
+  return (
+    <section className="border-t border-ink-700/80 px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto max-w-6xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-crimson-400">
+          Happening now
+        </p>
+        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+          Live campaigns you can join today.
+        </h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {campaigns.map((c) => (
+            <Link
+              key={c.id}
+              href={`/c/${c.slug}`}
+              className="group rounded-2xl border border-ink-700 bg-ink-850/60 p-5 transition hover:border-crimson-500/50"
+            >
+              <p className="text-xs text-mist-500">{c.orgName}</p>
+              <p className="mt-1 font-semibold text-mist-100 group-hover:text-white">
+                {c.title}
+              </p>
+              {c.blurb ? (
+                <p className="mt-2 line-clamp-2 text-sm text-mist-500">{c.blurb}</p>
+              ) : null}
+              <p className="mt-3 text-xs text-crimson-300">
+                {c.participantCount} taking part · sign in to view →
+              </p>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
