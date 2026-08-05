@@ -59,78 +59,84 @@ function Home({ address }: { address: string }) {
   );
 
   return (
-    <div className="animate-rise space-y-6">
-      {mine.length === 0 ? (
-        <section className="flex flex-col items-center pt-2 text-center">
-          <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
-          <p className="mt-5 max-w-xs text-sm text-mist-400">
-            Every journey we move together, we grow together. Join our campaigns and
-            get good deals from our partners.
-          </p>
-        </section>
-      ) : (
-        <section className="space-y-3">
-          {mine.map((c) => (
-            <CommunityCard key={String(c.orgId)} community={c} address={address} />
-          ))}
-        </section>
-      )}
-
-      {available.length > 0 ? (
-        <Card className="animate-pop border-crimson-500/40 bg-crimson-500/10">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-crimson-300">
-                {available.length} reward{available.length === 1 ? "" : "s"} ready
+    <div className="animate-rise space-y-6 md:space-y-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-8">
+        <div className="space-y-6">
+          {mine.length === 0 ? (
+            <section className="flex flex-col items-center pt-2 text-center lg:items-start lg:text-left">
+              <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
+              <p className="mt-5 max-w-xs text-sm text-mist-400 lg:max-w-md">
+                Every journey we move together, we grow together. Join our campaigns and
+                get good deals from our partners.
               </p>
-              <p className="mt-1 text-lg font-black">
-                Redeem for in-house offers, discounts or vouchers
-              </p>
-            </div>
-            <Button href="/rewards">Claim</Button>
-          </div>
-        </Card>
-      ) : null}
+            </section>
+          ) : (
+            <section className="space-y-3">
+              {mine.map((c) => (
+                <CommunityCard key={String(c.orgId)} community={c} address={address} />
+              ))}
+            </section>
+          )}
 
-      <Button
-        href={mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit"}
-        className="w-full"
-      >
-        Submit an activity
-      </Button>
+          {available.length > 0 ? (
+            <Card className="animate-pop border-crimson-500/40 bg-crimson-500/10">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-crimson-300">
+                    {available.length} reward{available.length === 1 ? "" : "s"} ready
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    Redeem for in-house offers, discounts or vouchers
+                  </p>
+                </div>
+                <Button href="/rewards">Claim</Button>
+              </div>
+            </Card>
+          ) : null}
 
-      <CampaignStrip />
+          <Button
+            href={mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit"}
+            className="w-full md:w-auto md:min-w-56"
+          >
+            Submit an activity
+          </Button>
+        </div>
 
-      <section>
-        <SectionTitle>Waiting for approval</SectionTitle>
-        {pending.loading ? (
-          <Card className="grid place-items-center py-8">
-            <Spinner />
-          </Card>
-        ) : pendingItems.length === 0 ? (
-          <EmptyState
-            icon="📮"
-            title="Nothing pending"
-            body="Submit a referral, a post, or an event you brought in. The business approves it and it counts."
-          />
-        ) : (
-          <ul className="space-y-2">
-            {pendingItems.map((item) => {
-              const campaign = item.campaignId
-                ? campaignTitles.get(item.campaignId)
-                : undefined;
-              return (
-                <PendingRow
-                  key={item.id}
-                  item={item}
-                  orgName={orgNames.get(item.orgId) ?? campaign?.org}
-                  campaignTitle={campaign?.title}
-                />
-              );
-            })}
-          </ul>
-        )}
-      </section>
+        <div className="space-y-6">
+          <CampaignStrip />
+
+          <section>
+            <SectionTitle>Waiting for approval</SectionTitle>
+            {pending.loading ? (
+              <Card className="grid place-items-center py-8">
+                <Spinner />
+              </Card>
+            ) : pendingItems.length === 0 ? (
+              <EmptyState
+                icon="📮"
+                title="Nothing pending"
+                body="Submit a referral, a post, or an event you brought in. The business approves it and it counts."
+              />
+            ) : (
+              <ul className="space-y-2">
+                {pendingItems.map((item) => {
+                  const campaign = item.campaignId
+                    ? campaignTitles.get(item.campaignId)
+                    : undefined;
+                  return (
+                    <PendingRow
+                      key={item.id}
+                      item={item}
+                      orgName={orgNames.get(item.orgId) ?? campaign?.org}
+                      campaignTitle={campaign?.title}
+                    />
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
 
       <p className="pt-2 text-center text-[11px] leading-relaxed text-mist-500">
         Every activity for a business does not go unrewarded — share what you do,
@@ -378,7 +384,7 @@ function CampaignStrip() {
   return (
     <section>
       <SectionTitle>Happening now</SectionTitle>
-      <ul className="space-y-2">
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
         {live.map((c) => (
           <li key={c.id}>
             <Link
