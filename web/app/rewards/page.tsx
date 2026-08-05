@@ -59,12 +59,12 @@ function Rewards({ address }: { address: string }) {
   const availableValue = available.reduce((sum, c) => sum + Number(c.valueKES), 0);
 
   return (
-    <div className="animate-rise space-y-6">
-      <section className="text-center">
+    <div className="animate-rise space-y-6 md:space-y-8">
+      <section className="text-center md:rounded-2xl md:border md:border-ink-700 md:bg-ink-850/50 md:px-8 md:py-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
           Ready to claim
         </p>
-        <p className="tabular mt-2 text-5xl font-black text-crimson-400">
+        <p className="tabular mt-2 text-5xl font-black text-crimson-400 md:text-6xl">
           {kesLabel(availableValue)}
         </p>
         <p className="mt-2 text-sm text-mist-500">
@@ -73,68 +73,70 @@ function Rewards({ address }: { address: string }) {
         </p>
       </section>
 
-      {available.length === 0 ? (
-        <EmptyState
-          icon="🎁"
-          title="No rewards yet"
-          body="Every 20 approved activities turns into KES 500. Keep going — you're closer than you think."
-          action={<Button href="/submit">Submit an activity</Button>}
-        />
-      ) : (
-        <section>
-          <SectionTitle>Yours to claim</SectionTitle>
-          <ul className="space-y-3">
-            {available.map((credit) => (
-              <li key={String(credit.id)}>
-                <Link href={`/rewards/${credit.id}`} className="block">
-                  <Card className="flex items-center gap-4 border-crimson-500/30 transition hover:border-crimson-500/70">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-crimson-500/15 text-xl">
-                      🎁
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
+        {available.length === 0 ? (
+          <EmptyState
+            icon="🎁"
+            title="No rewards yet"
+            body="Every 20 approved activities turns into KES 500. Keep going — you're closer than you think."
+            action={<Button href="/submit">Submit an activity</Button>}
+          />
+        ) : (
+          <section>
+            <SectionTitle>Yours to claim</SectionTitle>
+            <ul className="space-y-3">
+              {available.map((credit) => (
+                <li key={String(credit.id)}>
+                  <Link href={`/rewards/${credit.id}`} className="block">
+                    <Card className="flex items-center gap-4 border-crimson-500/30 transition hover:border-crimson-500/70">
+                      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-crimson-500/15 text-xl">
+                        🎁
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="tabular text-lg font-bold">
+                          {kesLabel(credit.valueKES)}
+                        </p>
+                        <p className="text-xs text-mist-500">
+                          Earned {formatDate(Number(credit.earnedAt) * 1000)}
+                        </p>
+                      </div>
+                      <span className="text-crimson-300" aria-hidden>
+                        →
+                      </span>
+                    </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {claimed.length > 0 ? (
+          <section>
+            <SectionTitle>Already claimed</SectionTitle>
+            <ul className="space-y-2">
+              {claimed.map((credit) => (
+                <li key={String(credit.id)}>
+                  <Card className="flex items-center gap-4 py-4 opacity-70">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-700 text-base">
+                      ✓
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="tabular text-lg font-bold">
-                        {kesLabel(credit.valueKES)}
+                      <p className="tabular text-sm font-semibold">
+                        {kesLabel(credit.valueKES)} {rewardLabel(credit.rewardType)}
                       </p>
                       <p className="text-xs text-mist-500">
-                        Earned {formatDate(Number(credit.earnedAt) * 1000)}
+                        Claimed {formatDate(Number(credit.redeemedAt) * 1000)}
                       </p>
                     </div>
-                    <span className="text-crimson-300" aria-hidden>
-                      →
-                    </span>
+                    <Pill tone="good">Delivered</Pill>
                   </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {claimed.length > 0 ? (
-        <section>
-          <SectionTitle>Already claimed</SectionTitle>
-          <ul className="space-y-2">
-            {claimed.map((credit) => (
-              <li key={String(credit.id)}>
-                <Card className="flex items-center gap-4 py-4 opacity-70">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-700 text-base">
-                    ✓
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="tabular text-sm font-semibold">
-                      {kesLabel(credit.valueKES)} {rewardLabel(credit.rewardType)}
-                    </p>
-                    <p className="text-xs text-mist-500">
-                      Claimed {formatDate(Number(credit.redeemedAt) * 1000)}
-                    </p>
-                  </div>
-                  <Pill tone="good">Delivered</Pill>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }
