@@ -320,37 +320,40 @@ function SubmitForm() {
   }
 
   return (
-    <form onSubmit={submit} className="animate-rise space-y-6">
-      <div>
+    <form onSubmit={submit} className="animate-rise mx-auto w-full max-w-2xl space-y-6 md:max-w-none">
+      <div className="md:max-w-2xl">
         {campaign ? (
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-crimson-400">
             {campaign.title}
           </p>
         ) : null}
-        <h1 className="text-2xl font-black">Submit an activity</h1>
+        <h1 className="text-2xl font-black md:text-3xl">Submit an activity</h1>
         <p className="mt-1 text-sm text-mist-500">
           Show us what you did. The business approves it, and it counts toward your next
           reward.
         </p>
       </div>
 
-      <fieldset className="space-y-2">
+      <fieldset>
         <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
           What did you do?
         </legend>
-        {types.map((type) => (
-          <EngagementOption
-            key={type.id}
-            type={type}
-            active={type.id === selectedId}
-            onSelect={() => {
-              setSelectedId(type.id);
-              setProof("");
-            }}
-          />
-        ))}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {types.map((type) => (
+            <EngagementOption
+              key={type.id}
+              type={type}
+              active={type.id === selectedId}
+              onSelect={() => {
+                setSelectedId(type.id);
+                setProof("");
+              }}
+            />
+          ))}
+        </div>
       </fieldset>
 
+      <div className="space-y-6 md:max-w-xl">
       {needsProof && selected ? (
         <div className="space-y-2">
           <label
@@ -406,7 +409,7 @@ function SubmitForm() {
           !canSubmit ||
           (Boolean(account) && !funds.loading && !funds.ok)
         }
-        className="w-full"
+        className="w-full md:w-auto md:min-w-56"
       >
         {settingUp
           ? "Setting up your account…"
@@ -496,6 +499,7 @@ function SubmitForm() {
           that&rsquo;s what makes your reward real and impossible to quietly take back.
         </p>
       </Card>
+      </div>
     </form>
   );
 }
