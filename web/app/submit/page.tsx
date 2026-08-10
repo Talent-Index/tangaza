@@ -9,7 +9,12 @@ import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks";
+import {
+  useAdvocateProfile,
+  useCampaign,
+  useCredentialName,
+  useEngagementTypes,
+} from "@/lib/hooks";
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
@@ -61,11 +66,12 @@ function SubmitForm() {
     : orgParam && /^\d+$/.test(orgParam)
       ? BigInt(orgParam)
       : ORG_ID;
-  // Only a name they actually chose travels with the submission. The UI's display
-  // name falls back to a nickname built from the address, and sending that would
-  // persist a pseudonym as though they had picked it.
+  // Stored profile name wins; otherwise the login credential (email → "Dan").
+  // Never the wallet nickname — that used to travel with submissions and then
+  // stuck on the business queue as if the person had chosen "Wafula".
   const me = useAdvocateProfile(address, orgId);
-  const chosenName = me.data?.displayName;
+  const credentialName = useCredentialName();
+  const chosenName = me.data?.displayName ?? credentialName;
   const engagements = useEngagementTypes(
     campaignSlug && !campaign ? undefined : orgId
   );
