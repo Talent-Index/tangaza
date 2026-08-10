@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import "./globals.css";
 import { CHAIN } from "@/lib/chain";
+import { THEME_BOOT_SCRIPT } from "@/components/theme";
 import { Providers } from "./providers";
 
 const body = DM_Sans({
@@ -30,7 +31,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable}`}>
+    <html lang="en" className={`${body.variable} ${display.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Apply stored / system theme before paint so light mode does not flash dark. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       {/*
        * Signing in blocks on two round trips to two different origins: the in-app
        * wallet's auth API, then an RPC read to work out the advocate's smart-account
