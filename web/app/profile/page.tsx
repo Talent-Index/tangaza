@@ -8,7 +8,11 @@ import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile, useOnChainHistory } from "@/lib/hooks";
+import {
+  useAdvocateProfile,
+  useCredentialName,
+  useOnChainHistory,
+} from "@/lib/hooks";
 import { timeAgo } from "@/lib/format";
 import { normaliseHandle } from "@/lib/types";
 
@@ -39,6 +43,7 @@ export default function ProfilePage() {
 
 function ProfileForm({ address }: { address: string }) {
   const me = useAdvocateProfile(address);
+  const credentialName = useCredentialName();
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const router = useRouter();
@@ -49,12 +54,13 @@ function ProfileForm({ address }: { address: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Seed the fields once the stored profile arrives.
+  // Seed from the stored profile, or from the login credential when they haven't
+  // typed a name yet — so the field matches what the header already shows.
   useEffect(() => {
-    if (!me.data) return;
-    setName(me.data.displayName ?? "");
-    setHandle(me.data.xUsername ?? "");
-  }, [me.data]);
+    if (me.loading) return;
+    setName(me.data?.displayName ?? credentialName ?? "");
+    setHandle(me.data?.xUsername ?? "");
+  }, [me.loading, me.data, credentialName]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -146,8 +152,9 @@ function ProfileForm({ address }: { address: string }) {
           className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="text-xs text-mist-500">
-          Leave it blank and we&rsquo;ll fall back to your X handle, or a nickname made
-          from your account.
+          {credentialName
+            ? `Prefilled from your sign-in (${credentialName}). Edit it anytime — this is what businesses see.`
+            : "Leave it blank and we\u2019ll fall back to your X handle, or a nickname made from your account."}
         </p>
       </div>
 
