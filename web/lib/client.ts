@@ -55,6 +55,17 @@ export const wallets = [
   inAppWallet({
     auth: {
       options: ["google", "x", "email"],
+      /**
+       * Full-page redirect, not a popup. The popup flow needs the OAuth window to
+       * postMessage back to its opener, and that handshake dies in exactly the
+       * places advocates actually sign in: popup blockers, iOS Safari's storage
+       * partitioning, and in-app browsers (a campaign link opened inside the X app
+       * has no popups at all) — X authorizes and then the popup sits blank forever.
+       * A redirect has no second window to lose: same tab out, same tab back, and
+       * <AutoConnect /> in app/providers.tsx completes the session on return. The
+       * submit form survives the round trip via its sessionStorage draft.
+       */
+      mode: "redirect",
     },
   }),
 ];
