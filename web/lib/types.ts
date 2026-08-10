@@ -51,7 +51,11 @@ export const PROOF_KINDS = [
   { id: "x_link", label: "Post on X", hint: "https://x.com/you/status/…" },
   { id: "social_link", label: "Instagram / TikTok / Facebook", hint: "https://…" },
   { id: "screenshot", label: "Screenshot", hint: "Paste an image link" },
-  { id: "referral_code", label: "Referral code", hint: "The code you gave out" },
+  {
+    id: "referral_code",
+    label: "Referral (share link)",
+    hint: "Share your /s/ link — no code to type",
+  },
   { id: "none", label: "No proof", hint: "The business verifies this offline" },
 ] as const;
 
