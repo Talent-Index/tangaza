@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
 import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
@@ -45,6 +46,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
                 Contract {shortAddress(CONTRACT_ADDRESS)} ↗
               </a>
             ) : null}
+            <ThemeToggle />
             <SignedInAs />
           </div>
         </div>
