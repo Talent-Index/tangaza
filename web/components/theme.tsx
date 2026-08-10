@@ -96,9 +96,3 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     </button>
   );
 }
-
-/**
- * Runs before paint (inline in layout) so a stored light theme does not flash dark.
- * Keep in sync with STORAGE_KEY / applyTheme above.
- */
-export const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem('${STORAGE_KEY}');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}if(t==='light')document.documentElement.classList.add('light');document.documentElement.style.colorScheme=t}catch(e){}`;
