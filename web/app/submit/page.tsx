@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { prepareContractCall } from "thirdweb";
 import { useActiveAccount } from "thirdweb/react";
+import { ReferralShareGuide } from "@/components/customer/CampaignShareCard";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
@@ -116,7 +117,11 @@ function SubmitForm() {
     if (!selectedId && types.length > 0) setSelectedId(types[0].id);
   }, [types, selectedId]);
 
-  const needsProof = selected ? selected.proofKind !== "none" : true;
+  // referral_code no longer asks for a typed code — tracking is the /s/ share link.
+  const needsProof = selected
+    ? selected.proofKind !== "none" && selected.proofKind !== "referral_code"
+    : true;
+  const isReferral = selected?.proofKind === "referral_code";
   const canSubmit = Boolean(selected) && (!needsProof || proof.trim().length > 0);
 
   /**
@@ -360,20 +365,22 @@ function SubmitForm() {
       </fieldset>
 
       <div className="space-y-6 md:max-w-xl">
+      {isReferral ? (
+        <ReferralShareGuide campaignSlug={campaignSlug} address={address} />
+      ) : null}
+
       {needsProof && selected ? (
         <div className="space-y-2">
           <label
             htmlFor="proof"
             className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
           >
-            {selected.proofKind === "referral_code" ? "Your referral code" : "Link to your proof"}
+            Link to your proof
           </label>
           <input
             id="proof"
-            // Not type="url": a referral code is not a URL, and browser URL validation
-            // would reject it before the form ever submits.
             type="text"
-            inputMode={selected.proofKind === "referral_code" ? "text" : "url"}
+            inputMode="url"
             required
             value={proof}
             onChange={(e) => setProof(e.target.value)}
@@ -389,7 +396,17 @@ function SubmitForm() {
           htmlFor="note"
           className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
         >
-          Anything to add? <span className="normal-case text-mist-500">(optional)</span>
+          {isReferral ? (
+            <>
+              Who did you refer?{" "}
+              <span className="normal-case text-mist-500">(their name)</span>
+            </>
+          ) : (
+            <>
+              Anything to add?{" "}
+              <span className="normal-case text-mist-500">(optional)</span>
+            </>
+          )}
         </label>
         <textarea
           id="note"
@@ -397,7 +414,11 @@ function SubmitForm() {
           maxLength={280}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Brought 12 people from my campus club…"
+          placeholder={
+            isReferral
+              ? "e.g. Signed up Wanjiku from my campus club with my share link"
+              : "Brought 12 people from my campus club…"
+          }
           className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
       </div>
@@ -567,7 +588,7 @@ function proofBlurb(type: EngagementType) {
     case "screenshot":
       return "Upload the screenshot somewhere and paste the link.";
     case "referral_code":
-      return "The code you gave out. Add their name in the note below.";
+      return "Share your /s/ campaign link with them — tracking is automatic.";
     default:
       return "A post link, a photo, a screenshot — whatever shows it happened.";
   }
