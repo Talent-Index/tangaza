@@ -2,7 +2,8 @@
 
 /* Ubu-Tangaza — MetroPorter visual language (navy / accent blue).
    Product stays advocacy rewards; chrome borrows MetroPorter professionalism.
-   Customer surface stays jargon-free: no "wallet", no "gas". Money in KES. */
+   Customer surface stays jargon-free: no "wallet", no "gas". Money in KES.
+   Dark is the default; html.light remaps the same ink/mist/crimson tokens. */
 @theme {
   --color-ink-950: #050b18;
   --color-ink-900: #070f1f;
@@ -40,6 +41,31 @@ html {
   text-size-adjust: 100%;
 }
 
+html.light {
+  color-scheme: light;
+
+  --color-ink-950: #eef2f8;
+  --color-ink-900: #f5f7fb;
+  --color-ink-850: #ffffff;
+  --color-ink-800: #e8eef7;
+  --color-ink-700: #d4deec;
+  --color-ink-600: #b7c5d9;
+  --color-ink-500: #8fa0b8;
+
+  --color-mist-500: #5a6b84;
+  --color-mist-400: #3d4f68;
+  --color-mist-300: #1a2b45;
+  --color-mist-100: #0a1428;
+
+  --color-crimson-600: #0d4f9e;
+  --color-crimson-500: #1565c0;
+  --color-crimson-400: #1e7aef;
+  --color-crimson-300: #0d4f9e;
+
+  --color-jade-500: #0f9a62;
+  --color-jade-400: #129a66;
+}
+
 body {
   background: var(--color-ink-950);
   color: var(--color-mist-100);
@@ -60,6 +86,12 @@ body {
     radial-gradient(40rem 30rem at 100% 100%, rgb(30 122 239 / 0.08), transparent 60%);
 }
 
+html.light .app-glow::before {
+  background:
+    radial-gradient(70rem 45rem at 50% -15%, rgb(30 122 239 / 0.1), transparent 65%),
+    radial-gradient(40rem 30rem at 100% 100%, rgb(30 122 239 / 0.06), transparent 60%);
+}
+
 @utility card {
   background: linear-gradient(
     180deg,
@@ -68,6 +100,12 @@ body {
   );
   border: 1px solid color-mix(in oklab, var(--color-ink-600) 70%, white 8%);
   border-radius: var(--radius-card);
+}
+
+html.light .card {
+  background: var(--color-ink-850);
+  border-color: var(--color-ink-700);
+  box-shadow: 0 1px 2px rgb(10 20 40 / 0.04);
 }
 
 @utility tabular {
