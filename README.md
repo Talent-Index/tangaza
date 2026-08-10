@@ -55,9 +55,10 @@ one KES 500 reward credit → the customer claims it for airtime → the busines
 outstanding liability drops by KES 500. Everyone acts as a plain EOA: social login
 gives you an embedded self-custodial key (no seed phrase, signs without prompts), Core
 and MetaMask users sign in their own extension. Every transaction pays its own gas —
-fractions of a cent on Fuji — from the 0.005 testnet AVAX the app requires you to hold
-(free from the [Core faucet](https://core.app/tools/testnet-faucet/)) before you can
-submit or approve.
+fractions of a cent on Fuji — from the 0.001 testnet AVAX the app requires you to hold
+before you can submit or approve — pushed to new wallets automatically by the in-app
+faucet, with the [Core faucet](https://core.app/tools/testnet-faucet/) as the manual
+fallback.
 
 ---
 
@@ -227,6 +228,17 @@ npm run dev     # http://localhost:3000
 If you change the contract, re-sync the ABI: `cd contracts && npx hardhat compile`
 then `cd ../web && npm run sync:abi`.
 
+### 7. In-app faucet (optional but recommended)
+
+New users know nothing about testnets, and the Core faucet now wants a mainnet
+balance or a coupon — so the app can fund them itself. Generate a fresh key, put it
+in `.env.local` as `FAUCET_PRIVATE_KEY`, and send it some Fuji AVAX to be the
+reserve. From then on, a signed-in wallet below the 0.001 AVAX gate gets
+`FAUCET_DRIP_AVAX` (default 0.005) pushed to it automatically — the gate shows
+"setting up your account" instead of faucet instructions. Unset, everything falls
+back to the manual Core-faucet card. Guards live in `web/lib/faucet.ts`: once per
+address ever, only when actually below the gate, per-IP and global daily caps.
+
 ---
 
 ## Running the demo
@@ -304,6 +316,16 @@ Everyone pays their own (near-zero) gas from the 0.005 AVAX the funds gate requi
 The recovery machinery this fight produced (`web/lib/warmup.ts`, the AA10 branches in
 the submit and approve flows) stays in the code: inert while nothing registers a
 warmup, and exactly what you'll need again if sponsorship ever returns.
+
+**Why the faucet is a server key, not a contract.** A brand-new wallet holds nothing,
+so it cannot call a faucet contract — whatever funds it must move first. The in-app
+faucet is therefore a plain transfer from a server-held key (`web/lib/faucet.ts`),
+with the policy in Postgres and on-chain checks rather than bytecode: one drip per
+address ever (claimed by insert before the send, so concurrent requests race on the
+row, not the transfer), only for balances actually below the gate, under per-IP and
+global daily caps. The key is its own small-reserve account — draining it is the
+worst case, and it fails closed: unset or dry, the UI falls back to the Core-faucet
+instructions.
 
 **The standing sharp edge**: the contract's registered approver must match the address
 the connection actually produces, or every approval reverts `NotApprover`. Changing
