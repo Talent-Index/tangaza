@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActiveAccount } from "thirdweb/react";
+import { ThemeToggle } from "@/components/theme";
 import { BrandMark } from "@/components/ui";
 import { useDisplayName } from "@/lib/hooks";
 
@@ -64,20 +65,23 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           ) : null}
         </div>
 
-        {account ? (
-          <Link
-            href="/profile"
-            aria-label="Your profile"
-            className="flex min-w-0 items-center gap-2 rounded-full transition hover:opacity-80"
-          >
-            <span className="max-w-28 truncate text-sm text-mist-400 sm:max-w-36 md:max-w-none">
-              {name}
-            </span>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
-              {name.replace(/^@/, "").slice(0, 1)}
-            </span>
-          </Link>
-        ) : null}
+        <div className="flex min-w-0 items-center gap-2">
+          <ThemeToggle />
+          {account ? (
+            <Link
+              href="/profile"
+              aria-label="Your profile and settings"
+              className="flex min-w-0 items-center gap-2 rounded-full transition hover:opacity-80"
+            >
+              <span className="max-w-28 truncate text-sm text-mist-400 sm:max-w-36 md:max-w-none">
+                {name}
+              </span>
+              <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
+                {name.replace(/^@/, "").slice(0, 1)}
+              </span>
+            </Link>
+          ) : null}
+        </div>
       </header>
 
       <main className="min-w-0 flex-1">{children}</main>

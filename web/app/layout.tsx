@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Syne } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { CHAIN } from "@/lib/chain";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 import { Providers } from "./providers";
 
 const body = DM_Sans({
@@ -30,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable}`}>
+    <html lang="en" className={`${body.variable} ${display.variable}`} suppressHydrationWarning>
       {/*
        * Signing in blocks on two round trips to two different origins: the in-app
        * wallet's auth API, then an RPC read to work out the advocate's smart-account
@@ -41,6 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <link rel="preconnect" href="https://embedded-wallet.thirdweb.com" crossOrigin="" />
       <link rel="preconnect" href={`https://${CHAIN.id}.rpc.thirdweb.com`} crossOrigin="" />
       <body className="app-glow font-sans">
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {THEME_BOOT_SCRIPT}
+        </Script>
         <Providers>
           <div className="relative z-10">{children}</div>
         </Providers>

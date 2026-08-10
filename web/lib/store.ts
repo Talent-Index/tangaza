@@ -190,13 +190,13 @@ export async function createActivity(
   if (!type) return undefined;
 
   /**
-   * Deliberately does not write display_name.
+   * May fill a *missing* display_name from advocateLabel, but never overwrite one.
    *
-   * It used to, from whatever label the submit form sent — and that label was the UI's
-   * display name, which falls back to a nickname generated from the wallet address when
-   * the social login exposes nothing. So a pseudonym got persisted as though the person
-   * had chosen it, and then won every subsequent lookup. The name a person picks is
-   * owned by PUT /api/me and nothing else may overwrite it.
+   * It used to always write from the UI display name — which fell back to a wallet
+   * nickname when the social login exposed nothing — so "Wafula" got persisted as
+   * though the person had chosen it. The submit form now only sends a stored profile
+   * name or a credential-derived name (email → "Dan"), never the nickname, so
+   * seeding a null row is safe and stops the business queue showing a pseudonym.
    */
   await sql`insert into advocates (org_id, address)
             values (${input.orgId}, ${advocate})
@@ -212,6 +212,13 @@ export async function createActivity(
                    order by last_active_at desc limit 1) src
             where a.org_id = ${input.orgId} and a.address = ${advocate}
               and a.display_name is null`;
+
+  if (input.advocateLabel) {
+    await sql`update advocates
+              set display_name = ${input.advocateLabel}
+              where org_id = ${input.orgId} and address = ${advocate}
+                and display_name is null`;
+  }
 
   const rows = await sql`insert into submissions
       (org_id, advocate, advocate_label, engagement_type_id,

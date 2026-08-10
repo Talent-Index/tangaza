@@ -53,7 +53,7 @@ export function Button({
   const styles = {
     primary:
       "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(30_122_239/0.65)]",
-    light: "bg-white text-ink-950 hover:bg-mist-100",
+    light: "bg-white text-[#050b18] hover:bg-[#e8eef7]",
     ghost: "border border-ink-600 text-mist-300 hover:border-ink-500 hover:text-mist-100",
     danger: "border border-crimson-600 text-crimson-300 hover:bg-crimson-600/15",
   }[variant];

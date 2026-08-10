@@ -5,6 +5,7 @@ import { useProfiles } from "thirdweb/react";
 import { ORG_ID } from "./chain";
 import { client, isConfigured } from "./client";
 import { advocateName } from "./format";
+import { credentialNameFromProfiles } from "./identity";
 import {
   loadAdvocateHistory,
   loadOrgLedger,
@@ -404,25 +405,32 @@ export function usePendingActivities(filter: {
 }
 
 /**
+ * Name exposed by the connected login (email local-part / provider name).
+ * Never a wallet nickname — those are not credentials.
+ */
+export function useCredentialName() {
+  const { data: profiles } = useProfiles({ client });
+  return useMemo(() => credentialNameFromProfiles(profiles), [profiles]);
+}
+
+/**
  * The signed-in advocate's own name, from the social account they logged in with.
  *
- * thirdweb's Profile carries `details.email` (plus id/phone/address) — there is no
- * display name or avatar in it, so this is the email's local part, not "Daniel
- * Mwihoti". It also only ever works for the *connected* wallet: there is no way to
- * ask thirdweb who somebody else's address belongs to. Other people's names come
- * from `useAdvocateLabels` below.
+ * thirdweb's Profile usually carries `details.email` (plus id/phone/address) — there
+ * is often no display name, so this falls back to a pretty email local-part
+ * ("dan@…" → "Dan"), not "Daniel Mwihoti". It also only ever works for the
+ * *connected* wallet: there is no way to ask thirdweb who somebody else's address
+ * belongs to. Other people's names come from `useAdvocateLabels` below.
  */
 export function useDisplayName(address?: string) {
-  const { data: profiles } = useProfiles({ client });
+  const credential = useCredentialName();
   const me = useAdvocateProfile(address);
 
   // A name they typed beats a handle they linked, beats whatever the social login
   // happened to expose, beats a pseudonym derived from the wallet address.
   if (me.data?.displayName) return me.data.displayName;
   if (me.data?.xUsername) return `@${me.data.xUsername}`;
-
-  const email = profiles?.find((p) => p.details?.email)?.details?.email;
-  if (email) return email.split("@")[0];
+  if (credential) return credential;
 
   return address ? advocateName(address) : "";
 }

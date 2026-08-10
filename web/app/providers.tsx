@@ -2,11 +2,13 @@
 
 import { AutoConnect, ThirdwebProvider } from "thirdweb/react";
 import { WalletRegistrar } from "@/components/WalletRegistrar";
+import { ThemeProvider } from "@/components/theme";
 import { ToastProvider } from "@/components/toast";
 import { client, externalWallets, wallets } from "@/lib/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
+    <ThemeProvider>
     <ThirdwebProvider>
       {/*
        * Restores the advocate's session on reload. <ConnectButton /> used to do this
@@ -35,5 +37,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WalletRegistrar />
       <ToastProvider>{children}</ToastProvider>
     </ThirdwebProvider>
+    </ThemeProvider>
   );
 }

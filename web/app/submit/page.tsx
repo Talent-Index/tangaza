@@ -4,12 +4,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { prepareContractCall } from "thirdweb";
 import { useActiveAccount } from "thirdweb/react";
+import { ReferralShareGuide } from "@/components/customer/CampaignShareCard";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, ErrorNote, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile, useCampaign, useEngagementTypes } from "@/lib/hooks";
+import {
+  useAdvocateProfile,
+  useCampaign,
+  useCredentialName,
+  useEngagementTypes,
+} from "@/lib/hooks";
 import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
@@ -61,11 +67,12 @@ function SubmitForm() {
     : orgParam && /^\d+$/.test(orgParam)
       ? BigInt(orgParam)
       : ORG_ID;
-  // Only a name they actually chose travels with the submission. The UI's display
-  // name falls back to a nickname built from the address, and sending that would
-  // persist a pseudonym as though they had picked it.
+  // Stored profile name wins; otherwise the login credential (email → "Dan").
+  // Never the wallet nickname — that used to travel with submissions and then
+  // stuck on the business queue as if the person had chosen "Wafula".
   const me = useAdvocateProfile(address, orgId);
-  const chosenName = me.data?.displayName;
+  const credentialName = useCredentialName();
+  const chosenName = me.data?.displayName ?? credentialName;
   const engagements = useEngagementTypes(
     campaignSlug && !campaign ? undefined : orgId
   );
@@ -139,11 +146,18 @@ function SubmitForm() {
     if (!selectedId && types.length > 0) setSelectedId(types[0].id);
   }, [types, selectedId]);
 
-  const needsProof = selected ? selected.proofKind !== "none" : true;
+  // referral_code no longer asks for a typed code — tracking is the /s/ share link.
+  const needsProof = selected
+    ? selected.proofKind !== "none" && selected.proofKind !== "referral_code"
+    : true;
+  const isReferral = selected?.proofKind === "referral_code";
+  // The note is required everywhere — it is what the approver reads. For a referral
+  // it is just the person's name, so the floor drops to a name's length.
+  const minNote = isReferral ? 2 : 10;
   const canSubmit =
     Boolean(selected) &&
     (!needsProof || proof.trim().length > 0) &&
-    note.trim().length >= 10;
+    note.trim().length >= minNote;
 
   /**
    * Resumes a Send that was interrupted by the connect dialog. Waits for the funds
@@ -167,8 +181,12 @@ function SubmitForm() {
 
     // Checked before the wallet signs anything: a transaction must never go
     // on-chain for a submission the API would then refuse.
-    if (note.trim().length < 10) {
-      setError("Describe what you did — the business approves from that description.");
+    if (note.trim().length < minNote) {
+      setError(
+        isReferral
+          ? "Add the name of the person you referred."
+          : "Describe what you did — the business approves from that description."
+      );
       return;
     }
 
@@ -393,20 +411,22 @@ function SubmitForm() {
       </fieldset>
 
       <div className="space-y-6 md:max-w-xl">
+      {isReferral ? (
+        <ReferralShareGuide campaignSlug={campaignSlug} address={address} />
+      ) : null}
+
       {needsProof && selected ? (
         <div className="space-y-2">
           <label
             htmlFor="proof"
             className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
           >
-            {selected.proofKind === "referral_code" ? "Your referral code" : "Link to your proof"}
+            Link to your proof
           </label>
           <input
             id="proof"
-            // Not type="url": a referral code is not a URL, and browser URL validation
-            // would reject it before the form ever submits.
             type="text"
-            inputMode={selected.proofKind === "referral_code" ? "text" : "url"}
+            inputMode="url"
             required
             value={proof}
             onChange={(e) => setProof(e.target.value)}
@@ -422,13 +442,20 @@ function SubmitForm() {
           htmlFor="note"
           className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
         >
-          What did you do?
+          {isReferral ? (
+            <>
+              Who did you refer?{" "}
+              <span className="normal-case text-mist-500">(their name)</span>
+            </>
+          ) : (
+            "What did you do?"
+          )}
         </label>
         <textarea
           id="note"
           rows={3}
           required
-          minLength={10}
+          minLength={minNote}
           maxLength={280}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -436,8 +463,9 @@ function SubmitForm() {
           className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="text-xs text-mist-500">
-          This is what the business reads next to your proof when deciding — say what
-          you did, where, and who it reached.
+          {isReferral
+            ? "The business checks this against who actually arrived through your link."
+            : "This is what the business reads next to your proof when deciding — say what you did, where, and who it reached."}
         </p>
       </div>
 
@@ -606,7 +634,7 @@ function noteHint(type: EngagementType | null) {
     case "screenshot":
       return "e.g. WhatsApp status about the open day, kept up the full 24 hours";
     case "referral_code":
-      return "e.g. Signed up Wanjiku from my campus club with my code";
+      return "e.g. Signed up Wanjiku from my campus club with my share link";
     default:
       return "e.g. Brought 12 people from my campus club to the open day";
   }
@@ -621,7 +649,7 @@ function proofBlurb(type: EngagementType) {
     case "screenshot":
       return "Upload the screenshot somewhere and paste the link.";
     case "referral_code":
-      return "The code you gave out. Add their name in the note below.";
+      return "Share your /s/ campaign link with them — tracking is automatic.";
     default:
       return "A post link, a photo, a screenshot — whatever shows it happened.";
   }

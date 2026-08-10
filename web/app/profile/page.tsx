@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
+import {
+  useActiveAccount,
+  useActiveWallet,
+  useDisconnect,
+  useProfiles,
+} from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
+import { ThemeToggle, useTheme } from "@/components/theme";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
-import { ORG_ID } from "@/lib/chain";
-import { useAdvocateProfile, useOnChainHistory } from "@/lib/hooks";
-import { timeAgo } from "@/lib/format";
+import { ORG_ID, addressUrl } from "@/lib/chain";
+import { client } from "@/lib/client";
+import {
+  useAdvocateProfile,
+  useCredentialName,
+  useOnChainHistory,
+} from "@/lib/hooks";
+import { shortAddress, timeAgo } from "@/lib/format";
 import { normaliseHandle } from "@/lib/types";
 
 /**
@@ -39,22 +50,30 @@ export default function ProfilePage() {
 
 function ProfileForm({ address }: { address: string }) {
   const me = useAdvocateProfile(address);
+  const credentialName = useCredentialName();
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const { success, error: toastError } = useToast();
+  const { data: profiles } = useProfiles({ client });
+  const email = useMemo(
+    () => profiles?.find((p) => p.details?.email)?.details?.email,
+    [profiles]
+  );
+  const { theme, setTheme } = useTheme();
 
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Seed the fields once the stored profile arrives.
+  // Seed from the stored profile, or from the login credential when they haven't
+  // typed a name yet — so the field matches what the header already shows.
   useEffect(() => {
-    if (!me.data) return;
-    setName(me.data.displayName ?? "");
-    setHandle(me.data.xUsername ?? "");
-  }, [me.data]);
+    if (me.loading) return;
+    setName(me.data?.displayName ?? credentialName ?? "");
+    setHandle(me.data?.xUsername ?? "");
+  }, [me.loading, me.data, credentialName]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -121,13 +140,75 @@ function ProfileForm({ address }: { address: string }) {
   }
 
   return (
-    <form onSubmit={save} className="animate-rise space-y-6">
+    <form onSubmit={save} className="animate-rise space-y-6 md:max-w-xl">
       <div>
-        <h1 className="text-2xl font-black">Your profile</h1>
+        <h1 className="text-2xl font-black">Profile &amp; settings</h1>
         <p className="mt-1 text-sm text-mist-500">
-          This is what businesses see next to everything you submit.
+          Your details, appearance, and account. Businesses see your name next to
+          everything you submit.
         </p>
       </div>
+
+      <section>
+        <SectionTitle>Your details</SectionTitle>
+        <Card className="space-y-3 bg-ink-850/60">
+          <DetailRow label="Display name" value={name || "—"} />
+          {email ? <DetailRow label="Signed in as" value={email} /> : null}
+          {me.data?.xUsername ? (
+            <DetailRow label="X handle" value={`@${me.data.xUsername}`} />
+          ) : null}
+          <DetailRow
+            label="Account"
+            value={
+              <a
+                href={addressUrl(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tabular text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+              >
+                {shortAddress(address)}
+              </a>
+            }
+          />
+        </Card>
+      </section>
+
+      <section>
+        <SectionTitle>Appearance</SectionTitle>
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Theme</p>
+            <p className="mt-0.5 text-xs text-mist-500">
+              Currently {theme === "dark" ? "dark" : "light"} mode
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                theme === "light"
+                  ? "bg-crimson-500/15 text-crimson-300"
+                  : "text-mist-500 hover:text-mist-300"
+              }`}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                theme === "dark"
+                  ? "bg-crimson-500/15 text-crimson-300"
+                  : "text-mist-500 hover:text-mist-300"
+              }`}
+            >
+              Dark
+            </button>
+            <ThemeToggle />
+          </div>
+        </Card>
+      </section>
 
       <div className="space-y-2">
         <label
@@ -146,8 +227,9 @@ function ProfileForm({ address }: { address: string }) {
           className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="text-xs text-mist-500">
-          Leave it blank and we&rsquo;ll fall back to your X handle, or a nickname made
-          from your account.
+          {credentialName
+            ? `Prefilled from your sign-in (${credentialName}). Edit it anytime — this is what businesses see.`
+            : "Leave it blank and we\u2019ll fall back to your X handle, or a nickname made from your account."}
         </p>
       </div>
 
@@ -184,9 +266,8 @@ function ProfileForm({ address }: { address: string }) {
         <SectionTitle>Your account</SectionTitle>
         <Card className="space-y-4 bg-ink-850/60">
           <p className="text-xs leading-relaxed text-mist-500">
-            No seed phrase, no gas, no balance to top up — your account is created from
-            the social login you used, and gas is sponsored on every transaction. Prefer
-            your own wallet? Core works too, from the sign-in screen.
+            Your account comes from the social login or wallet you used. Prefer your own
+            wallet? Core or MetaMask work from the sign-in screen.
           </p>
           <Button type="button" variant="danger" className="w-full" onClick={signOut}>
             Sign out
@@ -194,6 +275,23 @@ function ProfileForm({ address }: { address: string }) {
         </Card>
       </section>
     </form>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-sm">
+      <span className="shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
+        {label}
+      </span>
+      <span className="min-w-0 truncate text-right text-mist-300">{value}</span>
+    </div>
   );
 }
 
