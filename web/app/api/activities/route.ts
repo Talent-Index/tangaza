@@ -69,6 +69,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "engagementTypeId is required" }, { status: 400 });
   }
 
+  // The note is what the approver reads to know what actually happened — a bare
+  // proof link tells them nothing. The submit form enforces this before the wallet
+  // signs anything; here it only stops hand-rolled requests.
+  const noteText = typeof note === "string" ? note.trim().slice(0, 280) : "";
+  if (!noteText) {
+    return NextResponse.json(
+      { error: "note is required — describe what you did; the business approves from it" },
+      { status: 400 }
+    );
+  }
+
   // Proof is optional now: an engagement type can be proof_kind 'none', and a
   // referral code is not a URL. Only validate the shape when something was sent.
   if (proofUrl && /^https?:\/\//i.test(proofUrl)) {
@@ -111,7 +122,7 @@ export async function POST(req: NextRequest) {
     advocateLabel: advocateLabel?.slice(0, 60),
     engagementTypeId,
     proofUrl: proofUrl?.slice(0, 500),
-    note: note?.slice(0, 280),
+    note: noteText,
     campaignId,
     submitTx,
   });
