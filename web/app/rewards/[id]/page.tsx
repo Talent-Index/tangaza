@@ -60,6 +60,9 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
       contract,
       method: "redeem",
       params: [BigInt(creditId), rewardType],
+      // Explicit, not estimated — see the submit page's note: near-zero Fuji base
+      // fees make eth_estimateGas return garbage. Redeem runs ~100k.
+      gas: 300_000n,
     });
 
     // Gas is sponsored by the paymaster — the advocate never sees a fee prompt.

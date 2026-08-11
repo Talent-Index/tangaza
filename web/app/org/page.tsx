@@ -217,6 +217,10 @@ function ApprovalRow({
         Array.from({ length: count }, () => item.activityType),
         Array.from({ length: count }, () => proofHash),
       ],
+      // Explicit, not estimated — see the submit page's note: near-zero Fuji base
+      // fees make eth_estimateGas return garbage. Measured ~150k per entry on the
+      // current fee accounting, 20 entries max; unused gas is refunded.
+      gas: 5_000_000n,
     });
 
     /**

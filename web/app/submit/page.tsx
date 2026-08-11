@@ -227,6 +227,14 @@ function SubmitForm() {
           contract,
           method: "submitActivity",
           params: [orgId, selected.chainCategory, proofHash],
+          /**
+           * Explicit, not estimated. Fuji's base fee has collapsed to ~10 wei, and
+           * eth_estimateGas with a fee cap that tiny returns balance-derived garbage
+           * (trillions), which the txpool then rejects as "exceeds block gas limit" —
+           * every new account's first submit died on this. Real usage is ~75k; the
+           * margin is free because unused gas is refunded.
+           */
+          gas: 300_000n,
         });
 
       /**
