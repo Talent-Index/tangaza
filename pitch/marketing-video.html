@@ -1,0 +1,175 @@
+<!doctype html>
+<!--
+  Ubu-Tangaza — 36-second marketing video (self-playing motion graphic).
+
+  To make an MP4: open this file in a browser, press ⏵, and screen-record the tab
+  (OBS window capture / macOS ⇧⌘5 / Loom). 1920x1080 at any window size — the stage
+  scales. It loops, so you can start the recording on any pass. Voiceover script and
+  timings live in pitch/video-scripts.md.
+-->
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubu-Tangaza — marketing video</title>
+<style>
+  :root {
+    --ink-950:#050b18; --ink-900:#070f1f; --ink-850:#0a1428; --ink-700:#152445;
+    --mist-500:#7a8ba8; --mist-400:#9aabc4; --mist-300:#c5d0e0; --mist-100:#f0f4fa;
+    --blue-500:#1e7aef; --blue-400:#3d93ff; --blue-300:#7eb6ff;
+    --jade-500:#17b877; --jade-400:#34d399; --amber:#f0a835;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:#000; overflow:hidden;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #frame { position:fixed; inset:0; display:grid; place-items:center; }
+  #stage { width:1920px; height:1080px; position:relative; background:
+    radial-gradient(1200px 700px at 30% 20%, #0a1e3f 0%, var(--ink-950) 55%);
+    color:var(--mist-100); overflow:hidden; }
+
+  .scene { position:absolute; inset:0; display:grid; place-items:center;
+    opacity:0; visibility:hidden; transition:opacity .55s ease; }
+  .scene.on { opacity:1; visibility:visible; }
+  .scene .inner { width:1500px; text-align:center; }
+
+  .kicker { font-size:30px; letter-spacing:.35em; text-transform:uppercase;
+    color:var(--blue-300); margin-bottom:36px; }
+  h1 { font-size:150px; letter-spacing:-.02em; line-height:1.02; font-weight:800; }
+  h2 { font-size:92px; letter-spacing:-.02em; line-height:1.12; font-weight:750; }
+  .sub { font-size:44px; color:var(--mist-400); margin-top:40px; line-height:1.4; }
+  .accent { color:var(--blue-400); } .good { color:var(--jade-400); }
+
+  .rise { opacity:0; transform:translateY(46px); transition:all .7s cubic-bezier(.2,.7,.2,1); }
+  .on .rise { opacity:1; transform:none; }
+  .d1{transition-delay:.15s} .d2{transition-delay:.5s} .d3{transition-delay:.85s}
+  .d4{transition-delay:1.2s} .d5{transition-delay:1.55s} .d6{transition-delay:1.9s}
+
+  .loopRow { display:flex; gap:28px; justify-content:center; margin-top:70px; }
+  .step { background:var(--ink-850); border:2px solid var(--ink-700); border-radius:28px;
+    padding:44px 40px; width:330px; font-size:36px; line-height:1.35; color:var(--mist-300); }
+  .step .big { font-size:64px; display:block; margin-bottom:18px; }
+  .arrow { align-self:center; font-size:54px; color:var(--blue-400); }
+
+  .capWrap { width:1160px; margin:80px auto 0; text-align:left; }
+  .capLabel { display:flex; justify-content:space-between; font-size:34px; color:var(--mist-400); margin-bottom:18px; }
+  .track { height:54px; border-radius:27px; background:var(--ink-850); border:2px solid var(--ink-700);
+    position:relative; overflow:hidden; }
+  .fill { position:absolute; inset:0 auto 0 0; width:0%; border-radius:27px;
+    background:linear-gradient(90deg,var(--blue-500),var(--blue-400)); }
+  .on .fill { width:78%; transition:width 2.6s cubic-bezier(.2,.7,.3,1) .9s; }
+  .capLine { position:absolute; top:-26px; bottom:-26px; left:78%; width:0;
+    border-left:6px dashed var(--amber); }
+  .capTag { position:absolute; left:78%; top:-84px; transform:translateX(-50%);
+    color:var(--amber); font-size:32px; white-space:nowrap; }
+
+  .metric { font-size:300px; font-weight:800; letter-spacing:-.04em; color:var(--jade-400);
+    font-variant-numeric:tabular-nums; line-height:1; }
+  .metric small { font-size:90px; color:var(--mist-100); font-weight:750; }
+
+  .domain { display:inline-block; margin-top:64px; background:var(--blue-500); color:#fff;
+    border-radius:999px; padding:34px 84px; font-size:58px; font-weight:750; }
+  .foot { position:absolute; bottom:44px; left:0; right:0; text-align:center;
+    font-size:26px; color:var(--mist-500); letter-spacing:.06em; }
+
+  #progress { position:absolute; left:0; bottom:0; height:8px; width:0%;
+    background:var(--blue-500); z-index:40; }
+  #play { position:absolute; inset:0; z-index:50; display:grid; place-items:center;
+    background:rgba(5,11,24,.72); cursor:pointer; }
+  #play .btn { width:190px; height:190px; border-radius:50%; background:var(--blue-500);
+    display:grid; place-items:center; font-size:84px; color:#fff; padding-left:14px; }
+  #play p { position:absolute; bottom:120px; width:100%; text-align:center;
+    color:var(--mist-400); font-size:30px; }
+  #play.hidden { display:none; }
+</style>
+
+<div id="frame"><div id="stage">
+
+  <section class="scene" data-t="0">
+    <div class="inner">
+      <p class="kicker rise d1">ubu · from ubuntu &nbsp;—&nbsp; tangaza · to announce</p>
+      <h1 class="rise d2">Ubu-Tangaza</h1>
+      <p class="sub rise d3">What you say for your community,<br/>and what your community gives back.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="5">
+    <div class="inner">
+      <h2 class="rise d1">Your best customer<br/>brings five friends.</h2>
+      <p class="sub rise d3" style="font-size:56px; margin-top:56px;">She gets a <span class="accent">handshake.</span></p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="11">
+    <div class="inner">
+      <h2 class="rise d1">Word of mouth, <span class="accent">paid properly.</span></h2>
+      <div class="loopRow">
+        <div class="step rise d2"><span class="big">📣</span>She posts, refers,<br/>brings people in</div>
+        <div class="arrow rise d3">→</div>
+        <div class="step rise d3"><span class="big">✅</span>You approve<br/>what's real</div>
+        <div class="arrow rise d4">→</div>
+        <div class="step rise d4"><span class="big">🎁</span>She earns<br/>KES 500 airtime</div>
+      </div>
+      <p class="sub rise d5" style="font-size:32px;">every approval recorded on <span class="accent">Avalanche</span> — auditable by anyone</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="18">
+    <div class="inner">
+      <h2 class="rise d1">A reward budget that<br/><span class="good">can never overrun.</span></h2>
+      <div class="capWrap rise d2">
+        <div class="capLabel"><span>rewards paid out</span><span>your cap — fixed forever</span></div>
+        <div class="track">
+          <div class="fill"></div>
+          <div class="capLine"></div>
+          <div class="capTag">minting stops here. always.</div>
+        </div>
+      </div>
+      <p class="sub rise d4" style="font-size:36px;">Set once. Enforced by the contract — not by promises.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="24">
+    <div class="inner">
+      <p class="kicker rise d1">your cost per verified advocacy action</p>
+      <p class="metric rise d2"><small>KES</small> 15</p>
+      <p class="sub rise d4">computed from the chain, live — compare it to what you pay for ads.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="30">
+    <div class="inner">
+      <h2 class="rise d1">Run your first campaign <span class="good">free.</span></h2>
+      <a class="domain rise d3">ubutangaza.biz</a>
+      <p class="sub rise d4" style="font-size:34px;">Proof-of-advocacy rewards · live on Avalanche</p>
+    </div>
+  </section>
+
+  <p class="foot">Ubu-Tangaza — we grow together</p>
+  <div id="progress"></div>
+  <div id="play"><div class="btn">⏵</div><p>Click to play · loops every 36s · record the tab to make your MP4</p></div>
+</div></div>
+
+<script>
+  const DURATION = 36_000;
+  const scenes = [...document.querySelectorAll(".scene")].map(el => ({ el, t: Number(el.dataset.t) * 1000 }));
+  const progress = document.getElementById("progress");
+  const play = document.getElementById("play");
+
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    document.getElementById("stage").style.transform = `scale(${s})`;
+  }
+  addEventListener("resize", fit); fit();
+
+  let start = null;
+  function tick(now) {
+    if (start === null) start = now;
+    const t = (now - start) % DURATION;
+    let current = scenes[0];
+    for (const s of scenes) if (t >= s.t) current = s;
+    for (const s of scenes) s.el.classList.toggle("on", s === current);
+    progress.style.width = (t / DURATION) * 100 + "%";
+    requestAnimationFrame(tick);
+  }
+  play.addEventListener("click", () => { play.classList.add("hidden"); requestAnimationFrame(tick); });
+</script>
+</html>
