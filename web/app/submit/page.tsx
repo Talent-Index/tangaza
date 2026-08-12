@@ -154,10 +154,13 @@ function SubmitForm() {
   // The note is required everywhere — it is what the approver reads. For a referral
   // it is just the person's name, so the floor drops to a name's length.
   const minNote = isReferral ? 2 : 10;
-  const canSubmit =
-    Boolean(selected) &&
-    (!needsProof || proof.trim().length > 0) &&
-    note.trim().length >= minNote;
+  /**
+   * Only picking an engagement gates the button. Missing proof or description used
+   * to keep it silently disabled, and "the button does nothing" is indistinguishable
+   * from broken — people filled the proof, skipped the note, and gave up. Now the
+   * click runs submit(), which names exactly what is missing.
+   */
+  const canSubmit = Boolean(selected);
 
   /**
    * Resumes a Send that was interrupted by the connect dialog. Waits for the funds
@@ -181,6 +184,10 @@ function SubmitForm() {
 
     // Checked before the wallet signs anything: a transaction must never go
     // on-chain for a submission the API would then refuse.
+    if (needsProof && proof.trim().length === 0) {
+      setError(`Paste your proof first — ${proofBlurb(selected).toLowerCase()}`);
+      return;
+    }
     if (note.trim().length < minNote) {
       setError(
         isReferral
