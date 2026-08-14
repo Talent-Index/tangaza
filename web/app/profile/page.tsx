@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useActiveAccount,
   useActiveWallet,
   useDisconnect,
-  useProfiles,
 } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { SignIn } from "@/components/customer/SignIn";
@@ -14,9 +13,9 @@ import { ThemeToggle, useTheme } from "@/components/theme";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
-import { client } from "@/lib/client";
 import {
   useAdvocateProfile,
+  useCredentialEmail,
   useCredentialName,
   useOnChainHistory,
 } from "@/lib/hooks";
@@ -51,15 +50,11 @@ export default function ProfilePage() {
 function ProfileForm({ address }: { address: string }) {
   const me = useAdvocateProfile(address);
   const credentialName = useCredentialName();
+  const email = useCredentialEmail();
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const { success, error: toastError } = useToast();
-  const { data: profiles } = useProfiles({ client });
-  const email = useMemo(
-    () => profiles?.find((p) => p.details?.email)?.details?.email,
-    [profiles]
-  );
   const { theme, setTheme } = useTheme();
 
   const [name, setName] = useState("");
@@ -153,7 +148,10 @@ function ProfileForm({ address }: { address: string }) {
         <SectionTitle>Your details</SectionTitle>
         <Card className="space-y-3 bg-ink-850/60">
           <DetailRow label="Display name" value={name || "—"} />
-          {email ? <DetailRow label="Signed in as" value={email} /> : null}
+          <DetailRow
+            label="Email"
+            value={email ?? "Not available from this sign-in"}
+          />
           {me.data?.xUsername ? (
             <DetailRow label="X handle" value={`@${me.data.xUsername}`} />
           ) : null}
@@ -164,7 +162,7 @@ function ProfileForm({ address }: { address: string }) {
                 href={addressUrl(address)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="tabular text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+                className="tabular break-all text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
               >
                 {shortAddress(address)}
               </a>
@@ -286,11 +284,13 @@ function DetailRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 text-sm">
+    <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
       <span className="shrink-0 text-xs uppercase tracking-[0.12em] text-mist-500">
         {label}
       </span>
-      <span className="min-w-0 truncate text-right text-mist-300">{value}</span>
+      <span className="min-w-0 break-words text-mist-300 sm:truncate sm:text-right">
+        {value}
+      </span>
     </div>
   );
 }
