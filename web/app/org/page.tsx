@@ -18,6 +18,7 @@ import {
 } from "@/components/ui";
 
 import { FundsNotice } from "@/components/FundsGate";
+import { ProofPreview } from "@/components/ProofPreview";
 import { useFundsGate } from "@/lib/funds";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitApprovalOnChain, findApprovalOnChain } from "@/lib/recover-submission";
@@ -216,6 +217,10 @@ function ApprovalRow({
         Array.from({ length: count }, () => item.activityType),
         Array.from({ length: count }, () => proofHash),
       ],
+      // Explicit, not estimated — see the submit page's note: near-zero Fuji base
+      // fees make eth_estimateGas return garbage. Measured ~150k per entry on the
+      // current fee accounting, 20 entries max; unused gas is refunded.
+      gas: 5_000_000n,
     });
 
     /**
@@ -347,9 +352,16 @@ function ApprovalRow({
               </span>
             </div>
 
+            {/* What they say they did — the thing an approval is actually about. */}
             {item.note ? (
-              <p className="mt-2 text-sm text-mist-400">{item.note}</p>
-            ) : null}
+              <p className="mt-2 border-l-2 border-ink-700 pl-3 text-sm text-mist-200">
+                {item.note}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs italic text-mist-500">
+                No description given — judge from the proof below.
+              </p>
+            )}
 
             <a
               href={item.proofUrl}
@@ -359,6 +371,7 @@ function ApprovalRow({
             >
               {item.proofUrl}
             </a>
+            <ProofPreview url={item.proofUrl} />
             {item.submitTx ? (
               <div className="mt-1">
                 <TxReceipt hash={item.submitTx} label="Submitted on-chain by their wallet" />

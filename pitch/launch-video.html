@@ -1,0 +1,205 @@
+<!doctype html>
+<!--
+  Ubu-Tangaza — 58-second launch video (self-playing motion graphic).
+
+  To make an MP4: open in a browser, press ⏵, screen-record the tab (OBS / ⇧⌘5 /
+  Loom). The stage scales to any window; it loops. Voiceover script and timings
+  live in pitch/video-scripts.md.
+-->
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubu-Tangaza — launch video</title>
+<style>
+  :root {
+    --ink-950:#050b18; --ink-900:#070f1f; --ink-850:#0a1428; --ink-700:#152445;
+    --mist-500:#7a8ba8; --mist-400:#9aabc4; --mist-300:#c5d0e0; --mist-100:#f0f4fa;
+    --blue-500:#1e7aef; --blue-400:#3d93ff; --blue-300:#7eb6ff;
+    --jade-500:#17b877; --jade-400:#34d399; --amber:#f0a835;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:#000; overflow:hidden;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #frame { position:fixed; inset:0; display:grid; place-items:center; }
+  #stage { width:1920px; height:1080px; position:relative; background:
+    radial-gradient(1200px 700px at 70% 15%, #0a1e3f 0%, var(--ink-950) 55%);
+    color:var(--mist-100); overflow:hidden; }
+
+  .scene { position:absolute; inset:0; display:grid; place-items:center;
+    opacity:0; visibility:hidden; transition:opacity .55s ease; }
+  .scene.on { opacity:1; visibility:visible; }
+  .scene .inner { width:1560px; text-align:center; }
+
+  .kicker { font-size:30px; letter-spacing:.35em; text-transform:uppercase;
+    color:var(--blue-300); margin-bottom:36px; }
+  h1 { font-size:170px; letter-spacing:-.02em; line-height:1; font-weight:800; }
+  h2 { font-size:88px; letter-spacing:-.02em; line-height:1.12; font-weight:750; }
+  .sub { font-size:42px; color:var(--mist-400); margin-top:38px; line-height:1.45; }
+  .accent { color:var(--blue-400); } .good { color:var(--jade-400); } .warn { color:var(--amber); }
+
+  .rise { opacity:0; transform:translateY(46px); transition:all .7s cubic-bezier(.2,.7,.2,1); }
+  .on .rise { opacity:1; transform:none; }
+  .d1{transition-delay:.15s} .d2{transition-delay:.5s} .d3{transition-delay:.85s}
+  .d4{transition-delay:1.2s} .d5{transition-delay:1.55s} .d6{transition-delay:1.95s}
+  .d7{transition-delay:2.35s}
+
+  .steps { display:flex; gap:30px; justify-content:center; margin-top:64px; }
+  .step { background:var(--ink-850); border:2px solid var(--ink-700); border-radius:28px;
+    padding:46px 42px; width:420px; font-size:36px; line-height:1.4; color:var(--mist-300); text-align:left; }
+  .step .n { display:inline-grid; place-items:center; width:64px; height:64px; border-radius:50%;
+    background:var(--blue-500); color:#fff; font-size:34px; font-weight:750; margin-bottom:22px; }
+  .step b { color:var(--mist-100); display:block; margin-bottom:10px; font-size:40px; }
+
+  .queue { width:1240px; margin:64px auto 0; text-align:left; }
+  .qrow { display:flex; align-items:center; gap:28px; background:var(--ink-850);
+    border:2px solid var(--ink-700); border-radius:24px; padding:30px 38px;
+    font-size:36px; color:var(--mist-300); margin-bottom:22px; }
+  .qrow .who { color:var(--mist-100); font-weight:700; width:300px; }
+  .qrow .what { flex:1; }
+  .approve { margin-left:auto; background:var(--blue-500); color:#fff; border-radius:999px;
+    padding:16px 40px; font-size:32px; font-weight:700; }
+  .on .q1 .approve { background:var(--jade-500); transition:background .3s 1.6s; }
+  .on .q1 .approve::after { content:"  ✓ on Avalanche"; }
+  .chainNote { font-size:30px; color:var(--mist-500); margin-top:10px; }
+
+  .rules { width:1280px; margin:64px auto 0; text-align:left; font-size:44px; line-height:1.5; }
+  .rule { display:flex; gap:30px; margin-bottom:38px; color:var(--mist-300); }
+  .rule .ic { font-size:52px; }
+
+  .traction { display:flex; gap:36px; justify-content:center; margin-top:70px; }
+  .stat { background:var(--ink-850); border:2px solid var(--ink-700); border-radius:32px;
+    padding:56px 64px; min-width:420px; }
+  .stat .v { font-size:120px; font-weight:800; color:var(--jade-400); letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums; }
+  .stat .l { font-size:34px; color:var(--mist-400); margin-top:14px; line-height:1.35; }
+
+  .domain { display:inline-block; margin-top:60px; background:var(--blue-500); color:#fff;
+    border-radius:999px; padding:34px 84px; font-size:58px; font-weight:750; }
+  .ctas { display:flex; gap:34px; justify-content:center; margin-top:64px; }
+  .cta { border-radius:28px; padding:50px 58px; font-size:42px; width:600px; line-height:1.35; }
+  .cta b { display:block; font-size:48px; margin-bottom:14px; }
+  .ctaA { background:var(--blue-500); color:#fff; }
+  .ctaB { background:var(--ink-850); border:2px solid var(--ink-700); color:var(--mist-300); }
+
+  .foot { position:absolute; bottom:44px; left:0; right:0; text-align:center;
+    font-size:26px; color:var(--mist-500); letter-spacing:.06em; }
+  #progress { position:absolute; left:0; bottom:0; height:8px; width:0%;
+    background:var(--blue-500); z-index:40; }
+  #play { position:absolute; inset:0; z-index:50; display:grid; place-items:center;
+    background:rgba(5,11,24,.72); cursor:pointer; }
+  #play .btn { width:190px; height:190px; border-radius:50%; background:var(--blue-500);
+    display:grid; place-items:center; font-size:84px; color:#fff; padding-left:14px; }
+  #play p { position:absolute; bottom:120px; width:100%; text-align:center;
+    color:var(--mist-400); font-size:30px; }
+  #play.hidden { display:none; }
+</style>
+
+<div id="frame"><div id="stage">
+
+  <section class="scene" data-t="0">
+    <div class="inner">
+      <p class="kicker rise d1">proof-of-advocacy rewards · avalanche</p>
+      <h1 class="rise d2">We're live.</h1>
+      <a class="domain rise d3">ubutangaza.biz</a>
+    </div>
+  </section>
+
+  <section class="scene" data-t="6">
+    <div class="inner">
+      <h2 class="rise d1">Born at the <span class="accent">Avalanche Game Jam</span>,<br/>Nairobi — placed in the top projects.</h2>
+      <p class="sub rise d3">Built for the businesses Kenya actually runs on:<br/>the ones that grow by word of mouth.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="13">
+    <div class="inner">
+      <h2 class="rise d1">For advocates: <span class="accent">three steps.</span></h2>
+      <div class="steps">
+        <div class="step rise d2"><span class="n">1</span><b>Sign in</b>Google or X. No seed phrase, no gas, no crypto anything.</div>
+        <div class="step rise d3"><span class="n">2</span><b>Do the thing</b>Post about the business. Bring a friend. Show up.</div>
+        <div class="step rise d4"><span class="n">3</span><b>Send proof</b>Say what you did — your own wallet records it, invisibly.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" data-t="21">
+    <div class="inner">
+      <h2 class="rise d1">For the business: <span class="accent">one tap.</span></h2>
+      <div class="queue">
+        <div class="qrow q1 rise d2"><span class="who">Wanjiku</span><span class="what">𝕏 post — "best gym in Westlands" · 40 likes</span><span class="approve">Approve</span></div>
+        <div class="qrow rise d3"><span class="who">Brian</span><span class="what">Brought two friends to Saturday's class</span><span class="approve">Approve</span></div>
+      </div>
+      <p class="chainNote rise d4">You see the real post, the real person, the real description — then the approval is written to Avalanche.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="29">
+    <div class="inner">
+      <h2 class="rise d1">The rules live in the <span class="accent">contract.</span></h2>
+      <div class="rules">
+        <div class="rule rise d2"><span class="ic">🔒</span><span>The reward budget is <b>fixed at sign-up</b> — no function can ever raise it.</span></div>
+        <div class="rule rise d3"><span class="ic">🛑</span><span>Minting <b>stops at the cap</b>. Success cannot bankrupt anyone.</span></div>
+        <div class="rule rise d4"><span class="ic">📉</span><span>Every redemption <b>shrinks the liability</b>. Rewards can't be traded or faked.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" data-t="37">
+    <div class="inner">
+      <h2 class="rise d1">Real rewards, <span class="good">not points.</span></h2>
+      <p class="sub rise d2" style="font-size:52px; margin-top:56px;">Every 20 approved actions →<br/><span class="good" style="font-size:84px; font-weight:800;">KES 500</span> &nbsp;airtime · data · voucher</p>
+    </div>
+  </section>
+
+  <section class="scene" data-t="44">
+    <div class="inner">
+      <h2 class="rise d1">Already moving.</h2>
+      <div class="traction">
+        <div class="stat rise d2"><div class="v">155</div><div class="l">builders at one overnight jam — Nights of Code</div></div>
+        <div class="stat rise d3"><div class="v">KES 15</div><div class="l">per verified advocacy action, computed on-chain</div></div>
+        <div class="stat rise d4"><div class="v">60s</div><div class="l">from campaign link to first submission</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" data-t="51">
+    <div class="inner">
+      <h2 class="rise d1">We grow <span class="accent">together.</span></h2>
+      <div class="ctas">
+        <div class="cta ctaA rise d2"><b>Advocates</b>Join a campaign. Get rewarded for the hype you already bring.</div>
+        <div class="cta ctaB rise d3"><b>Businesses</b>Run your first campaign free — budget capped by design.</div>
+      </div>
+      <a class="domain rise d4">ubutangaza.biz</a>
+    </div>
+  </section>
+
+  <p class="foot">Ubu-Tangaza · a person is a person through other people</p>
+  <div id="progress"></div>
+  <div id="play"><div class="btn">⏵</div><p>Click to play · loops every 58s · record the tab to make your MP4</p></div>
+</div></div>
+
+<script>
+  const DURATION = 58_000;
+  const scenes = [...document.querySelectorAll(".scene")].map(el => ({ el, t: Number(el.dataset.t) * 1000 }));
+  const progress = document.getElementById("progress");
+  const play = document.getElementById("play");
+
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    document.getElementById("stage").style.transform = `scale(${s})`;
+  }
+  addEventListener("resize", fit); fit();
+
+  let start = null;
+  function tick(now) {
+    if (start === null) start = now;
+    const t = (now - start) % DURATION;
+    let current = scenes[0];
+    for (const s of scenes) if (t >= s.t) current = s;
+    for (const s of scenes) s.el.classList.toggle("on", s === current);
+    progress.style.width = (t / DURATION) * 100 + "%";
+    requestAnimationFrame(tick);
+  }
+  play.addEventListener("click", () => { play.classList.add("hidden"); requestAnimationFrame(tick); });
+</script>
+</html>

@@ -104,6 +104,35 @@ function SubmitForm() {
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const { success, error: toastError } = useToast();
 
+  /**
+   * Social sign-in is a full-page redirect (see lib/client.ts), so a form filled
+   * before "Continue with X" must survive leaving the page. The draft lives in
+   * sessionStorage keyed by URL — restored after the round trip (post-hydration, so
+   * the server and first client render agree), cleared once the submission lands.
+   */
+  const draftKey = `submit-draft:${campaignSlug ?? orgId.toString()}`;
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw) as { selectedId?: string; proof?: string; note?: string };
+      if (d.selectedId) setSelectedId(d.selectedId);
+      if (d.proof) setProof(d.proof);
+      if (d.note) setNote(d.note);
+    } catch {
+      /* a malformed draft is not worth an error — start blank */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      if (done || (!proof && !note)) sessionStorage.removeItem(draftKey);
+      else sessionStorage.setItem(draftKey, JSON.stringify({ selectedId, proof, note }));
+    } catch {
+      /* storage full or blocked — the draft is a courtesy */
+    }
+  }, [draftKey, selectedId, proof, note, done]);
+
   // Inside a campaign, only the engagements that campaign counts are offered.
   const allTypes = engagements.data ?? [];
   const types =
@@ -122,7 +151,16 @@ function SubmitForm() {
     ? selected.proofKind !== "none" && selected.proofKind !== "referral_code"
     : true;
   const isReferral = selected?.proofKind === "referral_code";
-  const canSubmit = Boolean(selected) && (!needsProof || proof.trim().length > 0);
+  // The note is required everywhere — it is what the approver reads. For a referral
+  // it is just the person's name, so the floor drops to a name's length.
+  const minNote = isReferral ? 2 : 10;
+  /**
+   * Only picking an engagement gates the button. Missing proof or description used
+   * to keep it silently disabled, and "the button does nothing" is indistinguishable
+   * from broken — people filled the proof, skipped the note, and gave up. Now the
+   * click runs submit(), which names exactly what is missing.
+   */
+  const canSubmit = Boolean(selected);
 
   /**
    * Resumes a Send that was interrupted by the connect dialog. Waits for the funds
@@ -143,6 +181,21 @@ function SubmitForm() {
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
     if (!selected) return;
+
+    // Checked before the wallet signs anything: a transaction must never go
+    // on-chain for a submission the API would then refuse.
+    if (needsProof && proof.trim().length === 0) {
+      setError(`Paste your proof first — ${proofBlurb(selected).toLowerCase()}`);
+      return;
+    }
+    if (note.trim().length < minNote) {
+      setError(
+        isReferral
+          ? "Add the name of the person you referred."
+          : "Describe what you did — the business approves from that description."
+      );
+      return;
+    }
 
     // Not connected yet: this click's job is the connection. The submission itself
     // resumes automatically once a wallet is in place — see the effect below.
@@ -181,6 +234,14 @@ function SubmitForm() {
           contract,
           method: "submitActivity",
           params: [orgId, selected.chainCategory, proofHash],
+          /**
+           * Explicit, not estimated. Fuji's base fee has collapsed to ~10 wei, and
+           * eth_estimateGas with a fee cap that tiny returns balance-derived garbage
+           * (trillions), which the txpool then rejects as "exceeds block gas limit" —
+           * every new account's first submit died on this. Real usage is ~75k; the
+           * margin is free because unused gas is refunded.
+           */
+          gas: 300_000n,
         });
 
       /**
@@ -402,25 +463,25 @@ function SubmitForm() {
               <span className="normal-case text-mist-500">(their name)</span>
             </>
           ) : (
-            <>
-              Anything to add?{" "}
-              <span className="normal-case text-mist-500">(optional)</span>
-            </>
+            "What did you do?"
           )}
         </label>
         <textarea
           id="note"
           rows={3}
+          required
+          minLength={minNote}
           maxLength={280}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={
-            isReferral
-              ? "e.g. Signed up Wanjiku from my campus club with my share link"
-              : "Brought 12 people from my campus club…"
-          }
+          placeholder={noteHint(selected)}
           className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
+        <p className="text-xs text-mist-500">
+          {isReferral
+            ? "The business checks this against who actually arrived through your link."
+            : "This is what the business reads next to your proof when deciding — say what you did, where, and who it reached."}
+        </p>
       </div>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
@@ -579,6 +640,21 @@ function EngagementOption({
       />
     </label>
   );
+}
+
+function noteHint(type: EngagementType | null) {
+  switch (type?.proofKind) {
+    case "x_link":
+      return "e.g. Posted about the Founding 20 launch, tagged the studio — 40 likes so far";
+    case "social_link":
+      return "e.g. Reel of Tuesday's class with the studio tagged in the caption";
+    case "screenshot":
+      return "e.g. WhatsApp status about the open day, kept up the full 24 hours";
+    case "referral_code":
+      return "e.g. Signed up Wanjiku from my campus club with my share link";
+    default:
+      return "e.g. Brought 12 people from my campus club to the open day";
+  }
 }
 
 function proofBlurb(type: EngagementType) {

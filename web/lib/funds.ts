@@ -22,9 +22,14 @@ import { client } from "./client";
  * not "you hold AVAX in the slot we picked".
  */
 
-/** 0.005 AVAX, in wei. */
-export const MIN_ACTION_WEI = 5_000_000_000_000_000n;
-export const MIN_ACTION_AVAX = "0.005";
+/**
+ * 0.001 AVAX, in wei. Gas on Fuji is measured in trillionths of an AVAX, so even
+ * this covers thousands of transactions with room for a fee spike — the gate's job
+ * is skin in the game, not a gas budget, and the in-app faucet drips 5× this so one
+ * top-up clears the gate with margin.
+ */
+export const MIN_ACTION_WEI = 1_000_000_000_000_000n;
+export const MIN_ACTION_AVAX = "0.001";
 
 export interface FundsEntry {
   label: string;
