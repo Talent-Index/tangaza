@@ -60,8 +60,8 @@ function Home({ address }: { address: string }) {
 
   return (
     <div className="animate-rise space-y-6 md:space-y-8">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-8">
-        <div className="space-y-6">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-8">
+        <div className="min-w-0 space-y-6">
           {mine.length === 0 ? (
             <section className="flex flex-col items-center pt-2 text-center lg:items-start lg:text-left">
               <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
@@ -80,16 +80,18 @@ function Home({ address }: { address: string }) {
 
           {available.length > 0 ? (
             <Card className="animate-pop border-crimson-500/40 bg-crimson-500/10">
-              <div className="flex items-center justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-crimson-300">
                     {available.length} reward{available.length === 1 ? "" : "s"} ready
                   </p>
-                  <p className="mt-1 text-lg font-black">
+                  <p className="mt-1 break-words text-lg font-black">
                     Redeem for in-house offers, discounts or vouchers
                   </p>
                 </div>
-                <Button href="/rewards">Claim</Button>
+                <Button href="/rewards" className="w-full shrink-0 sm:w-auto">
+                  Claim
+                </Button>
               </div>
             </Card>
           ) : null}
@@ -102,7 +104,7 @@ function Home({ address }: { address: string }) {
           </Button>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <CampaignStrip />
 
           <section>
@@ -169,7 +171,7 @@ function PendingRow({
   return (
     <li>
       <details className="group rounded-2xl border border-ink-700 bg-ink-850 transition open:border-ink-600">
-        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4 [&::-webkit-details-marker]:hidden">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink-700 text-lg">
             {item.typeIcon}
           </span>
@@ -280,9 +282,9 @@ function CommunityCard({
 
   return (
     <Card>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">{community.name}</p>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 break-words text-sm font-semibold">{community.name}</p>
+        <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5">
           {community.streak > 0 ? (
             <Pill tone={community.streak > 1 ? "warn" : "neutral"}>
               🔥 {community.streak}d
@@ -298,7 +300,7 @@ function CommunityCard({
           style={{ width: `${(done / total) * 100}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-mist-500">
+      <p className="mt-2 break-words text-xs text-mist-500">
         <span className="tabular text-mist-300">{done} of {total}</span> toward your next
         reward from the house
       </p>
@@ -338,7 +340,7 @@ function LevelCard({ address, orgId }: { address: string; orgId: bigint }) {
   return (
     <div className="mt-3 border-t border-ink-700 pt-3">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-sm font-semibold">
+        <p className="min-w-0 break-words text-sm font-semibold">
           {current ? (
             <>
               {tiers.find((t) => t.name === current)?.icon} {current}
@@ -357,19 +359,19 @@ function LevelCard({ address, orgId }: { address: string; orgId: bigint }) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-mist-500">
+          <p className="mt-2 break-words text-xs text-mist-500">
             <span className="text-mist-300">{toGo} more</span> to {next}
             {standing.nextPerk ? ` — ${standing.nextPerk}` : ""}
           </p>
         </>
       ) : (
-        <p className="mt-2 text-xs text-mist-500">
+        <p className="mt-2 break-words text-xs text-mist-500">
           Top level. {standing.currentPerk}
         </p>
       )}
 
       {standing.currentPerk && next ? (
-        <p className="mt-2 text-xs text-mist-400">You have: {standing.currentPerk}</p>
+        <p className="mt-2 break-words text-xs text-mist-400">You have: {standing.currentPerk}</p>
       ) : null}
     </div>
   );
@@ -382,19 +384,19 @@ function CampaignStrip() {
   if (live.length === 0) return null;
 
   return (
-    <section>
+    <section className="min-w-0">
       <SectionTitle>Happening now</SectionTitle>
-      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+      <ul className="grid grid-cols-1 gap-2">
         {live.map((c) => (
-          <li key={c.id}>
+          <li key={c.id} className="min-w-0">
             <Link
               href={`/c/${c.slug}`}
-              className="block rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
+              className="block min-w-0 rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
             >
-              <p className="text-xs text-mist-500">{c.orgName}</p>
-              <p className="text-sm font-semibold">{c.title}</p>
+              <p className="truncate text-xs text-mist-500">{c.orgName}</p>
+              <p className="break-words text-sm font-semibold">{c.title}</p>
               {c.blurb ? (
-                <p className="mt-1 line-clamp-2 text-xs text-mist-500">{c.blurb}</p>
+                <p className="mt-1 line-clamp-2 break-words text-xs text-mist-500">{c.blurb}</p>
               ) : null}
               <p className="mt-2 text-[11px] text-mist-500">
                 {c.participantCount} taking part →
