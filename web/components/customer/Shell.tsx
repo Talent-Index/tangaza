@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useActiveAccount } from "thirdweb/react";
 import { ThemeToggle } from "@/components/theme";
 import { BrandMark } from "@/components/ui";
-import { useDisplayName } from "@/lib/hooks";
+import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
 
 const NAV = [
   { href: "/", label: "Home", icon: "◎" },
@@ -26,15 +26,17 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const account = useActiveAccount();
   const pathname = usePathname();
   const name = useDisplayName(account?.address);
+  const email = useCredentialEmail();
+  const initial = (name || email || "?").replace(/^@/, "").slice(0, 1).toUpperCase();
 
   // Bottom padding must clear the floating nav with room to spare on phones: the
   // submit button lives at the end of a long form, and a too-tight clearance leaves
   // it half-hidden behind the nav pill — "nothing to click". On md+ the nav is in
   // the header, so the large bottom pad goes away.
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5 md:max-w-5xl md:px-8 md:pb-12 lg:max-w-6xl lg:px-10">
-      <header className="mb-5 flex items-center justify-between gap-3 sm:mb-6 md:mb-8">
-        <div className="flex min-w-0 items-center gap-6 lg:gap-8">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-x-clip px-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5 md:max-w-5xl md:px-8 md:pb-12 lg:max-w-6xl lg:px-10">
+      <header className="mb-5 flex min-w-0 items-center justify-between gap-2 sm:mb-6 sm:gap-3 md:mb-8">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-6 lg:gap-8">
           <Link href="/" className="min-w-0 shrink">
             <BrandMark className="text-base sm:text-lg" />
           </Link>
@@ -65,26 +67,38 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           ) : null}
         </div>
 
-        <div className="flex min-w-0 items-center gap-2">
-          <ThemeToggle />
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <ThemeToggle className="shrink-0" />
           {account ? (
             <Link
               href="/profile"
-              aria-label="Your profile and settings"
-              className="flex min-w-0 items-center gap-2 rounded-full transition hover:opacity-80"
+              aria-label={email ? `Profile and settings for ${email}` : "Your profile and settings"}
+              title={email ?? name}
+              className="flex min-w-0 max-w-[12rem] items-center gap-2 rounded-full transition hover:opacity-80 sm:max-w-[16rem] md:max-w-xs"
             >
-              <span className="max-w-28 truncate text-sm text-mist-400 sm:max-w-36 md:max-w-none">
-                {name}
+              <span className="flex min-w-0 flex-col items-end">
+                <span className="hidden max-w-full truncate text-sm leading-tight text-mist-300 sm:inline">
+                  {name}
+                </span>
+                {email ? (
+                  <span className="max-w-full truncate text-[10px] leading-tight text-mist-500 sm:text-[11px]">
+                    {email}
+                  </span>
+                ) : (
+                  <span className="max-w-full truncate text-sm leading-tight text-mist-300 sm:hidden">
+                    {name}
+                  </span>
+                )}
               </span>
               <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
-                {name.replace(/^@/, "").slice(0, 1)}
+                {initial}
               </span>
             </Link>
           ) : null}
         </div>
       </header>
 
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
 
       {account ? (
         <nav
@@ -99,7 +113,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
+                  className={`flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
                     active
                       ? "bg-crimson-500/15 text-crimson-300"
                       : "text-mist-500 hover:text-mist-300"
