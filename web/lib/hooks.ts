@@ -413,6 +413,15 @@ export function useCredentialName() {
   return useMemo(() => credentialNameFromProfiles(profiles), [profiles]);
 }
 
+/** Signed-in email from thirdweb, if the login provider exposed one. */
+export function useCredentialEmail() {
+  const { data: profiles } = useProfiles({ client });
+  return useMemo(
+    () => profiles?.find((p) => p.details?.email)?.details?.email?.trim() || undefined,
+    [profiles]
+  );
+}
+
 /**
  * The signed-in advocate's own name, from the social account they logged in with.
  *
