@@ -349,7 +349,7 @@ function SubmitForm() {
         <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
           What did you do?
         </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {types.map((type) => (
             <EngagementOption
               key={type.id}
@@ -542,7 +542,7 @@ function EngagementOption({
 }) {
   return (
     <label
-      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
+      className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border p-3 transition sm:items-center sm:p-4 ${
         active
           ? "border-crimson-500 bg-crimson-500/10"
           : "border-ink-700 bg-ink-850 hover:border-ink-600"
@@ -560,9 +560,11 @@ function EngagementOption({
         {type.icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{type.label}</span>
+        <span className="block break-words text-sm font-semibold">{type.label}</span>
         {type.blurb ? (
-          <span className="block truncate text-xs text-mist-500">{type.blurb}</span>
+          <span className="mt-0.5 block line-clamp-2 break-words text-xs text-mist-500">
+            {type.blurb}
+          </span>
         ) : null}
       </span>
       {/* What it's worth, in the same units the progress ring counts in. */}
@@ -570,7 +572,7 @@ function EngagementOption({
         +{type.weight}
       </span>
       <span
-        className={`size-4 shrink-0 rounded-full border-2 ${
+        className={`mt-1 size-4 shrink-0 rounded-full border-2 sm:mt-0 ${
           active ? "border-crimson-500 bg-crimson-500" : "border-ink-500"
         }`}
         aria-hidden
