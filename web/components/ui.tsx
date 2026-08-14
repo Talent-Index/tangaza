@@ -11,7 +11,11 @@ export function Card({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={`card p-4 sm:p-5 ${className}`}>{children}</div>;
+  return (
+    <div className={`card min-w-0 overflow-hidden p-4 sm:p-5 ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function SectionTitle({
