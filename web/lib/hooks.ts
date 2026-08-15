@@ -12,6 +12,7 @@ import {
   type AdvocateHistoryEntry,
   type OrgLedger,
 } from "./events";
+import { useChainTick } from "./live";
 import {
   getAdvocate,
   getCredits,
@@ -38,6 +39,11 @@ import type { EngagementType, PendingActivity, PendingStatus } from "./types";
  *
  * Previous data is held across a refetch (only `loading` flips), so panels never flash
  * a skeleton or jump the layout mid-demo.
+ *
+ * On top of the poll, every hook listens to the shared chain watcher: the moment the
+ * contract emits any event — a submission, an approval, a claim — `useChainTick`
+ * bumps and the data refetches immediately. Polling is the fallback; events are why
+ * the org dashboard updates without anyone reloading it.
  */
 function useAsync<T>(
   load: () => Promise<T>,
@@ -49,6 +55,7 @@ function useAsync<T>(
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [nonce, setNonce] = useState(0);
+  const chainTick = useChainTick();
 
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 
@@ -98,7 +105,7 @@ function useAsync<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce, enabled]);
+  }, [...deps, nonce, chainTick, enabled]);
 
   return { data, error, loading, refresh };
 }

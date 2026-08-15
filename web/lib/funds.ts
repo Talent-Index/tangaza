@@ -5,6 +5,7 @@ import { useActiveAccount, useAdminWallet } from "thirdweb/react";
 import { eth_getBalance, getRpcClient } from "thirdweb/rpc";
 import { CHAIN } from "./chain";
 import { client } from "./client";
+import { useChainTick } from "./live";
 
 /**
  * Skin in the game: acting here requires holding a little testnet AVAX.
@@ -69,6 +70,9 @@ export function useFundsGate(): FundsGate {
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
+  // Re-read the moment the tab regains focus or the contract sees activity — a
+  // deposit made from the faucet in another tab clears the gate on the way back.
+  const chainTick = useChainTick();
 
   const addresses = useMemo(() => {
     const list: FundsEntry[] = [];
@@ -119,7 +123,7 @@ export function useFundsGate(): FundsGate {
       clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addresses.map((a) => a.address).join(","), nonce]);
+  }, [addresses.map((a) => a.address).join(","), nonce, chainTick]);
 
   const entries = addresses.map((e) => ({
     ...e,
