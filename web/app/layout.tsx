@@ -19,7 +19,7 @@ const display = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Ubu-Tangaza — get paid for the word you spread",
+  title: "Ubu-Tangaza | Get rewarded for the word you spread",
   description:
     "Proof-of-advocacy rewards on Avalanche. Businesses reward real advocacy from a capped budget that can never grow.",
 };
