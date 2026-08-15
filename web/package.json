@@ -33,5 +33,11 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "ws@8": "8.21.3",
+    "uuid@<11.1.1": "11.1.1",
+    "@hey-api/openapi-ts@<0.97.3": "^0.97.3",
+    "js-yaml@4": "^4.3.1"
+  }
 }
