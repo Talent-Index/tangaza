@@ -81,6 +81,11 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
   if (!address) {
     return (
       <div className="animate-rise space-y-6">
+        {c.coverUrl ? (
+          <div className="overflow-hidden rounded-xl border border-ink-700">
+            <img src={c.coverUrl} alt="" className="aspect-[2/1] w-full object-cover" />
+          </div>
+        ) : null}
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-crimson-400">
             Campaign
@@ -134,6 +139,11 @@ function CampaignView({ slug, address }: { slug: string; address?: string }) {
 
   return (
     <div className="animate-rise space-y-6">
+      {c.coverUrl ? (
+        <div className="overflow-hidden rounded-xl border border-ink-700">
+          <img src={c.coverUrl} alt="" className="aspect-[2/1] w-full object-cover" />
+        </div>
+      ) : null}
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-crimson-400">
           {closed ? "Closed" : "Campaign"}
