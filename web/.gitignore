@@ -7,3 +7,5 @@ next-env.d.ts
 data/activities.json
 *.tsbuildinfo
 .vercel
+public/campaign-covers/*
+!public/campaign-covers/.gitkeep

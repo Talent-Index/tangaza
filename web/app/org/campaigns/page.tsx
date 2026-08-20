@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
+import { CoverImageField } from "@/components/org/CoverImageField";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
@@ -360,50 +361,6 @@ function CampaignsWorkspace() {
           )}
         </section>
       </div>
-    </div>
-  );
-}
-
-function CoverImageField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
-        Cover image
-      </p>
-      {value ? (
-        <div className="relative overflow-hidden rounded-xl border border-ink-700">
-          <img src={value} alt="" className="aspect-[2/1] w-full object-cover" />
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            className="absolute right-2 top-2 rounded-full bg-ink-950/80 px-2 py-1 text-xs text-mist-300 hover:text-white"
-          >
-            Remove
-          </button>
-        </div>
-      ) : (
-        <div
-          className="grid aspect-[2/1] place-items-center rounded-xl border border-dashed border-ink-600 bg-ink-850/50 text-mist-500"
-        >
-          <span className="text-sm">No cover image</span>
-        </div>
-      )}
-      <input
-        type="url"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="https://… image link for context (optional)"
-        className="w-full rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-      />
-      <p className="text-xs text-mist-500">
-        Paste a public image URL — advocates see this on the campaign page.
-      </p>
     </div>
   );
 }
