@@ -595,6 +595,7 @@ export interface Campaign {
   slug: string;
   title: string;
   blurb?: string;
+  coverUrl?: string;
   startsAt: string;
   endsAt?: string;
   active: boolean;
@@ -613,6 +614,7 @@ const toCampaign = (r: Record<string, unknown>): Campaign => ({
   slug: r.slug as string,
   title: r.title as string,
   blurb: (r.blurb as string) ?? undefined,
+  coverUrl: (r.cover_url as string) ?? undefined,
   startsAt: new Date(r.starts_at as string).toISOString(),
   endsAt: r.ends_at ? new Date(r.ends_at as string).toISOString() : undefined,
   active: Boolean(r.active),
@@ -947,6 +949,7 @@ export interface UpsertCampaignInput {
   orgId: string;
   title: string;
   blurb?: string;
+  coverUrl?: string | null;
   endsAt?: string | null;
   active?: boolean;
   engagementTypeIds?: string[];
@@ -970,6 +973,7 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
     const rows = await sql`
       update campaigns set
         title = ${input.title}, blurb = ${input.blurb ?? null},
+        cover_url = ${input.coverUrl ?? null},
         ends_at = ${input.endsAt ?? null},
         active = ${input.active ?? true}
       where id = ${input.id} and org_id = ${input.orgId}
@@ -982,9 +986,9 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
     for (let n = 0; n < 5 && created.length === 0; n++) {
       const slug = n === 0 ? base : `${base}-${n + 1}`;
       created = (await sql`
-        insert into campaigns (org_id, slug, title, blurb, ends_at, active)
+        insert into campaigns (org_id, slug, title, blurb, cover_url, ends_at, active)
         values (${input.orgId}, ${slug}, ${input.title}, ${input.blurb ?? null},
-                ${input.endsAt ?? null}, ${input.active ?? true})
+                ${input.coverUrl ?? null}, ${input.endsAt ?? null}, ${input.active ?? true})
         on conflict (slug) do nothing
         returning *`) as Array<Record<string, unknown>>;
     }
@@ -1023,6 +1027,22 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
     where c.active and (c.ends_at is null or c.ends_at > now())
+    group by c.id, o.name
+    order by c.starts_at desc`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+}
+
+/** All campaigns on the platform — upcoming and past — for the campaigns timeline. */
+export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
+  const rows = (await sql`
+    select c.*, o.name as org_name,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaigns c
+    join orgs o on o.id = c.org_id
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
     group by c.id, o.name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
