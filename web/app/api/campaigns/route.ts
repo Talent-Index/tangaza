@@ -5,6 +5,7 @@ import {
   hasJoinedCampaign,
   joinCampaign,
   listAllActiveCampaigns,
+  listAllCampaignsDiscover,
   peekShareCode,
   listCampaigns,
   upsertCampaign,
@@ -40,6 +41,11 @@ export async function GET(req: NextRequest) {
     const joined =
       address && isAddress(address) ? await hasJoinedCampaign(campaign.id, address) : false;
     return NextResponse.json({ campaign, joined });
+  }
+
+  if (params.get("discover") === "true") {
+    const campaigns = await listAllCampaignsDiscover();
+    return NextResponse.json({ campaigns });
   }
 
   if (params.get("all") === "true") {
