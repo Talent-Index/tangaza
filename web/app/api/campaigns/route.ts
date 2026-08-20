@@ -71,11 +71,12 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { id, orgId, title, blurb, endsAt, active, engagementTypeIds } = body as {
+  const { id, orgId, title, blurb, coverUrl, endsAt, active, engagementTypeIds } = body as {
     id?: string;
     orgId?: string;
     title?: string;
     blurb?: string;
+    coverUrl?: string | null;
     endsAt?: string | null;
     active?: boolean;
     engagementTypeIds?: string[];
@@ -94,6 +95,7 @@ export async function PUT(req: NextRequest) {
       orgId: String(orgId),
       title: title.trim().slice(0, 120),
       blurb: blurb?.trim().slice(0, 500),
+      coverUrl: coverUrl?.trim().slice(0, 2048) || null,
       endsAt: endsAt || null,
       active,
       engagementTypeIds,
