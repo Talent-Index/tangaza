@@ -410,7 +410,7 @@ function SubmitForm() {
         <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
           What did you do?
         </legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {types.map((type) => (
             <EngagementOption
               key={type.id}
@@ -603,7 +603,7 @@ function EngagementOption({
 }) {
   return (
     <label
-      className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border p-3 transition sm:items-center sm:p-4 ${
+      className={`flex min-w-0 cursor-pointer flex-col gap-3 rounded-xl border p-4 transition sm:flex-row sm:items-center ${
         active
           ? "border-crimson-500 bg-crimson-500/10"
           : "border-ink-700 bg-ink-850 hover:border-ink-600"
@@ -617,27 +617,30 @@ function EngagementOption({
         onChange={onSelect}
         className="sr-only"
       />
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-        {type.icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block break-words text-sm font-semibold">{type.label}</span>
-        {type.blurb ? (
-          <span className="mt-0.5 block line-clamp-2 break-words text-xs text-mist-500">
-            {type.blurb}
-          </span>
-        ) : null}
-      </span>
-      {/* What it's worth, in the same units the progress ring counts in. */}
-      <span className="shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] tabular text-mist-400">
-        +{type.weight}
-      </span>
-      <span
-        className={`mt-1 size-4 shrink-0 rounded-full border-2 sm:mt-0 ${
-          active ? "border-crimson-500 bg-crimson-500" : "border-ink-500"
-        }`}
-        aria-hidden
-      />
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
+          {type.icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block break-words text-sm font-semibold leading-snug">{type.label}</span>
+          {type.blurb ? (
+            <span className="mt-1 block break-words text-xs leading-relaxed text-mist-500">
+              {type.blurb}
+            </span>
+          ) : null}
+        </span>
+      </div>
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:justify-center sm:gap-2">
+        <span className="rounded-full border border-ink-600 px-2.5 py-0.5 text-[11px] tabular-nums text-mist-400">
+          +{type.weight}
+        </span>
+        <span
+          className={`size-5 shrink-0 rounded-full border-2 ${
+            active ? "border-crimson-500 bg-crimson-500" : "border-ink-500"
+          }`}
+          aria-hidden
+        />
+      </div>
     </label>
   );
 }
