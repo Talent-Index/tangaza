@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { useActiveAccount } from "thirdweb/react";
 import { ThemeToggle } from "@/components/theme";
 import { BrandMark } from "@/components/ui";
+import { initialsFrom } from "@/lib/identity";
 import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
 
 const NAV = [
   { href: "/", label: "Home", icon: "◎" },
+  { href: "/campaigns", label: "Campaigns", icon: "◈" },
   { href: "/submit", label: "Submit", icon: "＋" },
   { href: "/rewards", label: "Rewards", icon: "★" },
 ];
@@ -27,7 +29,8 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const name = useDisplayName(account?.address);
   const email = useCredentialEmail();
-  const initial = (name || email || "?").replace(/^@/, "").slice(0, 1).toUpperCase();
+  const initials = initialsFrom(name, email);
+  const profileLabel = email ?? name ?? "Your profile";
 
   // Bottom padding must clear the floating nav with room to spare on phones: the
   // submit button lives at the end of a long form, and a too-tight clearance leaves
@@ -72,27 +75,11 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           {account ? (
             <Link
               href="/profile"
-              aria-label={email ? `Profile and settings for ${email}` : "Your profile and settings"}
-              title={email ?? name}
-              className="flex min-w-0 max-w-[12rem] items-center gap-2 rounded-full transition hover:opacity-80 sm:max-w-[16rem] md:max-w-xs"
+              aria-label={`Profile and settings for ${profileLabel}`}
+              title={profileLabel}
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-ink-600 bg-gradient-to-br from-ink-700 to-ink-850 text-xs font-bold uppercase tracking-wide text-mist-100 shadow-sm transition hover:border-crimson-500/50 hover:from-crimson-500/20 hover:to-ink-850"
             >
-              <span className="flex min-w-0 flex-col items-end">
-                <span className="hidden max-w-full truncate text-sm leading-tight text-mist-300 sm:inline">
-                  {name}
-                </span>
-                {email ? (
-                  <span className="max-w-full truncate text-[10px] leading-tight text-mist-500 sm:text-[11px]">
-                    {email}
-                  </span>
-                ) : (
-                  <span className="max-w-full truncate text-sm leading-tight text-mist-300 sm:hidden">
-                    {name}
-                  </span>
-                )}
-              </span>
-              <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-800 text-xs font-semibold uppercase text-mist-300">
-                {initial}
-              </span>
+              {initials}
             </Link>
           ) : null}
         </div>
