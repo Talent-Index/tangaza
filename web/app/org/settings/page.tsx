@@ -306,10 +306,6 @@ function TierEditor({ orgId }: { orgId: bigint }) {
     </section>
   );
 }
-
-/* --------------------------------------------------------------- campaigns */
-
-interface CampaignDraft {
   id?: string;
   title: string;
   blurb: string;
