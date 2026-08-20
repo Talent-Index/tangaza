@@ -49,3 +49,25 @@ export function credentialNameFromProfiles(
 
   return undefined;
 }
+
+/** Two-letter initials for avatars — from display name or email local-part. */
+export function initialsFrom(name?: string, email?: string): string {
+  const trimmed = name?.trim().replace(/^@/, "");
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    if (trimmed.length >= 2) return trimmed.slice(0, 2).toUpperCase();
+    return trimmed.charAt(0).toUpperCase();
+  }
+
+  const local = email?.split("@")[0]?.trim() ?? "";
+  if (!local) return "?";
+  const parts = local.split(/[._+\-]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  }
+  if (local.length >= 2) return local.slice(0, 2).toUpperCase();
+  return local.charAt(0).toUpperCase();
+}
