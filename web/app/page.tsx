@@ -1,26 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useActiveAccount } from "thirdweb/react";
 import { CustomerShell } from "@/components/customer/Shell";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { ProgressRing } from "@/components/customer/ProgressRing";
+import { SessionRestoreScreen } from "@/components/customer/SessionRestore";
 import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { MILESTONE_ACTIVITIES, ORG_ID } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
+import { homeGreeting } from "@/lib/greeting";
 import { timeAgo } from "@/lib/format";
-import type { PendingActivity } from "@/lib/types";
 import {
   useAllCampaigns,
   useCredits,
+  useDisplayName,
   useMyCommunities,
   usePendingActivities,
   useTiers,
 } from "@/lib/hooks";
+import { useAdvocateSession } from "@/lib/session";
+import type { PendingActivity } from "@/lib/types";
 
 export default function Page() {
-  const account = useActiveAccount();
+  const { account, isRestoring } = useAdvocateSession();
+
+  if (isRestoring) return <SessionRestoreScreen />;
   if (!account) return <LandingPage />;
+
   return (
     <CustomerShell>
       <Home address={account.address} />
@@ -29,6 +35,7 @@ export default function Page() {
 }
 
 function Home({ address }: { address: string }) {
+  const displayName = useDisplayName(address);
   // One card per business the advocate has real standing with — the chain, not the
   // app, decides whose names appear here. Org 1 was only ever sample data.
   const communities = useMyCommunities(address);
@@ -58,8 +65,19 @@ function Home({ address }: { address: string }) {
     (campaigns.data ?? []).map((c) => [c.id, { title: c.title, org: c.orgName }] as const)
   );
 
+  const greeting = homeGreeting(displayName, {
+    communities: mine.length,
+    pending: pendingItems.length,
+    rewardsReady: available.length,
+  });
+
   return (
     <div className="animate-rise space-y-6 md:space-y-8">
+      <header className="min-w-0">
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{greeting.headline}</h1>
+        <p className="mt-1 text-sm text-mist-500">{greeting.sub}</p>
+      </header>
+
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-8">
         <div className="min-w-0 space-y-6">
           {mine.length === 0 ? (
@@ -139,11 +157,6 @@ function Home({ address }: { address: string }) {
           </section>
         </div>
       </div>
-
-      <p className="pt-2 text-center text-[11px] leading-relaxed text-mist-500">
-        Every activity for a business does not go unrewarded — share what you do,
-        and get to have what we have.
-      </p>
     </div>
   );
 }
@@ -385,7 +398,15 @@ function CampaignStrip() {
 
   return (
     <section className="min-w-0">
-      <SectionTitle>Happening now</SectionTitle>
+      <SectionTitle
+        action={
+          <Link href="/campaigns" className="text-xs font-medium text-crimson-400 hover:text-crimson-300">
+            See all →
+          </Link>
+        }
+      >
+        Happening now
+      </SectionTitle>
       <ul className="grid grid-cols-1 gap-2">
         {live.map((c) => (
           <li key={c.id} className="min-w-0">
