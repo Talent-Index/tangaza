@@ -1,20 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 
-import { useCampaigns, useEngagementTypes, useTiers } from "@/lib/hooks";
+import { useEngagementTypes, useTiers } from "@/lib/hooks";
 import { PROOF_KINDS, type ProofKind } from "@/lib/types";
 
 /**
  * What the business rewards, and what it gives for it.
  *
- * Everything on this page is off-chain by design. The contract fixes the money — 20
- * approved activities mints a KES 500 credit against a cap that cannot be raised — and
- * fixes it deliberately, so that changing what you reward can never change what you owe.
+ * Campaigns live on /org/campaigns. This page is engagements + levels only.
  */
 export default function SettingsPage() {
   return (
@@ -31,11 +28,14 @@ function Settings() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-black">What {orgName || "you"} reward{orgName ? "s" : ""}</h1>
+        <h1 className="text-2xl font-black md:text-3xl">Rewards setup</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
-          Define the engagements you want, and what each one is worth. Weight is how many
-          on-chain activities one approval counts for — 20 activities mints one KES 500
-          credit, so a weight of 5 is a quarter of a reward.
+          Define what {orgName || "you"} reward{orgName ? "s" : ""} and the levels advocates
+          climb. Campaigns are managed separately under{" "}
+          <a href="/org/campaigns" className="text-crimson-400 hover:text-crimson-300">
+            Campaigns
+          </a>
+          .
         </p>
       </div>
 
@@ -48,7 +48,6 @@ function Settings() {
 
       <EngagementEditor orgId={orgId} />
       <TierEditor orgId={orgId} />
-      <CampaignEditor orgId={orgId} />
     </div>
   );
 }
