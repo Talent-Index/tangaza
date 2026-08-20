@@ -208,11 +208,11 @@ export function ConfigWarning() {
   );
 }
 
-/** Split-color wordmark in the MetroPorter style. */
+/** Split-color wordmark — readable on dark and light surfaces. */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
-    <span className={`font-display text-lg font-bold tracking-tight ${className}`}>
-      <span className="text-white">ubu</span>
+    <span className={`font-display font-bold tracking-tight ${className}`}>
+      <span className="text-mist-100">ubu</span>
       <span className="text-crimson-400">tangaza</span>
     </span>
   );
