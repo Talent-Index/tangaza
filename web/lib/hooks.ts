@@ -293,6 +293,7 @@ export interface Campaign {
   slug: string;
   title: string;
   blurb?: string;
+  coverUrl?: string;
   startsAt: string;
   endsAt?: string;
   active: boolean;
@@ -309,6 +310,20 @@ export function useAllCampaigns() {
   return useAsync<CampaignWithOrg[]>(
     async () => {
       const res = await fetch("/api/campaigns?all=true", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load campaigns (${res.status})`);
+      return ((await res.json()) as { campaigns: CampaignWithOrg[] }).campaigns;
+    },
+    [],
+    true,
+    POLL_ORG
+  );
+}
+
+/** Upcoming and past campaigns for the timeline discovery page. */
+export function useDiscoverCampaigns() {
+  return useAsync<CampaignWithOrg[]>(
+    async () => {
+      const res = await fetch("/api/campaigns?discover=true", { cache: "no-store" });
       if (!res.ok) throw new Error(`Could not load campaigns (${res.status})`);
       return ((await res.json()) as { campaigns: CampaignWithOrg[] }).campaigns;
     },
