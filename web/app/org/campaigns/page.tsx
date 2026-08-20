@@ -150,6 +150,13 @@ function CampaignsWorkspace() {
     }));
 
   const showForm = creating || (selected && draft.id === selected.id);
+  const hasCampaigns = list.length > 0;
+
+  useEffect(() => {
+    if (!campaigns.loading && !hasCampaigns && isApprover) {
+      setCreating(true);
+    }
+  }, [campaigns.loading, hasCampaigns, isApprover]);
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -186,12 +193,9 @@ function CampaignsWorkspace() {
             </Card>
           ) : list.length === 0 ? (
             <Card className="py-10 text-center">
-              <p className="text-sm text-mist-500">No campaigns yet.</p>
-              {isApprover ? (
-                <Button type="button" className="mt-4" onClick={openCreate}>
-                  Create your first campaign
-                </Button>
-              ) : null}
+              <p className="text-sm text-mist-500">
+                No campaigns yet — fill in the form on the right to launch your first push.
+              </p>
             </Card>
           ) : (
             <ul className="space-y-2">
@@ -350,13 +354,8 @@ function CampaignsWorkspace() {
           ) : (
             <Card className="py-12 text-center">
               <p className="text-sm text-mist-500">
-                Select a campaign to see details, or create a new one.
+                Select a campaign from the list to see details and manage it.
               </p>
-              {isApprover ? (
-                <Button type="button" className="mt-4" onClick={openCreate}>
-                  Create campaign
-                </Button>
-              ) : null}
             </Card>
           )}
         </section>
