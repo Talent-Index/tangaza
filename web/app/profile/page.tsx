@@ -135,143 +135,153 @@ function ProfileForm({ address }: { address: string }) {
   }
 
   return (
-    <form onSubmit={save} className="animate-rise space-y-6 md:max-w-xl">
+    <form onSubmit={save} className="animate-rise space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl font-black">Profile &amp; settings</h1>
-        <p className="mt-1 text-sm text-mist-500">
+        <h1 className="text-2xl font-black md:text-3xl">Profile &amp; settings</h1>
+        <p className="mt-1 max-w-2xl text-sm text-mist-500">
           Your details, appearance, and account. Businesses see your name next to
           everything you submit.
         </p>
       </div>
 
-      <section>
-        <SectionTitle>Your details</SectionTitle>
-        <Card className="space-y-3 bg-ink-850/60">
-          <DetailRow label="Display name" value={name || "—"} />
-          <DetailRow
-            label="Email"
-            value={email ?? "Not available from this sign-in"}
-          />
-          {me.data?.xUsername ? (
-            <DetailRow label="X handle" value={`@${me.data.xUsername}`} />
-          ) : null}
-          <DetailRow
-            label="Account"
-            value={
-              <a
-                href={addressUrl(address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tabular break-all text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
+        <div className="space-y-6">
+          <section className="space-y-4">
+            <SectionTitle>Edit profile</SectionTitle>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="name"
+                className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
               >
-                {shortAddress(address)}
-              </a>
-            }
-          />
-        </Card>
-      </section>
+                Your name
+              </label>
+              <input
+                id="name"
+                type="text"
+                maxLength={60}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Amina Wanjiru"
+                className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+              />
+              <p className="text-xs text-mist-500">
+                {credentialName
+                  ? `Prefilled from your sign-in (${credentialName}). Edit it anytime — this is what businesses see.`
+                  : "Leave it blank and we\u2019ll fall back to your X handle, or a nickname made from your account."}
+              </p>
+            </div>
 
-      <section>
-        <SectionTitle>Appearance</SectionTitle>
-        <Card className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium">Theme</p>
-            <p className="mt-0.5 text-xs text-mist-500">
-              Currently {theme === "dark" ? "dark" : "light"} mode
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTheme("light")}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                theme === "light"
-                  ? "bg-crimson-500/15 text-crimson-300"
-                  : "text-mist-500 hover:text-mist-300"
-              }`}
-            >
-              Light
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme("dark")}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                theme === "dark"
-                  ? "bg-crimson-500/15 text-crimson-300"
-                  : "text-mist-500 hover:text-mist-300"
-              }`}
-            >
-              Dark
-            </button>
-            <ThemeToggle />
-          </div>
-        </Card>
-      </section>
+            <div className="space-y-2">
+              <label
+                htmlFor="handle"
+                className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
+              >
+                Your X handle <span className="normal-case text-mist-500">(optional)</span>
+              </label>
+              <input
+                id="handle"
+                type="text"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+                placeholder="@you"
+                className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+              />
+              <p className="text-xs text-mist-500">
+                So businesses can match your posts to you. Paste the handle or your profile
+                link — either works.
+              </p>
+            </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="name"
-          className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
-        >
-          Your name
-        </label>
-        <input
-          id="name"
-          type="text"
-          maxLength={60}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Amina Wanjiru"
-          className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-        />
-        <p className="text-xs text-mist-500">
-          {credentialName
-            ? `Prefilled from your sign-in (${credentialName}). Edit it anytime — this is what businesses see.`
-            : "Leave it blank and we\u2019ll fall back to your X handle, or a nickname made from your account."}
-        </p>
+            {error ? <ErrorNote>{error}</ErrorNote> : null}
+
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </section>
+
+          <section>
+            <SectionTitle>Appearance</SectionTitle>
+            <Card className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Theme</p>
+                <p className="mt-0.5 text-xs text-mist-500">
+                  Currently {theme === "dark" ? "dark" : "light"} mode
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTheme("light")}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    theme === "light"
+                      ? "bg-crimson-500/15 text-crimson-300"
+                      : "text-mist-500 hover:text-mist-300"
+                  }`}
+                >
+                  Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme("dark")}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    theme === "dark"
+                      ? "bg-crimson-500/15 text-crimson-300"
+                      : "text-mist-500 hover:text-mist-300"
+                  }`}
+                >
+                  Dark
+                </button>
+                <ThemeToggle />
+              </div>
+            </Card>
+          </section>
+        </div>
+
+        <div className="space-y-6 lg:sticky lg:top-4">
+          <section>
+            <SectionTitle>Your details</SectionTitle>
+            <Card className="space-y-3 bg-ink-850/60">
+              <DetailRow label="Display name" value={name || "—"} />
+              <DetailRow
+                label="Email"
+                value={email ?? "Not available from this sign-in"}
+              />
+              {me.data?.xUsername ? (
+                <DetailRow label="X handle" value={`@${me.data.xUsername}`} />
+              ) : null}
+              <DetailRow
+                label="Account"
+                value={
+                  <a
+                    href={addressUrl(address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tabular break-all text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+                  >
+                    {shortAddress(address)}
+                  </a>
+                }
+              />
+            </Card>
+          </section>
+
+          <section>
+            <SectionTitle>Your account</SectionTitle>
+            <Card className="space-y-4 bg-ink-850/60">
+              <p className="text-xs leading-relaxed text-mist-500">
+                Your account comes from the social login or wallet you used. Prefer your own
+                wallet? Core or MetaMask work from the sign-in screen.
+              </p>
+              <Button type="button" variant="danger" className="w-full" onClick={signOut}>
+                Sign out
+              </Button>
+            </Card>
+          </section>
+
+          <OnChainRecord address={address} />
+        </div>
       </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="handle"
-          className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
-        >
-          Your X handle <span className="normal-case text-mist-500">(optional)</span>
-        </label>
-        <input
-          id="handle"
-          type="text"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
-          placeholder="@you"
-          className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-        />
-        <p className="text-xs text-mist-500">
-          So businesses can match your posts to you. Paste the handle or your profile
-          link — either works.
-        </p>
-      </div>
-
-      {error ? <ErrorNote>{error}</ErrorNote> : null}
-
-      <Button type="submit" disabled={saving} className="w-full">
-        {saving ? "Saving…" : "Save"}
-      </Button>
-
-      <OnChainRecord address={address} />
-
-      <section>
-        <SectionTitle>Your account</SectionTitle>
-        <Card className="space-y-4 bg-ink-850/60">
-          <p className="text-xs leading-relaxed text-mist-500">
-            Your account comes from the social login or wallet you used. Prefer your own
-            wallet? Core or MetaMask work from the sign-in screen.
-          </p>
-          <Button type="button" variant="danger" className="w-full" onClick={signOut}>
-            Sign out
-          </Button>
-        </Card>
-      </section>
     </form>
   );
 }
