@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext } from "react";
-import { useActiveAccount, useActiveWallet, useDisconnect, useIsAutoConnecting } from "thirdweb/react";
+import { useActiveAccount, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
-import { ThemeToggle } from "@/components/theme";
+import { OrgProfileMenu } from "@/components/org/ProfileMenu";
 import { useToast } from "@/components/toast";
 import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
@@ -15,11 +15,11 @@ import { useMyApplications, useOrgAccess, type ApplicationSummary } from "@/lib/
 import type { OrgAccess } from "@/lib/reads";
 
 const NAV = [
-  { href: "/org", label: "Approvals" },
   { href: "/org/overview", label: "Overview" },
+  { href: "/org/campaigns", label: "Campaigns" },
+  { href: "/org", label: "Approvals" },
   { href: "/org/liability", label: "Liability" },
   { href: "/org/clients", label: "Clients" },
-  { href: "/org/campaigns", label: "Campaigns" },
   { href: "/org/settings", label: "Rewards setup" },
 ];
 
@@ -32,25 +32,12 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col overflow-x-clip px-4 py-6 sm:px-6 sm:py-8">
       <header className="mb-6 flex flex-col gap-4 sm:mb-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/org" className="flex min-w-0 items-center gap-2">
+          <Link href="/org/overview" className="flex min-w-0 items-center gap-2">
             <BrandMark className="text-base sm:text-lg" />
             <span className="hidden text-sm text-mist-500 sm:inline">Business</span>
           </Link>
 
-          <div className="flex items-center gap-3">
-            {CONTRACT_ADDRESS ? (
-              <a
-                href={addressUrl(CONTRACT_ADDRESS)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden text-xs text-mist-500 hover:text-crimson-300 md:block"
-              >
-                Contract {shortAddress(CONTRACT_ADDRESS)} ↗
-              </a>
-            ) : null}
-            <ThemeToggle />
-            <SignedInAs />
-          </div>
+          <OrgProfileMenu />
         </div>
 
         {account ? (
@@ -95,39 +82,6 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         Avalanche Fuji · every approval and every redemption below is a real on-chain
         transaction.
       </footer>
-    </div>
-  );
-}
-
-function SignedInAs() {
-  const account = useActiveAccount();
-  const wallet = useActiveWallet();
-  const { disconnect } = useDisconnect();
-  const { success } = useToast();
-
-  if (!account) return null;
-
-  const initials = account.address.replace(/^0x/i, "").slice(0, 2).toUpperCase();
-
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className="grid size-9 shrink-0 place-items-center rounded-full border border-ink-600 bg-gradient-to-br from-ink-700 to-ink-850 text-xs font-bold uppercase tracking-wide text-mist-100"
-        title={account.address}
-        aria-label={shortAddress(account.address)}
-      >
-        {initials}
-      </div>
-      <button
-        type="button"
-        onClick={() => {
-          if (wallet) disconnect(wallet);
-          success("Signed out");
-        }}
-        className="hidden text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300 sm:inline"
-      >
-        Sign out
-      </button>
     </div>
   );
 }
