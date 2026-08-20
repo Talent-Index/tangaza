@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext } from "react";
-import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
+import { useActiveAccount, useActiveWallet, useDisconnect, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
@@ -19,11 +19,13 @@ const NAV = [
   { href: "/org/overview", label: "Overview" },
   { href: "/org/liability", label: "Liability" },
   { href: "/org/clients", label: "Clients" },
-  { href: "/org/settings", label: "Settings" },
+  { href: "/org/campaigns", label: "Campaigns" },
+  { href: "/org/settings", label: "Rewards setup" },
 ];
 
 export function OrgShell({ children }: { children: React.ReactNode }) {
   const account = useActiveAccount();
+  const isRestoring = useIsAutoConnecting();
   const pathname = usePathname();
 
   return (
@@ -78,7 +80,15 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="min-w-0 flex-1">
-        {account ? <WithOrgAccess address={account.address}>{children}</WithOrgAccess> : <OrgSignedOut />}
+        {account ? (
+          <WithOrgAccess address={account.address}>{children}</WithOrgAccess>
+        ) : isRestoring ? (
+          <div className="grid place-items-center py-24">
+            <Spinner className="size-6" />
+          </div>
+        ) : (
+          <OrgSignedOut />
+        )}
       </main>
 
       <footer className="mt-10 border-t border-ink-800 pt-5 text-xs leading-relaxed text-mist-500 sm:mt-12">
@@ -97,18 +107,24 @@ function SignedInAs() {
 
   if (!account) return null;
 
+  const initials = account.address.replace(/^0x/i, "").slice(0, 2).toUpperCase();
+
   return (
-    <div className="flex items-center gap-2 rounded-full border border-ink-700 bg-ink-850 px-3 py-2">
-      <span className="tabular text-xs text-mist-400">
-        {shortAddress(account.address)}
-      </span>
+    <div className="flex items-center gap-2">
+      <div
+        className="grid size-9 shrink-0 place-items-center rounded-full border border-ink-600 bg-gradient-to-br from-ink-700 to-ink-850 text-xs font-bold uppercase tracking-wide text-mist-100"
+        title={account.address}
+        aria-label={shortAddress(account.address)}
+      >
+        {initials}
+      </div>
       <button
         type="button"
         onClick={() => {
           if (wallet) disconnect(wallet);
           success("Signed out");
         }}
-        className="text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+        className="hidden text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300 sm:inline"
       >
         Sign out
       </button>
