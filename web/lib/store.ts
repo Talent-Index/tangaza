@@ -553,6 +553,14 @@ export async function upsertRewardTier(input: {
   return toTier((rows as Array<Record<string, unknown>>)[0]);
 }
 
+/** Remove a level. Scoped to the org so an id alone cannot touch another business. */
+export async function deleteRewardTier(orgId: string, id: string): Promise<boolean> {
+  const rows = (await sql`delete from reward_tiers
+                          where id = ${id} and org_id = ${orgId}
+                          returning id`) as Array<Record<string, unknown>>;
+  return rows.length > 0;
+}
+
 export interface AdvocateLevel {
   approvedWeight: number;
   currentLevel?: number;
@@ -1009,6 +1017,19 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
   const full = await getCampaignBySlug(row.slug as string);
   if (!full) throw new Error("Campaign vanished mid-save");
   return full;
+}
+
+/**
+ * Permanently delete a campaign, scoped to its org. `campaign_engagements` and
+ * `campaign_participants` cascade; `submissions.campaign_id` is set null, so an
+ * advocate's approved work and weight survive — only the campaign lens is removed.
+ * Returns false when nothing matched (wrong org, or already gone).
+ */
+export async function deleteCampaign(orgId: string, id: string): Promise<boolean> {
+  const rows = (await sql`delete from campaigns
+                          where id = ${id} and org_id = ${orgId}
+                          returning id`) as Array<Record<string, unknown>>;
+  return rows.length > 0;
 }
 
 export interface CampaignWithOrg extends Campaign {

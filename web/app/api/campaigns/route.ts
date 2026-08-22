@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import {
+  deleteCampaign,
   getCampaignBySlug,
   hasJoinedCampaign,
   joinCampaign,
@@ -142,4 +143,22 @@ export async function POST(req: NextRequest) {
   // is one short of the truth the caller just created.
   const updated = (await getCampaignBySlug(slug)) ?? campaign;
   return NextResponse.json({ campaign: updated, joined: true, joinedNow });
+}
+
+/**
+ * Delete a campaign — the business side. Scoped to its org so an id alone cannot
+ * reach another business's push. Closing (active=false) hides a campaign but keeps
+ * it; DELETE is the irreversible removal, offered in the UI behind a confirm.
+ */
+export async function DELETE(req: NextRequest) {
+  const orgId = req.nextUrl.searchParams.get("orgId");
+  const id = req.nextUrl.searchParams.get("id");
+  if (!orgId || !id) {
+    return NextResponse.json({ error: "orgId and id are required" }, { status: 400 });
+  }
+  const removed = await deleteCampaign(orgId, id);
+  if (!removed) {
+    return NextResponse.json({ error: "No such campaign for this org" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
 }
