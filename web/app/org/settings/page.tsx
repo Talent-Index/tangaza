@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 
 import { useEngagementTypes, useTiers } from "@/lib/hooks";
 import { PROOF_KINDS, type EngagementType, type ProofKind } from "@/lib/types";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /**
  * What the business rewards, and what it gives for it.
@@ -65,6 +67,7 @@ const EMPTY_ENGAGEMENT = {
 
 function EngagementEditor({ orgId }: { orgId: bigint }) {
   const engagements = useEngagementTypes(orgId);
+  const account = useActiveAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
@@ -95,6 +98,8 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.engagementSave);
       const res = await fetch("/api/engagement-types", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,6 +109,7 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
           // Editing overwrites every column, so round-trip the fields the form
           // doesn't expose or they reset to defaults.
           ...(editing ? { id: editing.id, active: editing.active, sortOrder: editing.sortOrder } : {}),
+          ...auth,
         }),
       });
       const json = (await res.json()) as { error?: string };
@@ -122,7 +128,14 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
 
   async function retire(id: string) {
     try {
-      await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, { method: "DELETE" });
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.engagementRetire);
+      const res = await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(auth),
+      });
+      if (!res.ok) throw new Error("Could not retire");
       if (editing?.id === id) resetForm();
       success("Engagement retired");
       engagements.refresh();
@@ -265,6 +278,7 @@ const EMPTY_TIER = { level: 1, name: "", perk: "", icon: "★", thresholdWeight:
 
 function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
+  const account = useActiveAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
@@ -294,11 +308,13 @@ function TierEditor({ orgId }: { orgId: bigint }) {
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.tierSave);
       // A level is keyed by its number, so re-posting the same level updates it in place.
       const res = await fetch("/api/tiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(orgId), ...form }),
+        body: JSON.stringify({ orgId: String(orgId), ...form, ...auth }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
@@ -319,8 +335,12 @@ function TierEditor({ orgId }: { orgId: bigint }) {
   async function remove(t: LadderTier) {
     if (typeof window !== "undefined" && !window.confirm(`Delete level "${t.name}"?`)) return;
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.tierDelete);
       const res = await fetch(`/api/tiers?orgId=${orgId}&id=${encodeURIComponent(t.id)}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(auth),
       });
       if (!res.ok) throw new Error("Could not delete");
       if (editingId === t.id) resetForm();
