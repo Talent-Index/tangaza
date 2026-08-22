@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 export default function OrgCampaignsPage() {
   return (
@@ -37,6 +38,7 @@ const EMPTY_DRAFT: CampaignDraft = {
 
 function CampaignsWorkspace() {
   const isApprover = useIsApprover();
+  const account = useActiveAccount();
   const { orgId, orgName } = useOrgAccessContext();
   const campaigns = useCampaigns(orgId);
   const engagements = useEngagementTypes(orgId);
@@ -87,6 +89,8 @@ function CampaignsWorkspace() {
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +104,7 @@ function CampaignsWorkspace() {
           // Editing must not silently reopen a closed campaign; only a new one starts active.
           active: draft.id ? selected?.active ?? true : true,
           engagementTypeIds: draft.engagementTypeIds,
+          ...auth,
         }),
       });
       const json = (await res.json()) as { error?: string; campaign?: Campaign };
@@ -122,6 +127,8 @@ function CampaignsWorkspace() {
 
   async function setActive(c: Campaign, active: boolean) {
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -133,6 +140,7 @@ function CampaignsWorkspace() {
           coverUrl: c.coverUrl ?? null,
           endsAt: c.endsAt ?? null,
           active,
+          ...auth,
         }),
       });
       if (!res.ok) throw new Error("Could not update");
@@ -152,9 +160,15 @@ function CampaignsWorkspace() {
         : `Delete "${c.title}"? This cannot be undone.`;
     if (typeof window !== "undefined" && !window.confirm(warning)) return;
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignDelete);
       const res = await fetch(
         `/api/campaigns?orgId=${orgId}&id=${encodeURIComponent(c.id)}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(auth),
+        }
       );
       const json = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not delete");
