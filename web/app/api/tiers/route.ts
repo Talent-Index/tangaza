@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
-import { getAdvocateLevel, listRewardTiers, upsertRewardTier } from "@/lib/store";
+import { deleteRewardTier, getAdvocateLevel, listRewardTiers, upsertRewardTier } from "@/lib/store";
 
 /**
  * The levels a business offers, and where one person stands against them.
@@ -11,9 +11,10 @@ import { getAdvocateLevel, listRewardTiers, upsertRewardTier } from "@/lib/store
  * business can change what it gives away without being able to touch the solvency
  * rules that decide what it owes.
  *
- *   GET  ?orgId=1                    – the ladder
- *   GET  ?orgId=1&address=0x…        – the ladder plus where that person is on it
- *   POST                             – create or update a level
+ *   GET    ?orgId=1                  – the ladder
+ *   GET    ?orgId=1&address=0x…      – the ladder plus where that person is on it
+ *   POST                            – create or update a level
+ *   DELETE ?orgId=1&id=…            – remove a level
  */
 
 export const dynamic = "force-dynamic";
@@ -90,4 +91,17 @@ export async function POST(req: NextRequest) {
     }
     throw err;
   }
+}
+
+export async function DELETE(req: NextRequest) {
+  const orgId = req.nextUrl.searchParams.get("orgId");
+  const id = req.nextUrl.searchParams.get("id");
+  if (!orgId || !id) {
+    return NextResponse.json({ error: "orgId and id are required" }, { status: 400 });
+  }
+  const removed = await deleteRewardTier(orgId, id);
+  if (!removed) {
+    return NextResponse.json({ error: "No such level for this org" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
 }
