@@ -18,6 +18,7 @@ export const ORG_ACTIONS = {
   tierDelete: "tier.delete",
   engagementSave: "engagement.save",
   engagementRetire: "engagement.retire",
+  orgRename: "org.rename",
 } as const;
 
 export type OrgAction = (typeof ORG_ACTIONS)[keyof typeof ORG_ACTIONS];

@@ -7,7 +7,14 @@ import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 
 import { useEngagementTypes, useTiers } from "@/lib/hooks";
-import { PROOF_KINDS, type EngagementType, type ProofKind } from "@/lib/types";
+import {
+  PAYOUT_KINDS,
+  PROOF_KINDS,
+  REWARD_CURRENCIES,
+  formatReward,
+  type EngagementType,
+  type ProofKind,
+} from "@/lib/types";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /**
@@ -272,9 +279,21 @@ interface LadderTier {
   perk: string;
   icon: string;
   thresholdWeight: number;
+  amount?: number;
+  currency?: string;
+  rewardKind?: string;
 }
 
-const EMPTY_TIER = { level: 1, name: "", perk: "", icon: "★", thresholdWeight: 5 };
+const EMPTY_TIER = {
+  level: 1,
+  name: "",
+  perk: "",
+  icon: "★",
+  thresholdWeight: 5,
+  amount: "" as number | "",
+  currency: "KES",
+  rewardKind: "cash",
+};
 
 function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
@@ -293,6 +312,9 @@ function TierEditor({ orgId }: { orgId: bigint }) {
       perk: t.perk,
       icon: t.icon,
       thresholdWeight: t.thresholdWeight,
+      amount: t.amount ?? "",
+      currency: t.currency ?? "KES",
+      rewardKind: t.rewardKind ?? "cash",
     });
     setError(null);
   }
@@ -314,7 +336,12 @@ function TierEditor({ orgId }: { orgId: bigint }) {
       const res = await fetch("/api/tiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(orgId), ...form, ...auth }),
+        body: JSON.stringify({
+          orgId: String(orgId),
+          ...form,
+          amount: form.amount === "" ? null : Number(form.amount),
+          ...auth,
+        }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
@@ -367,10 +394,17 @@ function TierEditor({ orgId }: { orgId: bigint }) {
                 <p className="text-sm font-semibold">
                   {t.name}{" "}
                   <span className="font-normal text-mist-500">
-                    at {t.thresholdWeight} weight
+                    after {t.thresholdWeight} activities
                   </span>
                 </p>
-                <p className="truncate text-xs text-mist-500">{t.perk}</p>
+                <p className="truncate text-xs text-mist-500">
+                  {t.amount != null || t.rewardKind ? (
+                    <span className="mr-2 rounded-full bg-jade-500/15 px-2 py-0.5 text-jade-400">
+                      {formatReward({ amount: t.amount, currency: t.currency, rewardKind: t.rewardKind })}
+                    </span>
+                  ) : null}
+                  {t.perk}
+                </p>
               </div>
               <button
                 type="button"
@@ -425,16 +459,56 @@ function TierEditor({ orgId }: { orgId: bigint }) {
             value={form.thresholdWeight}
             onChange={(e) => setForm({ ...form, thresholdWeight: Number(e.target.value) })}
             className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
-            aria-label="Weight needed"
+            aria-label="Activities needed to reach this level"
+            title="Activities needed to reach this level"
           />
           <Button type="submit" disabled={saving || !form.name.trim() || !form.perk.trim()}>
             {saving ? "…" : editingId ? "Save" : "Add"}
           </Button>
+
+          {/* The reward this level unlocks — any form, any currency, honoured off-chain. */}
+          <select
+            value={form.rewardKind}
+            onChange={(e) => setForm({ ...form, rewardKind: e.target.value })}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+            aria-label="Reward type"
+          >
+            {PAYOUT_KINDS.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.icon} {k.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={0}
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value === "" ? "" : Number(e.target.value) })
+            }
+            placeholder={form.rewardKind === "discount" ? "% off" : "Amount"}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            aria-label="Reward amount"
+          />
+          <select
+            value={form.currency}
+            onChange={(e) => setForm({ ...form, currency: e.target.value })}
+            disabled={form.rewardKind === "discount"}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500 disabled:opacity-40"
+            aria-label="Currency"
+          >
+            {REWARD_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} · {c.symbol}
+              </option>
+            ))}
+          </select>
+
           <input
             required
             value={form.perk}
             onChange={(e) => setForm({ ...form, perk: e.target.value })}
-            placeholder="What do they unlock? e.g. a free seat at any paid workshop"
+            placeholder="Describe it, e.g. “500 KSh airtime” or “a free seat at any paid workshop”"
             className="sm:col-span-6 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
           {editingId ? (

@@ -90,12 +90,16 @@ function ApplyForm({ address }: { address: string }) {
     setSubmitting(true);
 
     try {
+      // Budget is optional for the business; the on-chain cap must still be > 0, so a
+      // blank/zero entry falls back to a sensible default guardrail.
+      const effectiveCap = cap > 0 ? cap : 50000;
+      if (effectiveCap !== cap) setCap(effectiveCap);
       const ts = Date.now();
       const signature = await account.signMessage({
         message: pledgeMessage({
           name: name.trim(),
           approverAddress: address,
-          emissionCapKes: cap,
+          emissionCapKes: effectiveCap,
           pledge: pledge.trim(),
           ts,
         }),
@@ -108,7 +112,7 @@ function ApplyForm({ address }: { address: string }) {
           name: name.trim(),
           contactEmail: email.trim() || undefined,
           approverAddress: address,
-          emissionCapKes: cap,
+          emissionCapKes: effectiveCap,
           pledge: pledge.trim(),
           ts,
           signature,
@@ -211,20 +215,20 @@ function ApplyForm({ address }: { address: string }) {
         </Field>
       </div>
 
-      <Field label="Reward budget (KES)">
+      <Field label="Reward budget (optional)">
         <input
           type="number"
-          required
-          min={500}
+          min={0}
           step={500}
           value={cap}
           onChange={(e) => setCap(Number(e.target.value))}
           className="tabular w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none focus:border-crimson-500"
         />
         <p className="mt-2 text-xs text-mist-500">
-          {kesLabel(cap)} is {Math.floor(cap / 500)} rewards of KES 500. Written once
-          on-chain — <span className="text-mist-300">it can never be raised</span>, only
-          spent down. Set it to what you can genuinely honour.
+          An on-chain spending guardrail — written once and{" "}
+          <span className="text-mist-300">never raisable</span>, only spent down. Optional:
+          leave the default if you&rsquo;re not sure. You decide the actual rewards,
+          amounts and currencies later under Rewards.
         </p>
       </Field>
 
@@ -235,7 +239,7 @@ function ApplyForm({ address }: { address: string }) {
           maxLength={2000}
           value={pledge}
           onChange={(e) => setPledge(e.target.value)}
-          placeholder="e.g. Every 20 approved activities earns KES 500 in airtime, data or a Centre voucher. Regulars get 10% off the café; Champions get a free seat at any paid workshop."
+          placeholder="e.g. Refer 5 friends → 500 KSh airtime. Post 3 times → a café voucher. Reach 10 approved activities → 10% off anything. Rewards can be cash or not, in any currency you choose."
           className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="mt-2 text-xs text-mist-500">

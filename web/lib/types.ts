@@ -44,6 +44,63 @@ export const rewardLabel = (id: number) =>
   REWARD_TYPES.find((t) => t.id === id)?.label ?? "Reward";
 
 /**
+ * The off-chain reward model. A business rewards its people its own way — any amount,
+ * any currency, cash or not — honoured off-platform, so this is deliberately open and
+ * not tied to the contract's fixed KES credit.
+ */
+export const REWARD_CURRENCIES = [
+  { code: "KES", label: "Kenyan Shilling", symbol: "KSh" },
+  { code: "USD", label: "US Dollar", symbol: "$" },
+  { code: "EUR", label: "Euro", symbol: "€" },
+  { code: "GBP", label: "British Pound", symbol: "£" },
+  { code: "NGN", label: "Nigerian Naira", symbol: "₦" },
+  { code: "GHS", label: "Ghanaian Cedi", symbol: "₵" },
+  { code: "ZAR", label: "South African Rand", symbol: "R" },
+  { code: "UGX", label: "Ugandan Shilling", symbol: "USh" },
+  { code: "TZS", label: "Tanzanian Shilling", symbol: "TSh" },
+  { code: "INR", label: "Indian Rupee", symbol: "₹" },
+] as const;
+
+export type CurrencyCode = (typeof REWARD_CURRENCIES)[number]["code"];
+
+export const CURRENCY_CODES = REWARD_CURRENCIES.map((c) => c.code) as readonly string[];
+
+export const currencySymbol = (code?: string) =>
+  REWARD_CURRENCIES.find((c) => c.code === code)?.symbol ?? code ?? "";
+
+/** The form a reward takes. `cash` implies a money amount; the rest can be amount-free. */
+export const PAYOUT_KINDS = [
+  { id: "cash", label: "Cash", icon: "💵" },
+  { id: "airtime", label: "Airtime", icon: "📱" },
+  { id: "data", label: "Data bundle", icon: "📶" },
+  { id: "voucher", label: "Voucher", icon: "🎟️" },
+  { id: "discount", label: "Discount", icon: "🏷️" },
+  { id: "product", label: "Free product", icon: "🎁" },
+  { id: "other", label: "Something else", icon: "✨" },
+] as const;
+
+export type PayoutKind = (typeof PAYOUT_KINDS)[number]["id"];
+
+export const PAYOUT_KIND_IDS = PAYOUT_KINDS.map((k) => k.id) as readonly string[];
+
+export const payoutKindLabel = (id?: string) =>
+  PAYOUT_KINDS.find((k) => k.id === id)?.label ?? id ?? "";
+
+/** "500 KSh airtime", "15% discount" (discount reads as a percentage), "Free product". */
+export function formatReward(p: {
+  amount?: number | null;
+  currency?: string | null;
+  rewardKind?: string | null;
+}): string {
+  const kind = p.rewardKind ?? undefined;
+  const label = payoutKindLabel(kind);
+  if (p.amount == null) return label || "Reward";
+  if (kind === "discount") return `${p.amount}% ${label.toLowerCase()}`;
+  const money = `${currencySymbol(p.currency ?? undefined)}${p.amount.toLocaleString()}`.trim();
+  return kind && kind !== "cash" ? `${money} ${label.toLowerCase()}` : money;
+}
+
+/**
  * What proof an engagement asks for. Decides which input the submit form renders.
  */
 export const PROOF_KINDS = [

@@ -3,6 +3,7 @@ import { isAddress } from "viem";
 import { deleteRewardTier, getAdvocateLevel, listRewardTiers, upsertRewardTier } from "@/lib/store";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
+import { CURRENCY_CODES, PAYOUT_KIND_IDS } from "@/lib/types";
 
 /**
  * The levels a business offers, and where one person stands against them.
@@ -47,13 +48,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { orgId, level, name, perk, icon, thresholdWeight, address, ts, signature } = body as {
+  const {
+    orgId, level, name, perk, icon, thresholdWeight,
+    amount, currency, rewardKind,
+    address, ts, signature,
+  } = body as {
     orgId?: string;
     level?: number;
     name?: string;
     perk?: string;
     icon?: string;
     thresholdWeight?: number;
+    amount?: number | null;
+    currency?: string | null;
+    rewardKind?: string | null;
     address?: string;
     ts?: number;
     signature?: string;
@@ -61,6 +69,15 @@ export async function POST(req: NextRequest) {
 
   if (!orgId) {
     return NextResponse.json({ error: "orgId is required" }, { status: 400 });
+  }
+  if (amount != null && (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0)) {
+    return NextResponse.json({ error: "amount must be zero or more" }, { status: 400 });
+  }
+  if (currency && !CURRENCY_CODES.includes(currency)) {
+    return NextResponse.json({ error: `currency must be one of ${CURRENCY_CODES.join(", ")}` }, { status: 400 });
+  }
+  if (rewardKind && !PAYOUT_KIND_IDS.includes(rewardKind)) {
+    return NextResponse.json({ error: `rewardKind must be one of ${PAYOUT_KIND_IDS.join(", ")}` }, { status: 400 });
   }
 
   const auth = await requireApprover({
@@ -94,6 +111,9 @@ export async function POST(req: NextRequest) {
       perk: perk.trim().slice(0, 280),
       icon: icon?.trim().slice(0, 8) || "★",
       thresholdWeight: thresholdWeight as number,
+      amount: amount ?? null,
+      currency: currency ?? null,
+      rewardKind: rewardKind ?? null,
     });
     return NextResponse.json({ tier }, { status: 201 });
   } catch (err) {
