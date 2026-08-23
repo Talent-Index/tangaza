@@ -41,12 +41,20 @@ export function LandingPage() {
             Proof-of-advocacy rewards on Avalanche. Budgets are capped once and can never
             be raised.
           </p>
-          <Link
-            href="/register"
-            className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200"
-          >
-            I run a business →
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <Link
+              href="/waitlist"
+              className="text-mist-300 underline underline-offset-4 hover:text-mist-100"
+            >
+              Business waitlist →
+            </Link>
+            <Link
+              href="/register"
+              className="text-mist-400 underline underline-offset-4 hover:text-mist-200"
+            >
+              Register on Avalanche →
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
@@ -94,6 +102,12 @@ function LandingNav() {
             </a>
           ))}
           <span className="mx-1 h-4 w-px bg-white/25" aria-hidden />
+          <Link
+            href="/register"
+            className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mist-300 transition hover:text-white"
+          >
+            Register
+          </Link>
           <Link
             href="/auth"
             className="rounded-full bg-crimson-500 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-crimson-400"
@@ -150,11 +164,18 @@ function LandingNav() {
               </a>
             ))}
             <Link
+              href="/waitlist"
+              onClick={close}
+              className="mt-4 text-center text-sm text-mist-300 underline underline-offset-4"
+            >
+              Business waitlist →
+            </Link>
+            <Link
               href="/register"
               onClick={close}
-              className="mt-4 text-center text-sm text-mist-400 underline underline-offset-4"
+              className="text-center text-sm text-mist-400 underline underline-offset-4"
             >
-              I run a business →
+              Register on Avalanche →
             </Link>
           </nav>
         </div>
@@ -201,15 +222,9 @@ function Hero() {
             <Button href="#how" variant="light" className="min-h-12 px-5 sm:px-7">
               How it works
             </Button>
-            <Link
-              href="/auth"
-              aria-label="Go to sign in"
-              className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-ink-950 transition hover:bg-mist-100"
-            >
-              <span aria-hidden className="text-lg leading-none">
-                →
-              </span>
-            </Link>
+            <Button href="/waitlist" variant="ghost" className="min-h-12 border-white/25 px-5 sm:px-7">
+              Join waitlist
+            </Button>
           </div>
         </div>
       </div>
