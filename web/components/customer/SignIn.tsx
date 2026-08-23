@@ -6,7 +6,7 @@ import { injectedProvider } from "thirdweb/wallets";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
 import { client, coreWallet, metamaskWallet, wallets } from "@/lib/client";
-import { Button, ErrorNote, Spinner } from "@/components/ui";
+import { ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
 /**
@@ -58,8 +58,8 @@ export function SignIn() {
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 
-  // Email is a two-step OTP, so it needs somewhere to live. Google and X are one tap.
-  const [emailStage, setEmailStage] = useState<"hidden" | "address" | "code">("hidden");
+  // Email is a two-step OTP. Shown first in the portal layout; Google/X/wallets stay one tap below.
+  const [emailStage, setEmailStage] = useState<"hidden" | "address" | "code">("address");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
