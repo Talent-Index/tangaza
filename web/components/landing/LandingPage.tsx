@@ -103,12 +103,6 @@ function LandingNav() {
           ))}
           <span className="mx-1 h-4 w-px bg-white/25" aria-hidden />
           <Link
-            href="/register"
-            className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mist-300 transition hover:text-white"
-          >
-            Register
-          </Link>
-          <Link
             href="/auth"
             className="rounded-full bg-crimson-500 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-crimson-400"
           >
@@ -164,18 +158,18 @@ function LandingNav() {
               </a>
             ))}
             <Link
-              href="/waitlist"
+              href="/auth"
               onClick={close}
-              className="mt-4 text-center text-sm text-mist-300 underline underline-offset-4"
+              className="mt-4 text-center text-sm font-semibold uppercase tracking-[0.12em] text-crimson-400"
             >
-              Business waitlist →
+              Sign in
             </Link>
             <Link
-              href="/register"
+              href="/waitlist"
               onClick={close}
-              className="text-center text-sm text-mist-400 underline underline-offset-4"
+              className="text-center text-sm text-mist-300 underline underline-offset-4"
             >
-              Register on Avalanche →
+              Business waitlist →
             </Link>
           </nav>
         </div>
