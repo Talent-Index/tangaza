@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 export default function OrgCampaignsPage() {
   return (
@@ -37,6 +38,7 @@ const EMPTY_DRAFT: CampaignDraft = {
 
 function CampaignsWorkspace() {
   const isApprover = useIsApprover();
+  const account = useActiveAccount();
   const { orgId, orgName } = useOrgAccessContext();
   const campaigns = useCampaigns(orgId);
   const engagements = useEngagementTypes(orgId);
@@ -87,6 +89,8 @@ function CampaignsWorkspace() {
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -97,8 +101,10 @@ function CampaignsWorkspace() {
           blurb: draft.blurb || undefined,
           coverUrl: draft.coverUrl.trim() || null,
           endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
-          active: true,
+          // Editing must not silently reopen a closed campaign; only a new one starts active.
+          active: draft.id ? selected?.active ?? true : true,
           engagementTypeIds: draft.engagementTypeIds,
+          ...auth,
         }),
       });
       const json = (await res.json()) as { error?: string; campaign?: Campaign };
@@ -121,6 +127,8 @@ function CampaignsWorkspace() {
 
   async function setActive(c: Campaign, active: boolean) {
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -132,6 +140,7 @@ function CampaignsWorkspace() {
           coverUrl: c.coverUrl ?? null,
           endsAt: c.endsAt ?? null,
           active,
+          ...auth,
         }),
       });
       if (!res.ok) throw new Error("Could not update");
@@ -139,6 +148,37 @@ function CampaignsWorkspace() {
       campaigns.refresh();
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not update");
+    }
+  }
+
+  async function remove(c: Campaign) {
+    const warning =
+      c.participantCount > 0
+        ? `Delete "${c.title}"? ${c.participantCount} ${
+            c.participantCount === 1 ? "person has" : "people have"
+          } joined. This removes the campaign and its share links for good — approved work and weight are kept. Consider closing it instead.`
+        : `Delete "${c.title}"? This cannot be undone.`;
+    if (typeof window !== "undefined" && !window.confirm(warning)) return;
+    try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignDelete);
+      const res = await fetch(
+        `/api/campaigns?orgId=${orgId}&id=${encodeURIComponent(c.id)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(auth),
+        }
+      );
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not delete");
+      success("Campaign deleted");
+      setSelectedId(null);
+      setCreating(false);
+      setDraft(EMPTY_DRAFT);
+      campaigns.refresh();
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not delete");
     }
   }
 
@@ -351,6 +391,7 @@ function CampaignsWorkspace() {
               orgId={orgId}
               onEdit={() => openEdit(selected)}
               onToggleActive={(active) => setActive(selected, active)}
+              onDelete={() => remove(selected)}
             />
           ) : (
             <Card className="py-12 text-center">
@@ -372,6 +413,7 @@ function CampaignDetailPanel({
   orgId,
   onEdit,
   onToggleActive,
+  onDelete,
 }: {
   campaign: Campaign;
   types: Array<{ id: string; label: string; blurb?: string; icon: string; weight: number }>;
@@ -379,6 +421,7 @@ function CampaignDetailPanel({
   orgId: bigint;
   onEdit: () => void;
   onToggleActive: (active: boolean) => void;
+  onDelete: () => void;
 }) {
   const account = useActiveAccount();
   const live = isCampaignLive(c);
@@ -465,6 +508,13 @@ function CampaignDetailPanel({
               >
                 {c.active ? "Close campaign" : "Reopen"}
               </Button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium text-mist-500 transition hover:text-crimson-300"
+              >
+                Delete
+              </button>
             </>
           ) : null}
         </div>

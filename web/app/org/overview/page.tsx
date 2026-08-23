@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
+import { useEffect, useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
+import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { BudgetMeter } from "@/components/org/Meter";
+import { useToast } from "@/components/toast";
 import {
+  Button,
   Card,
   ConfigWarning,
   EmptyState,
@@ -13,10 +17,11 @@ import {
   Spinner,
   Stat,
 } from "@/components/ui";
-import { CREDIT_VALUE_KES, MILESTONE_ACTIVITIES } from "@/lib/chain";
+import { CREDIT_VALUE_KES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { advocateName, kes, kesLabel, shortAddress, timeAgo } from "@/lib/format";
 import { useAdvocateLabels, useOrg, useOrgLedger } from "@/lib/hooks";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /* ------------------------------------------------------------------ screen 7 */
 
@@ -28,8 +33,115 @@ export default function OrgOverviewPage() {
   );
 }
 
+/** The business name, editable in place by the approver (off-chain display override). */
+function EditableOrgName({
+  orgId,
+  fallback,
+  canEdit,
+  account,
+}: {
+  orgId: string;
+  fallback: string;
+  canEdit: boolean;
+  account: { address: string; signMessage: (a: { message: string }) => Promise<string> } | null;
+}) {
+  const [name, setName] = useState<string>(fallback);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const { success, error: toastError } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/org?orgId=${orgId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { displayName?: string | null } | null) => {
+        if (!cancelled && j?.displayName) setName(j.displayName);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
+
+  async function save() {
+    const next = draft.trim();
+    if (!next || next === name) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.orgRename);
+      const res = await fetch("/api/org", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, name: next, ...auth }),
+      });
+      const json = (await res.json()) as { error?: string; displayName?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not rename");
+      setName(json.displayName ?? next);
+      setEditing(false);
+      success("Business name updated");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not rename");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="rounded-lg border border-ink-700 bg-ink-850 px-3 py-1.5 text-2xl font-black outline-none focus:border-crimson-500"
+        />
+        <Button type="button" onClick={save} disabled={saving}>
+          {saving ? "…" : "Save"}
+        </Button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <h1 className="truncate text-2xl font-black">{name}</h1>
+      {canEdit ? (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(name);
+            setEditing(true);
+          }}
+          aria-label="Edit business name"
+          className="shrink-0 text-sm text-mist-500 transition hover:text-crimson-300"
+        >
+          ✎
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function Overview() {
   const { orgId } = useOrgAccessContext();
+  const isApprover = useIsApprover();
+  const account = useActiveAccount();
   const org = useOrg(orgId);
   const ledger = useOrgLedger(orgId);
   const labels = useAdvocateLabels();
@@ -61,11 +173,20 @@ function Overview() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black">{org.data.name}</h1>
+        <div className="min-w-0">
+          <EditableOrgName
+            orgId={String(orgId)}
+            fallback={org.data.name}
+            canEdit={isApprover}
+            account={account ?? null}
+          />
           <p className="mt-1 text-sm text-mist-500">
-            Every {String(MILESTONE_ACTIVITIES)} approved activities costs you{" "}
-            {kesLabel(CREDIT_VALUE_KES)}.
+            Reward your community your own way — set the amounts, currencies and levels
+            under{" "}
+            <Link href="/org/settings" className="text-crimson-300 hover:text-crimson-400">
+              Rewards
+            </Link>
+            .
           </p>
         </div>
         <Pill tone={org.data.active ? "good" : "warn"}>
@@ -110,14 +231,14 @@ function Overview() {
             </Link>
           }
         >
-          Reward budget
+          Budget &amp; liability
         </SectionTitle>
         <Card>
           <BudgetMeter issued={issued} cap={cap} redeemed={redeemed} />
           <p className="mt-4 border-t border-ink-700 pt-4 text-xs leading-relaxed text-mist-500">
-            This cap was set once, when {org.data.name} registered. The contract has no
-            function that can raise it — once {kesLabel(cap)} is committed, approvals still
-            record advocacy but stop minting rewards.
+            The on-chain spending guardrail, set once when {org.data.name} registered — the
+            contract has no function that can raise it. This tracks liability; what you
+            actually give advocates is defined under Rewards.
           </p>
         </Card>
       </section>
