@@ -42,7 +42,7 @@ export default function AuthPage() {
 
         <div className="card animate-fade-up px-4 py-7 sm:px-8 sm:py-8">
           <p className="text-center text-sm text-mist-500">
-            Log in to manage your advocacy rewards
+            Sign in or create your advocate account — same place for new and returning users.
           </p>
           <h1 className="mt-3 text-center font-display text-2xl font-bold uppercase tracking-tight text-white sm:text-4xl">
             Advocate portal.
@@ -52,11 +52,18 @@ export default function AuthPage() {
             <SignIn />
           </div>
 
-          <div className="mt-6 flex flex-col gap-2 text-xs text-mist-500 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <Link href="/register" className="hover:text-mist-300">
-              No business account? Register →
-            </Link>
-            <span className="text-mist-600">No fees — ever</span>
+          <div className="mt-6 space-y-2 text-center text-xs text-mist-500">
+            <p>
+              First time here? Pick email or a provider above — we&apos;ll set up your wallet
+              automatically.
+            </p>
+            <p>
+              Run a business?{" "}
+              <Link href="/waitlist" className="text-mist-300 underline underline-offset-4 hover:text-white">
+                Join the waitlist
+              </Link>
+            </p>
+            <p className="text-mist-600">No fees — ever</p>
           </div>
         </div>
       </div>
