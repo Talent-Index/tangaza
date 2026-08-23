@@ -516,6 +516,11 @@ export interface RewardTier {
   perk: string;
   icon: string;
   thresholdWeight: number;
+  // The off-chain reward this level unlocks — any amount, currency, form. All optional
+  // so perk-only levels created before 012 keep working.
+  amount?: number;
+  currency?: string;
+  rewardKind?: string;
 }
 
 const toTier = (r: Record<string, unknown>): RewardTier => ({
@@ -526,6 +531,9 @@ const toTier = (r: Record<string, unknown>): RewardTier => ({
   perk: r.perk as string,
   icon: r.icon as string,
   thresholdWeight: Number(r.threshold_weight),
+  amount: r.amount == null ? undefined : Number(r.amount),
+  currency: (r.currency as string) ?? undefined,
+  rewardKind: (r.reward_kind as string) ?? undefined,
 });
 
 export async function listRewardTiers(orgId: string): Promise<RewardTier[]> {
@@ -541,14 +549,21 @@ export async function upsertRewardTier(input: {
   perk: string;
   icon?: string;
   thresholdWeight: number;
+  amount?: number | null;
+  currency?: string | null;
+  rewardKind?: string | null;
 }): Promise<RewardTier> {
   const rows = await sql`
-    insert into reward_tiers (org_id, level, name, perk, icon, threshold_weight)
+    insert into reward_tiers
+      (org_id, level, name, perk, icon, threshold_weight, amount, currency, reward_kind)
     values (${input.orgId}, ${input.level}, ${input.name}, ${input.perk},
-            ${input.icon ?? "★"}, ${input.thresholdWeight})
+            ${input.icon ?? "★"}, ${input.thresholdWeight},
+            ${input.amount ?? null}, ${input.currency ?? null}, ${input.rewardKind ?? null})
     on conflict (org_id, level) do update
       set name = excluded.name, perk = excluded.perk, icon = excluded.icon,
-          threshold_weight = excluded.threshold_weight
+          threshold_weight = excluded.threshold_weight,
+          amount = excluded.amount, currency = excluded.currency,
+          reward_kind = excluded.reward_kind
     returning *`;
   return toTier((rows as Array<Record<string, unknown>>)[0]);
 }
@@ -931,6 +946,25 @@ export async function getApplication(id: string): Promise<OrgApplication | undef
     Record<string, unknown>
   >;
   return rows[0] ? toApplication(rows[0]) : undefined;
+}
+
+/** The editable display name a business set, if any. Null falls back to the on-chain name. */
+export async function getOrgDisplayName(orgId: string): Promise<string | null> {
+  const rows = (await sql`select display_name from orgs where id = ${orgId}`) as Array<
+    Record<string, unknown>
+  >;
+  const name = rows[0]?.display_name;
+  return name ? String(name) : null;
+}
+
+/**
+ * Set (or clear, with null) a business's editable display name. Upserts the orgs row so
+ * it works even for the seeded pilot org, which has no orgs row until someone writes one.
+ */
+export async function setOrgDisplayName(orgId: string, name: string | null): Promise<void> {
+  await sql`insert into orgs (id, name, display_name)
+            values (${orgId}, ${name ?? ""}, ${name})
+            on conflict (id) do update set display_name = excluded.display_name`;
 }
 
 /** Called once registerOrg has landed on-chain, with the orgId it returned. */
