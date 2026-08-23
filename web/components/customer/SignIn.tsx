@@ -23,6 +23,8 @@ const EXTERNAL_WALLETS = [
     mark: "🔺",
     installUrl: "https://core.app",
     installHost: "core.app",
+    hint: "Connect your Avalanche Core extension. You sign transactions in Core and pay gas from that wallet.",
+    installHint: "Install Core for Avalanche — then connect here to use your browser wallet.",
   },
   {
     wallet: metamaskWallet,
@@ -31,8 +33,16 @@ const EXTERNAL_WALLETS = [
     mark: "🦊",
     installUrl: "https://metamask.io/download",
     installHost: "metamask.io",
+    hint: "Connect MetaMask as your browser wallet. You approve each action in the extension.",
+    installHint: "Install MetaMask, then return here to connect your existing wallet.",
   },
 ] as const;
+
+const SOCIAL_HINTS = {
+  google:
+    "One tap with Google. No seed phrase — we create a secure wallet tied to your Google account.",
+  x: "Sign in with X. Good if you advocate on social — same account, no password to remember.",
+} as const;
 
 /**
  * Social sign-in. One tap, no seed phrase, no gas — the whole point of the demo.
@@ -235,6 +245,7 @@ export function SignIn() {
         <div className="flex flex-wrap items-center justify-center gap-3">
           <IconAuthButton
             label="Google"
+            hint={SOCIAL_HINTS.google}
             disabled={busy}
             onClick={() => void connectWith({ client, chain: CHAIN, strategy: "google" })}
           >
@@ -243,6 +254,7 @@ export function SignIn() {
 
           <IconAuthButton
             label="X"
+            hint={SOCIAL_HINTS.x}
             disabled={busy}
             onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
           >
@@ -254,13 +266,19 @@ export function SignIn() {
               <IconAuthButton
                 key={entry.id}
                 label={entry.label}
+                hint={entry.hint}
                 disabled={busy}
                 onClick={() => connectExternal(entry)}
               >
                 <span className="text-lg" aria-hidden>{entry.mark}</span>
               </IconAuthButton>
             ) : (
-              <IconAuthButton key={entry.id} label={`Get ${entry.label}`} href={entry.installUrl}>
+              <IconAuthButton
+                key={entry.id}
+                label={`Get ${entry.label}`}
+                hint={entry.installHint}
+                href={entry.installUrl}
+              >
                 <span className="text-lg opacity-60" aria-hidden>{entry.mark}</span>
               </IconAuthButton>
             )
@@ -298,44 +316,59 @@ function PortalField({
 
 function IconAuthButton({
   label,
+  hint,
   disabled,
   onClick,
   href,
   children,
 }: {
   label: string;
+  hint?: string;
   disabled?: boolean;
   onClick?: () => void;
   href?: string;
   children: React.ReactNode;
 }) {
-  const className =
+  const buttonClass =
     "grid size-12 place-items-center rounded-full border border-ink-600 bg-ink-850/80 text-mist-100 transition hover:border-ink-500 hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-45";
 
-  if (href) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={label}
-        className={className}
-      >
-        {children}
-      </a>
-    );
-  }
-
-  return (
+  const control = href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className={buttonClass}
+    >
+      {children}
+    </a>
+  ) : (
     <button
       type="button"
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={className}
+      className={buttonClass}
     >
       {children}
     </button>
+  );
+
+  return (
+    <div className="group relative flex flex-col items-center">
+      {control}
+      {hint ? (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-[11.5rem] -translate-x-1/2 rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-center text-[11px] leading-snug text-mist-300 opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-48"
+        >
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-mist-100">
+            {label}
+          </span>
+          {hint}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
