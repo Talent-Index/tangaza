@@ -99,7 +99,7 @@ function OrgSignedOut() {
             <BrandMark className="text-sm sm:text-base" />
           </div>
           <Link
-            href="/"
+            href="/auth"
             className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
           >
             Advocate portal →

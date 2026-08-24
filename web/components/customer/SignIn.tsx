@@ -6,7 +6,7 @@ import { injectedProvider } from "thirdweb/wallets";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
 import { CHAIN } from "@/lib/chain";
 import { client, coreWallet, metamaskWallet, wallets } from "@/lib/client";
-import { Button, ErrorNote, Spinner } from "@/components/ui";
+import { ErrorNote, Spinner } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
 /**
@@ -23,6 +23,8 @@ const EXTERNAL_WALLETS = [
     mark: "🔺",
     installUrl: "https://core.app",
     installHost: "core.app",
+    hint: "Connect your Avalanche Core extension. You sign transactions in Core and pay gas from that wallet.",
+    installHint: "Install Core for Avalanche — then connect here to use your browser wallet.",
   },
   {
     wallet: metamaskWallet,
@@ -31,8 +33,16 @@ const EXTERNAL_WALLETS = [
     mark: "🦊",
     installUrl: "https://metamask.io/download",
     installHost: "metamask.io",
+    hint: "Connect MetaMask as your browser wallet. You approve each action in the extension.",
+    installHint: "Install MetaMask, then return here to connect your existing wallet.",
   },
 ] as const;
+
+const SOCIAL_HINTS = {
+  google:
+    "One tap with Google. No seed phrase — we create a secure wallet tied to your Google account.",
+  x: "Sign in with X. Good if you advocate on social — same account, no password to remember.",
+} as const;
 
 /**
  * Social sign-in. One tap, no seed phrase, no gas — the whole point of the demo.
@@ -58,8 +68,8 @@ export function SignIn() {
   const { success, error: toastError } = useToast();
   const wasConnecting = useRef(false);
 
-  // Email is a two-step OTP, so it needs somewhere to live. Google and X are one tap.
-  const [emailStage, setEmailStage] = useState<"hidden" | "address" | "code">("hidden");
+  // Email is a two-step OTP. Shown first in the portal layout; Google/X/wallets stay one tap below.
+  const [emailStage, setEmailStage] = useState<"hidden" | "address" | "code">("address");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -159,91 +169,42 @@ export function SignIn() {
   }
 
   return (
-    <div className="space-y-3 text-left">
-      <Button
-        className="w-full"
-        disabled={busy}
-        onClick={() =>
-          void connectWith({ client, chain: CHAIN, strategy: "google" })
-        }
-      >
-        {isConnecting ? <Spinner /> : <GoogleLogo />}
-        Continue with Google
-      </Button>
-
-      <Button
-        variant="ghost"
-        className="w-full"
-        disabled={busy}
-        onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
-      >
-        <XLogo />
-        Continue with 𝕏
-      </Button>
-
-      {EXTERNAL_WALLETS.map((entry) =>
-        installed.includes(entry.id) ? (
-          <Button
-            key={entry.id}
-            variant="ghost"
-            className="w-full"
-            disabled={busy}
-            onClick={() => connectExternal(entry)}
-          >
-            Continue with {entry.label} {entry.mark}
-          </Button>
-        ) : (
-          <a
-            key={entry.id}
-            href={entry.installUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full rounded-full border border-ink-600 py-3 text-center text-sm font-semibold text-mist-400 transition hover:border-ink-500 hover:text-mist-200"
-          >
-            Get {entry.label} {entry.mark}{" "}
-            <span className="font-normal text-mist-500">— {entry.installHost}</span>
-          </a>
-        )
-      )}
-
-      {emailStage === "hidden" ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setEmailStage("address")}
-          className="flex w-full items-center justify-center gap-2 py-1 text-center text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300 disabled:opacity-45"
-        >
-          <EmailLogo />
-          Use my email instead
-        </button>
-      ) : null}
-
+    <div className="space-y-6 text-left">
       {emailStage === "address" ? (
-        <form onSubmit={sendCode} className="flex gap-2">
-          <input
-            type="email"
-            required
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="min-w-0 flex-1 rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-          />
-          <Button type="submit" variant="ghost" disabled={busy || !email}>
-            {sending ? <Spinner /> : null}
-            Send code
-          </Button>
+        <form onSubmit={sendCode} className="space-y-4">
+          <PortalField label="Email address" required>
+            <input
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className={portalInput}
+            />
+          </PortalField>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="submit"
+              disabled={busy || !email.trim()}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0a1428] transition hover:bg-[#e8eef7] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {sending ? <Spinner /> : null}
+              Send code
+            </button>
+          </div>
         </form>
       ) : null}
 
       {emailStage === "code" ? (
-        <form onSubmit={verifyCode} className="space-y-2">
-          <p className="text-xs text-mist-500">
-            We sent a code to <span className="text-mist-300">{email}</span>.
+        <form onSubmit={verifyCode} className="space-y-4">
+          <p className="text-sm text-mist-400">
+            Code sent to <span className="text-mist-200">{email}</span>
           </p>
-          <div className="flex gap-2">
+
+          <PortalField label="Verification code" required>
             <input
-              // Not type="number": leading zeros matter and phones show the wrong keypad.
               inputMode="numeric"
               autoComplete="one-time-code"
               required
@@ -251,28 +212,162 @@ export function SignIn() {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               placeholder="6-digit code"
-              className="tabular min-w-0 flex-1 rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+              className={`tabular ${portalInput}`}
             />
-            <Button type="submit" disabled={busy || !code}>
+          </PortalField>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setCode("");
+                setEmailStage("address");
+              }}
+              className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200 disabled:opacity-45"
+            >
+              Use a different email
+            </button>
+            <button
+              type="submit"
+              disabled={busy || !code}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0a1428] transition hover:bg-[#e8eef7] disabled:cursor-not-allowed disabled:opacity-50"
+            >
               {isConnecting ? <Spinner /> : null}
               Sign in
-            </Button>
+            </button>
           </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setCode("");
-              setEmailStage("address");
-            }}
-            className="text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300 disabled:opacity-45"
-          >
-            Use a different email
-          </button>
         </form>
       ) : null}
 
+      <div className="space-y-3">
+        <p className="text-center text-xs text-mist-500">Or continue with</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <IconAuthButton
+            label="Google"
+            hint={SOCIAL_HINTS.google}
+            disabled={busy}
+            onClick={() => void connectWith({ client, chain: CHAIN, strategy: "google" })}
+          >
+            {isConnecting ? <Spinner className="size-5" /> : <GoogleLogo />}
+          </IconAuthButton>
+
+          <IconAuthButton
+            label="X"
+            hint={SOCIAL_HINTS.x}
+            disabled={busy}
+            onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
+          >
+            <XLogo />
+          </IconAuthButton>
+
+          {EXTERNAL_WALLETS.map((entry) =>
+            installed.includes(entry.id) ? (
+              <IconAuthButton
+                key={entry.id}
+                label={entry.label}
+                hint={entry.hint}
+                disabled={busy}
+                onClick={() => connectExternal(entry)}
+              >
+                <span className="text-lg" aria-hidden>{entry.mark}</span>
+              </IconAuthButton>
+            ) : (
+              <IconAuthButton
+                key={entry.id}
+                label={`Get ${entry.label}`}
+                hint={entry.installHint}
+                href={entry.installUrl}
+              >
+                <span className="text-lg opacity-60" aria-hidden>{entry.mark}</span>
+              </IconAuthButton>
+            )
+          )}
+        </div>
+      </div>
+
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+    </div>
+  );
+}
+
+const portalInput =
+  "w-full rounded-lg border-0 bg-[#e8eef7] px-4 py-3.5 text-sm text-[#0a1428] outline-none placeholder:text-[#5a6b84] focus:ring-2 focus:ring-crimson-500/50";
+
+function PortalField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm text-mist-100">
+        {label}
+        {required ? <span className="text-mist-400"> *</span> : null}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function IconAuthButton({
+  label,
+  hint,
+  disabled,
+  onClick,
+  href,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  href?: string;
+  children: React.ReactNode;
+}) {
+  const buttonClass =
+    "grid size-12 place-items-center rounded-full border border-ink-600 bg-ink-850/80 text-mist-100 transition hover:border-ink-500 hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-45";
+
+  const control = href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className={buttonClass}
+    >
+      {children}
+    </a>
+  ) : (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={buttonClass}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="group relative flex flex-col items-center">
+      {control}
+      {hint ? (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-[11.5rem] -translate-x-1/2 rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-center text-[11px] leading-snug text-mist-300 opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-48"
+        >
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-mist-100">
+            {label}
+          </span>
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -282,7 +377,7 @@ function GoogleLogo() {
     <svg
       aria-hidden
       viewBox="0 0 24 24"
-      className="size-4 shrink-0"
+      className="size-5 shrink-0"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
@@ -314,21 +409,6 @@ function XLogo() {
       xmlns="http://www.w3.org/2000/svg"
     >
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.743l7.727-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
-function EmailLogo() {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      className="size-3.5 shrink-0 fill-none stroke-current"
-      strokeWidth="1.8"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="m4 7 8 6 8-6" />
     </svg>
   );
 }
