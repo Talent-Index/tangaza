@@ -17,6 +17,7 @@ import type { OrgAccess } from "@/lib/reads";
 const NAV = [
   { href: "/org/overview", label: "Overview" },
   { href: "/org/campaigns", label: "Campaigns" },
+  { href: "/org/pilot", label: "Referral pilot" },
   { href: "/org", label: "Approvals" },
   { href: "/org/liability", label: "Liability" },
   { href: "/org/clients", label: "Clients" },

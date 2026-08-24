@@ -999,6 +999,148 @@ export async function setOrgDisplayName(orgId: string, name: string | null): Pro
             on conflict (id) do update set display_name = excluded.display_name`;
 }
 
+/* ------------------------------------------------- M-Pesa referral pilot (C2B) */
+
+/** A share code → its referrer + org, with NO click side-effect (unlike resolveShareCode). */
+export async function resolveReferralCode(
+  code: string
+): Promise<{ sharer: string; orgId: string; campaignId: string } | undefined> {
+  const rows = (await sql`
+    select sharer, org_id, campaign_id from campaign_shares
+    where code = ${code.trim().toUpperCase()}`) as Array<Record<string, unknown>>;
+  const r = rows[0];
+  return r
+    ? { sharer: String(r.sharer), orgId: String(r.org_id), campaignId: String(r.campaign_id) }
+    : undefined;
+}
+
+/** Which merchant a Till/shortcode belongs to. */
+export async function getOrgByShortcode(shortcode: string): Promise<string | undefined> {
+  const rows = (await sql`select id from orgs where till_shortcode = ${shortcode}`) as Array<
+    Record<string, unknown>
+  >;
+  return rows[0] ? String(rows[0].id) : undefined;
+}
+
+export interface OrgMpesaConfig {
+  tillShortcode?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  rewardKind?: string;
+}
+
+export async function getOrgMpesaConfig(orgId: string): Promise<OrgMpesaConfig> {
+  const rows = (await sql`
+    select till_shortcode, referral_reward_amount, referral_reward_currency, referral_reward_kind
+    from orgs where id = ${orgId}`) as Array<Record<string, unknown>>;
+  const r = rows[0];
+  return {
+    tillShortcode: (r?.till_shortcode as string) ?? undefined,
+    rewardAmount: r?.referral_reward_amount == null ? undefined : Number(r.referral_reward_amount),
+    rewardCurrency: (r?.referral_reward_currency as string) ?? undefined,
+    rewardKind: (r?.referral_reward_kind as string) ?? undefined,
+  };
+}
+
+export async function setOrgMpesaConfig(orgId: string, cfg: OrgMpesaConfig): Promise<void> {
+  await sql`
+    insert into orgs (id, name, till_shortcode, referral_reward_amount,
+                      referral_reward_currency, referral_reward_kind)
+    values (${orgId}, '', ${cfg.tillShortcode ?? null}, ${cfg.rewardAmount ?? null},
+            ${cfg.rewardCurrency ?? null}, ${cfg.rewardKind ?? null})
+    on conflict (id) do update set
+      till_shortcode = excluded.till_shortcode,
+      referral_reward_amount = excluded.referral_reward_amount,
+      referral_reward_currency = excluded.referral_reward_currency,
+      referral_reward_kind = excluded.referral_reward_kind`;
+}
+
+export interface MpesaPayment {
+  id: string;
+  transId: string;
+  shortcode: string;
+  orgId?: string;
+  amount: number;
+  msisdn?: string;
+  firstName?: string;
+  billRef?: string;
+  referralCode?: string;
+  referrer?: string;
+  verified: boolean;
+  createdAt: string;
+}
+
+const toPayment = (r: Record<string, unknown>): MpesaPayment => ({
+  id: r.id as string,
+  transId: r.trans_id as string,
+  shortcode: r.shortcode as string,
+  orgId: r.org_id == null ? undefined : String(r.org_id),
+  amount: Number(r.amount ?? 0),
+  msisdn: (r.msisdn as string) ?? undefined,
+  firstName: (r.first_name as string) ?? undefined,
+  billRef: (r.bill_ref as string) ?? undefined,
+  referralCode: (r.referral_code as string) ?? undefined,
+  referrer: (r.referrer as string) ?? undefined,
+  verified: Boolean(r.verified),
+  createdAt: new Date(r.created_at as string).toISOString(),
+});
+
+/**
+ * Record a C2B confirmation, idempotent on Daraja's TransID (retried callbacks are
+ * no-ops). Matches the typed account/reference to a referral code → referrer; a match
+ * marks the payment a VERIFIED referred purchase. Resolves the merchant from the code's
+ * org, falling back to the Till/shortcode.
+ */
+export async function recordMpesaPayment(input: {
+  transId: string;
+  shortcode: string;
+  amount: number;
+  msisdn?: string;
+  firstName?: string;
+  billRef?: string;
+}): Promise<MpesaPayment> {
+  const code = input.billRef?.trim().toUpperCase() || null;
+  const referral = code ? await resolveReferralCode(code) : undefined;
+  const orgId = referral?.orgId ?? (await getOrgByShortcode(input.shortcode));
+
+  const rows = (await sql`
+    insert into mpesa_payments
+      (trans_id, shortcode, org_id, amount, msisdn, first_name, bill_ref, referral_code,
+       referrer, verified)
+    values (${input.transId}, ${input.shortcode}, ${orgId ?? null}, ${input.amount},
+            ${input.msisdn ?? null}, ${input.firstName ?? null}, ${input.billRef ?? null},
+            ${referral ? code : null}, ${referral?.sharer ?? null}, ${Boolean(referral)})
+    on conflict (trans_id) do nothing
+    returning *`) as Array<Record<string, unknown>>;
+
+  if (rows[0]) return toPayment(rows[0]);
+  // Already recorded (idempotent replay): return the stored row.
+  const existing = (await sql`
+    select * from mpesa_payments where trans_id = ${input.transId}`) as Array<
+    Record<string, unknown>
+  >;
+  return toPayment(existing[0]);
+}
+
+/** Verified referred purchases for a merchant, newest first — the "who's owed" list. */
+export async function listReferredPurchases(orgId: string, limit = 100): Promise<MpesaPayment[]> {
+  const rows = (await sql`
+    select * from mpesa_payments
+    where org_id = ${orgId} and verified = true
+    order by created_at desc limit ${limit}`) as Array<Record<string, unknown>>;
+  return rows.map(toPayment);
+}
+
+/** Pilot metric: verified referred purchases vs total payments seen for a merchant. */
+export async function countMpesaReferrals(
+  orgId: string
+): Promise<{ verified: number; total: number }> {
+  const rows = (await sql`
+    select count(*) filter (where verified)::int as verified, count(*)::int as total
+    from mpesa_payments where org_id = ${orgId}`) as Array<Record<string, unknown>>;
+  return { verified: Number(rows[0]?.verified ?? 0), total: Number(rows[0]?.total ?? 0) };
+}
+
 /** Called once registerOrg has landed on-chain, with the orgId it returned. */
 export async function markApplicationRegistered(
   id: string,
