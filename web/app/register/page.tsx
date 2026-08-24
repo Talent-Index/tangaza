@@ -151,21 +151,29 @@ function ApplyForm({ address }: { address: string }) {
           <>
             <p className="text-xl font-bold">{name} is live on Avalanche</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
-              Registered as org #{done.orgId} with a {kesLabel(cap)} budget that can never
-              be raised. Your wallet is the approver — open the business portal and your
-              queue is already there.
+              Registered as org #{done.orgId}, and your wallet is the approver. Next: set up
+              your rewards — choose the activities you want people to do, and what each one
+              earns (cash or an incentive like merch, a voucher or a discount).
             </p>
             {done.txHash ? (
               <div className="mt-5 flex justify-center">
                 <TxReceipt hash={done.txHash} label="Registration" />
               </div>
             ) : null}
-            <Link
-              href="/org"
-              className="mt-6 inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
-            >
-              Open the business portal →
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/org/settings"
+                className="inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
+              >
+                Set up your rewards →
+              </Link>
+              <Link
+                href="/org"
+                className="inline-block rounded-full border border-ink-600 px-5 py-3 text-sm font-medium text-mist-300 transition hover:border-ink-500"
+              >
+                Business portal
+              </Link>
+            </div>
           </>
         ) : (
           <>

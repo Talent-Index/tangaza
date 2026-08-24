@@ -521,6 +521,10 @@ export interface RewardTier {
   amount?: number;
   currency?: string;
   rewardKind?: string;
+  // Per-activity goal (013): when set, this reward is reached by doing a specific
+  // engagement `targetCount` times, rather than by total weighted activity.
+  engagementTypeId?: string;
+  targetCount?: number;
 }
 
 const toTier = (r: Record<string, unknown>): RewardTier => ({
@@ -534,6 +538,8 @@ const toTier = (r: Record<string, unknown>): RewardTier => ({
   amount: r.amount == null ? undefined : Number(r.amount),
   currency: (r.currency as string) ?? undefined,
   rewardKind: (r.reward_kind as string) ?? undefined,
+  engagementTypeId: (r.engagement_type_id as string) ?? undefined,
+  targetCount: r.target_count == null ? undefined : Number(r.target_count),
 });
 
 export async function listRewardTiers(orgId: string): Promise<RewardTier[]> {
@@ -552,20 +558,46 @@ export async function upsertRewardTier(input: {
   amount?: number | null;
   currency?: string | null;
   rewardKind?: string | null;
+  engagementTypeId?: string | null;
+  targetCount?: number | null;
 }): Promise<RewardTier> {
   const rows = await sql`
     insert into reward_tiers
-      (org_id, level, name, perk, icon, threshold_weight, amount, currency, reward_kind)
+      (org_id, level, name, perk, icon, threshold_weight, amount, currency, reward_kind,
+       engagement_type_id, target_count)
     values (${input.orgId}, ${input.level}, ${input.name}, ${input.perk},
             ${input.icon ?? "★"}, ${input.thresholdWeight},
-            ${input.amount ?? null}, ${input.currency ?? null}, ${input.rewardKind ?? null})
+            ${input.amount ?? null}, ${input.currency ?? null}, ${input.rewardKind ?? null},
+            ${input.engagementTypeId ?? null}, ${input.targetCount ?? null})
     on conflict (org_id, level) do update
       set name = excluded.name, perk = excluded.perk, icon = excluded.icon,
           threshold_weight = excluded.threshold_weight,
           amount = excluded.amount, currency = excluded.currency,
-          reward_kind = excluded.reward_kind
+          reward_kind = excluded.reward_kind,
+          engagement_type_id = excluded.engagement_type_id,
+          target_count = excluded.target_count
     returning *`;
   return toTier((rows as Array<Record<string, unknown>>)[0]);
+}
+
+/**
+ * How many APPROVED submissions of each engagement an advocate has, for measuring
+ * per-activity goals ("5 referrals → …"). Keyed off the same approved submissions the
+ * on-chain attestation backs. Returns a map of engagementTypeId → approved count.
+ */
+export async function listAdvocateActivityProgress(
+  orgId: string,
+  address: string
+): Promise<Record<string, number>> {
+  const rows = (await sql`
+    select engagement_type_id, count(*)::int as approved
+    from submissions
+    where org_id = ${orgId} and advocate = ${address.toLowerCase()}
+      and status = 'approved' and engagement_type_id is not null
+    group by engagement_type_id`) as Array<Record<string, unknown>>;
+  const out: Record<string, number> = {};
+  for (const r of rows) out[String(r.engagement_type_id)] = Number(r.approved);
+  return out;
 }
 
 /** Remove a level. Scoped to the org so an id alone cannot touch another business. */

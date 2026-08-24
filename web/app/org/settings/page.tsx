@@ -39,8 +39,12 @@ function Settings() {
       <div>
         <h1 className="text-2xl font-black md:text-3xl">Rewards setup</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
-          Define what {orgName || "you"} reward{orgName ? "s" : ""} and the levels advocates
-          climb. Campaigns are managed separately under{" "}
+          Two steps: <span className="text-mist-300">1)</span> add the{" "}
+          <span className="text-mist-300">activities</span> you want people to do, then{" "}
+          <span className="text-mist-300">2)</span> set the{" "}
+          <span className="text-mist-300">goals</span> — a total, or a specific activity a
+          number of times (e.g. 5 referrals) — and what each earns: cash or an incentive
+          like merch, a voucher or a discount. Campaigns live under{" "}
           <a href="/org/campaigns" className="text-crimson-400 hover:text-crimson-300">
             Campaigns
           </a>
@@ -282,6 +286,8 @@ interface LadderTier {
   amount?: number;
   currency?: string;
   rewardKind?: string;
+  engagementTypeId?: string;
+  targetCount?: number;
 }
 
 const EMPTY_TIER = {
@@ -289,7 +295,8 @@ const EMPTY_TIER = {
   name: "",
   perk: "",
   icon: "★",
-  thresholdWeight: 5,
+  count: 5, // activities needed (total, or of the chosen activity)
+  goalEngagementId: "", // "" = total activities; else a specific engagement
   amount: "" as number | "",
   currency: "KES",
   rewardKind: "cash",
@@ -297,6 +304,7 @@ const EMPTY_TIER = {
 
 function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
+  const engagements = useEngagementTypes(orgId);
   const account = useActiveAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -305,13 +313,15 @@ function TierEditor({ orgId }: { orgId: bigint }) {
   const [form, setForm] = useState(EMPTY_TIER);
 
   function startEdit(t: LadderTier) {
+    const perActivity = Boolean(t.engagementTypeId);
     setEditingId(t.id);
     setForm({
       level: t.level,
       name: t.name,
       perk: t.perk,
       icon: t.icon,
-      thresholdWeight: t.thresholdWeight,
+      count: perActivity ? t.targetCount ?? 1 : t.thresholdWeight,
+      goalEngagementId: t.engagementTypeId ?? "",
       amount: t.amount ?? "",
       currency: t.currency ?? "KES",
       rewardKind: t.rewardKind ?? "cash",
@@ -338,8 +348,16 @@ function TierEditor({ orgId }: { orgId: bigint }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orgId: String(orgId),
-          ...form,
+          level: form.level,
+          name: form.name,
+          perk: form.perk,
+          icon: form.icon,
+          thresholdWeight: form.count,
+          engagementTypeId: form.goalEngagementId || null,
+          targetCount: form.goalEngagementId ? form.count : null,
           amount: form.amount === "" ? null : Number(form.amount),
+          currency: form.currency,
+          rewardKind: form.rewardKind,
           ...auth,
         }),
       });
@@ -379,10 +397,16 @@ function TierEditor({ orgId }: { orgId: bigint }) {
   }
 
   const ladder = (tiers.data?.tiers ?? []) as LadderTier[];
+  const types = engagements.data ?? [];
+  const typeLabel = (id?: string) => types.find((x) => x.id === id)?.label ?? "activity";
+  const goalText = (t: LadderTier) =>
+    t.engagementTypeId
+      ? `after ${t.targetCount} ${typeLabel(t.engagementTypeId)}`
+      : `after ${t.thresholdWeight} activities`;
 
   return (
     <section>
-      <SectionTitle>Levels</SectionTitle>
+      <SectionTitle>Levels &amp; goals</SectionTitle>
       <ul className="mb-4 space-y-2">
         {ladder.map((t) => (
           <li key={t.id}>
@@ -392,10 +416,7 @@ function TierEditor({ orgId }: { orgId: bigint }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">
-                  {t.name}{" "}
-                  <span className="font-normal text-mist-500">
-                    after {t.thresholdWeight} activities
-                  </span>
+                  {t.name} <span className="font-normal text-mist-500">{goalText(t)}</span>
                 </p>
                 <p className="truncate text-xs text-mist-500">
                   {t.amount != null || t.rewardKind ? (
@@ -453,31 +474,59 @@ function TierEditor({ orgId }: { orgId: bigint }) {
             className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-center text-sm outline-none focus:border-crimson-500"
             aria-label="Icon"
           />
+          {/* The goal: a total activity count, or a specific activity N times. */}
+          <select
+            value={form.goalEngagementId}
+            onChange={(e) => setForm({ ...form, goalEngagementId: e.target.value })}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+            aria-label="Goal — which activity"
+          >
+            <option value="">Any activity (total)</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.icon} {t.label}
+              </option>
+            ))}
+          </select>
           <input
             type="number"
-            min={0}
-            value={form.thresholdWeight}
-            onChange={(e) => setForm({ ...form, thresholdWeight: Number(e.target.value) })}
+            min={1}
+            value={form.count}
+            onChange={(e) => setForm({ ...form, count: Number(e.target.value) })}
             className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
-            aria-label="Activities needed to reach this level"
-            title="Activities needed to reach this level"
+            aria-label="How many needed"
+            title={
+              form.goalEngagementId
+                ? `How many ${typeLabel(form.goalEngagementId)} to reach this level`
+                : "Total activities to reach this level"
+            }
+            placeholder="How many"
           />
           <Button type="submit" disabled={saving || !form.name.trim() || !form.perk.trim()}>
             {saving ? "…" : editingId ? "Save" : "Add"}
           </Button>
 
-          {/* The reward this level unlocks — any form, any currency, honoured off-chain. */}
+          {/* The reward this level unlocks — cash or an incentive, any currency, off-chain. */}
           <select
             value={form.rewardKind}
             onChange={(e) => setForm({ ...form, rewardKind: e.target.value })}
             className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
             aria-label="Reward type"
           >
-            {PAYOUT_KINDS.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.icon} {k.label}
-              </option>
-            ))}
+            <optgroup label="Cash">
+              {PAYOUT_KINDS.filter((k) => k.id === "cash").map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.icon} {k.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Incentive">
+              {PAYOUT_KINDS.filter((k) => k.id !== "cash").map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.icon} {k.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <input
             type="number"
