@@ -427,6 +427,17 @@ function CampaignDetailPanel({
   const live = isCampaignLive(c);
   const publicUrl =
     typeof window !== "undefined" ? `${window.location.origin}/c/${c.slug}` : `/c/${c.slug}`;
+  const [copied, setCopied] = useState(false);
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard?.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the link is shown for manual copy */
+    }
+  }
 
   const counted = c.engagementTypeIds.length
     ? types.filter((t) => c.engagementTypeIds.includes(t.id))
@@ -519,6 +530,24 @@ function CampaignDetailPanel({
           ) : null}
         </div>
 
+        {/* The broadcast invite: send this to people so they join the campaign. */}
+        <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-400">
+            Invite link — send this so people join
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-ink-850 px-3 py-2 text-xs text-crimson-300">
+              {publicUrl}
+            </code>
+            <Button type="button" variant="ghost" onClick={copyInvite}>
+              {copied ? "Copied ✓" : "Copy"}
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] text-mist-500">
+            Anyone who opens it can join. Everything they do then shows in Activity below.
+          </p>
+        </div>
+
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
             How to participate
@@ -567,6 +596,7 @@ function CampaignDetailPanel({
 
         <CampaignSharers campaignId={c.id} />
         <CampaignRoster campaignId={c.id} orgId={orgId} />
+        <CampaignActivity campaignId={c.id} />
       </div>
     </div>
   );
@@ -704,6 +734,72 @@ function CampaignRoster({ campaignId, orgId }: { campaignId: string; orgId: bigi
         ))}
         {participants.length > 10 ? (
           <li className="text-xs text-mist-600">…and {participants.length - 10} more</li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+interface ActivityRow {
+  advocate: string;
+  name?: string;
+  typeLabel: string;
+  typeIcon: string;
+  weight: number;
+  status: string;
+  submittedAt: string;
+}
+
+/** Every activity logged under this campaign — what people actually did, and its status. */
+function CampaignActivity({ campaignId }: { campaignId: string }) {
+  const [items, setItems] = useState<ActivityRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/campaigns/activity?campaignId=${campaignId}`)
+      .then((r) => (r.ok ? r.json() : { activity: [] }))
+      .then((j: { activity: ActivityRow[] }) => {
+        if (!cancelled) setItems(j.activity ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  if (items.length === 0) return null;
+
+  const badge = (status: string) =>
+    status === "approved"
+      ? "bg-jade-500/15 text-jade-400"
+      : status === "rejected"
+        ? "bg-ink-700 text-mist-500"
+        : "bg-crimson-500/15 text-crimson-300";
+
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+        Activity
+      </p>
+      <ul className="space-y-1">
+        {items.slice(0, 20).map((a, i) => (
+          <li key={i} className="flex items-center justify-between gap-3 text-xs text-mist-400">
+            <span className="min-w-0 truncate">
+              <span className="mr-1">{a.typeIcon}</span>
+              {a.name ?? `${a.advocate.slice(0, 6)}…${a.advocate.slice(-4)}`}
+              <span className="text-mist-500"> — {a.typeLabel}</span>
+            </span>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${badge(
+                a.status
+              )}`}
+            >
+              {a.status}
+            </span>
+          </li>
+        ))}
+        {items.length > 20 ? (
+          <li className="text-[11px] text-mist-600">…and {items.length - 20} more</li>
         ) : null}
       </ul>
     </div>

@@ -706,6 +706,39 @@ export async function getCampaignBySlug(slug: string): Promise<Campaign | undefi
   return rows[0] ? toCampaign(rows[0]) : undefined;
 }
 
+export interface CampaignActivity {
+  advocate: string;
+  name?: string;
+  typeLabel: string;
+  typeIcon: string;
+  weight: number;
+  status: string;
+  submittedAt: string;
+}
+
+/** Every activity logged under a campaign — what people actually did, newest first. */
+export async function listCampaignActivity(
+  campaignId: string,
+  limit = 50
+): Promise<CampaignActivity[]> {
+  const rows = (await sql`
+    select advocate, advocate_label, current_name, type_label, type_icon, weight, status,
+           submitted_at
+    from submissions
+    where campaign_id = ${campaignId}
+    order by submitted_at desc
+    limit ${limit}`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    advocate: r.advocate as string,
+    name: (r.current_name as string) ?? (r.advocate_label as string) ?? undefined,
+    typeLabel: r.type_label as string,
+    typeIcon: r.type_icon as string,
+    weight: Number(r.weight ?? 0),
+    status: r.status as string,
+    submittedAt: new Date(r.submitted_at as string).toISOString(),
+  }));
+}
+
 /** Joining is free and reversible — it only scopes what you see, never what you earn. */
 export async function joinCampaign(
   campaignId: string,
