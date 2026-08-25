@@ -372,6 +372,7 @@ export interface DirectoryEntry {
   lastSubmittedAt?: string;
   lastApprovedAt?: string;
   firstSeenAt?: string;
+  lastTxHash?: string;
 }
 
 /** The business's client list. */

@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
+import { txUrl } from "@/lib/chain";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 export default function OrgCampaignsPage() {
@@ -748,6 +749,7 @@ interface ActivityRow {
   weight: number;
   status: string;
   submittedAt: string;
+  txHash?: string;
 }
 
 /** Every activity logged under this campaign — what people actually did, and its status. */
@@ -789,12 +791,25 @@ function CampaignActivity({ campaignId }: { campaignId: string }) {
               {a.name ?? `${a.advocate.slice(0, 6)}…${a.advocate.slice(-4)}`}
               <span className="text-mist-500"> — {a.typeLabel}</span>
             </span>
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${badge(
-                a.status
-              )}`}
-            >
-              {a.status}
+            <span className="flex shrink-0 items-center gap-2">
+              {a.txHash ? (
+                <a
+                  href={txUrl(a.txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-jade-400 hover:text-jade-300"
+                  title="On-chain proof of this approval"
+                >
+                  proof ↗
+                </a>
+              ) : null}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${badge(
+                  a.status
+                )}`}
+              >
+                {a.status}
+              </span>
             </span>
           </li>
         ))}
