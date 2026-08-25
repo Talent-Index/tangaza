@@ -20,6 +20,7 @@ import { contract } from "@/lib/client";
 import { proofHashOf } from "@/lib/proof";
 import { awaitAccountDeployed, awaitSubmissionOnChain, findSubmissionOnChain } from "@/lib/recover-submission";
 import { FundsNotice } from "@/components/FundsGate";
+import { ProofImageField } from "@/components/ProofImageField";
 import { useFundsGate } from "@/lib/funds";
 import { useTwoPhaseSend } from "@/lib/send-two-phase";
 import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
@@ -436,18 +437,22 @@ function SubmitForm() {
             htmlFor="proof"
             className="block text-xs font-semibold uppercase tracking-[0.14em] text-mist-500"
           >
-            Link to your proof
+            {selected.proofKind === "screenshot" ? "Photo proof" : "Link to your proof"}
           </label>
-          <input
-            id="proof"
-            type="text"
-            inputMode="url"
-            required
-            value={proof}
-            onChange={(e) => setProof(e.target.value)}
-            placeholder={proofHint(selected.proofKind)}
-            className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-          />
+          {selected.proofKind === "screenshot" ? (
+            <ProofImageField value={proof} onChange={setProof} />
+          ) : (
+            <input
+              id="proof"
+              type="text"
+              inputMode="url"
+              required
+              value={proof}
+              onChange={(e) => setProof(e.target.value)}
+              placeholder={proofHint(selected.proofKind)}
+              className="w-full rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            />
+          )}
           <p className="text-xs text-mist-500">{proofBlurb(selected)}</p>
         </div>
       ) : null}
@@ -667,7 +672,7 @@ function proofBlurb(type: EngagementType) {
     case "social_link":
       return "Paste the link to your Instagram, TikTok or Facebook post.";
     case "screenshot":
-      return "Upload the screenshot somewhere and paste the link.";
+      return "Snap or upload a photo — a receipt, the items you bought, or your visit.";
     case "referral_code":
       return "Share your /s/ campaign link with them — tracking is automatic.";
     default:

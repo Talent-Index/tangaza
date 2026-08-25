@@ -107,7 +107,7 @@ export const PROOF_KINDS = [
   { id: "link", label: "Any link", hint: "https://…" },
   { id: "x_link", label: "Post on X", hint: "https://x.com/you/status/…" },
   { id: "social_link", label: "Instagram / TikTok / Facebook", hint: "https://…" },
-  { id: "screenshot", label: "Screenshot", hint: "Paste an image link" },
+  { id: "screenshot", label: "Photo / image", hint: "A photo — receipt, items, a visit" },
   {
     id: "referral_code",
     label: "Referral (share link)",
