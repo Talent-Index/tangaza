@@ -19,6 +19,7 @@ export const ORG_ACTIONS = {
   engagementSave: "engagement.save",
   engagementRetire: "engagement.retire",
   orgRename: "org.rename",
+  mpesaConfig: "mpesa.config",
 } as const;
 
 export type OrgAction = (typeof ORG_ACTIONS)[keyof typeof ORG_ACTIONS];
