@@ -2,7 +2,7 @@
 
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { Card, ConfigWarning, EmptyState, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
-import { addressUrl } from "@/lib/chain";
+import { addressUrl, txUrl } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { advocateName, shortAddress, timeAgo } from "@/lib/format";
 import { useDirectory, useTiers } from "@/lib/hooks";
@@ -109,9 +109,21 @@ function Directory() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="tabular hover:text-crimson-300"
+                          title="Wallet address"
                         >
-                          {shortAddress(p.advocate)} ↗
+                          {shortAddress(p.advocate)}
                         </a>
+                        {p.lastTxHash ? (
+                          <a
+                            href={txUrl(p.lastTxHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-jade-400 hover:text-jade-300"
+                            title="Latest approval on-chain — proof of activity"
+                          >
+                            proof ↗
+                          </a>
+                        ) : null}
                         {p.xUsername ? (
                           <a
                             href={`https://x.com/${p.xUsername}`}

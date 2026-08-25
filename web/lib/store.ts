@@ -479,14 +479,25 @@ export interface DirectoryEntry {
   lastSubmittedAt?: string;
   lastApprovedAt?: string;
   firstSeenAt?: string;
+  /** The advocate's most recent on-chain approval tx — real proof of their activity. */
+  lastTxHash?: string;
 }
 
 /** The business's contact list: who they are, what they're worth, how to find them. */
 export async function listDirectory(orgId: string, limit = 100): Promise<DirectoryEntry[]> {
+  // The directory view is aggregate; pull the latest approved submission's tx per
+  // advocate so the UI can link to on-chain proof (the advocate's OWN address is empty —
+  // approvals are sent by the org's approver, recorded as contract events).
   const rows = (await sql`
-    select * from advocate_directory
-    where org_id = ${orgId}
-    order by approved_weight desc nulls last, last_submitted_at desc nulls last
+    select d.*, (
+      select s.tx_hash from submissions s
+      where s.org_id = d.org_id and s.advocate = d.advocate
+        and s.status = 'approved' and s.tx_hash is not null
+      order by s.decided_at desc nulls last limit 1
+    ) as last_tx_hash
+    from advocate_directory d
+    where d.org_id = ${orgId}
+    order by d.approved_weight desc nulls last, d.last_submitted_at desc nulls last
     limit ${limit}`) as Array<Record<string, unknown>>;
 
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : undefined);
@@ -503,6 +514,7 @@ export async function listDirectory(orgId: string, limit = 100): Promise<Directo
     lastSubmittedAt: iso(r.last_submitted_at),
     lastApprovedAt: iso(r.last_approved_at),
     firstSeenAt: iso(r.first_seen_at),
+    lastTxHash: (r.last_tx_hash as string) ?? undefined,
   }));
 }
 
@@ -714,6 +726,8 @@ export interface CampaignActivity {
   weight: number;
   status: string;
   submittedAt: string;
+  /** The on-chain approval tx — proof of this activity. Only set once approved. */
+  txHash?: string;
 }
 
 /** Every activity logged under a campaign — what people actually did, newest first. */
@@ -723,7 +737,7 @@ export async function listCampaignActivity(
 ): Promise<CampaignActivity[]> {
   const rows = (await sql`
     select advocate, advocate_label, current_name, type_label, type_icon, weight, status,
-           submitted_at
+           tx_hash, submitted_at
     from submissions
     where campaign_id = ${campaignId}
     order by submitted_at desc
@@ -736,6 +750,7 @@ export async function listCampaignActivity(
     weight: Number(r.weight ?? 0),
     status: r.status as string,
     submittedAt: new Date(r.submitted_at as string).toISOString(),
+    txHash: (r.tx_hash as string) ?? undefined,
   }));
 }
 
