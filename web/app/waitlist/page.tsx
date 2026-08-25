@@ -11,9 +11,9 @@ const BENEFITS = [
     body: "Your best marketing is a happy customer telling a friend — and today you can't see it or reward it. We show you exactly which new customers a referral brought in.",
   },
   {
-    icon: "📲",
-    title: "Verified straight from your M-Pesa Till",
-    body: "A friend pays your Till, the referrer earns — matched automatically. No dashboard to babysit, no approvals to click, no new hardware.",
+    icon: "📊",
+    title: "Track every action, backed by proof",
+    body: "See exactly what each person did to earn a reward — the proof is right there. You're never guessing who did what, and you can track it all as a business.",
   },
   {
     icon: "🎁",
@@ -28,9 +28,9 @@ const BENEFITS = [
 ];
 
 const STEPS = [
-  "Your customer shares their personal link and gets a short code.",
-  "Their friend pays your Till and enters that code as the account number.",
-  "The referrer earns the reward you set — automatically, no work from you.",
+  "Someone takes an action for your business — refers a friend, spreads the word, brings people in.",
+  "It's captured with proof, so you can see exactly what happened and track it.",
+  "They earn the reward you set — automatically, no work from you.",
 ];
 
 export default function BusinessWaitlistPage() {
@@ -61,9 +61,9 @@ export default function BusinessWaitlistPage() {
           </h1>
           <p className="mt-4 text-base leading-relaxed text-mist-400">
             Ubu-Tangaza turns your customers into a referral engine you can actually
-            measure. When someone they referred pays your M-Pesa Till, we verify it and
-            the referrer earns the reward you chose — automatically. You run your shop; the
-            rewards run themselves.
+            measure. Every action someone takes for your business comes with proof — so you
+            can see exactly what happened, track it, and reward it your way. You run your
+            shop; the rewards run themselves.
           </p>
 
           <ul className="mt-8 space-y-5">
@@ -98,9 +98,9 @@ export default function BusinessWaitlistPage() {
 
           <p className="mt-8 text-sm leading-relaxed text-mist-500">
             <span className="font-semibold text-mist-300">Why we&rsquo;re a fit:</span> built
-            for Kenyan shops — coffee spots, salons, boutiques — on the M-Pesa Till you
-            already use. Nothing for your customers to download, nothing upfront, and you
-            only pay out on sales that actually happened.
+            for Kenyan shops — coffee spots, salons, boutiques. Nothing for your customers
+            to download, nothing upfront, and you only ever reward actions you can see
+            actually happened.
           </p>
         </div>
 
