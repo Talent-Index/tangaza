@@ -3,7 +3,7 @@
 Two videos, both already built as self-playing motion graphics:
 
 - `marketing-video.html` — 36s, evergreen, for X/Instagram/WhatsApp status and the website
-- `launch-video.html` — 58s, the announcement, for the launch post and partner outreach
+- `launch-video.html` — 63s, the announcement, for the launch post and partner outreach
 
 ## Making the MP4 (5 minutes)
 
@@ -22,23 +22,24 @@ Two videos, both already built as self-playing motion graphics:
 |---|---|---|
 | 0–5 | brand | "Ubu-Tangaza. What you say for your community — and what your community gives back." |
 | 5–11 | problem | "Your best customer brings five friends… and gets a handshake." |
-| 11–18 | loop | "Now she posts, refers, brings people in. You approve what's real. She earns airtime — real value, not points." |
-| 18–24 | cap | "And your reward budget? Fixed the day you set it. It can never overrun — the contract won't allow it." |
-| 24–30 | metric | "Fifteen shillings per verified new-customer action. Computed live. Compare that to your ad spend." |
-| 30–36 | CTA | "Run your first campaign free — at ubutangaza dot biz." |
+| 11–18 | loop | "Now she posts, refers, brings people in. You approve what's real. She earns a real reward — not points." |
+| 18–24 | cap | "And your reward budget? Fixed the day you set it. It can never overrun — going viral can't blow your costs." |
+| 24–30 | rewards | "Every approved action earns something real — a discount, a voucher, a shout-out from the business, or the VIP treatment. You choose." |
+| 30–36 | CTA | "Run your first campaign free — one shareable link — at ubutangaza dot biz." |
 
-## Launch video — voiceover (58s)
+## Launch video — voiceover (63s)
 
 | t | scene | VO |
 |---|---|---|
 | 0–6 | live | "Ubu-Tangaza is live." |
 | 6–13 | origin | "Born at the Avalanche Game Jam in Nairobi — one of the top projects — built for the businesses Kenya runs on: the ones that grow by word of mouth." |
-| 13–21 | advocates | "If you love a business: sign in with Google or X — no wallets, no jargon. Do what you already do: post, refer, show up. Send your proof." |
-| 21–29 | business | "If you run one: see the real post, the real person, the real story — approve with one tap, and it's written to Avalanche." |
-| 29–37 | rules | "The rules aren't promises. The budget is fixed at sign-up. Minting stops at the cap. Every redemption shrinks the books. Enforced by code." |
-| 37–44 | rewards | "Every twenty approved actions: five hundred shillings of airtime, data, or vouchers." |
-| 44–51 | traction | "One hundred fifty-five builders in a single night. Fifteen shillings per verified action. Sixty seconds from link to first submission." |
-| 51–58 | CTA | "Advocates — join a campaign. Businesses — run one free. Ubu-tangaza dot biz. We grow together." |
+| 13–20 | friends | "If you love a business: sign in with Google or X — nothing to install, nothing to learn. Do what you already do: post, refer, show up. Share your proof." |
+| 20–28 | onboarding | "If you run one: create a campaign in minutes. Say what counts, pick the rewards that fit your business, and share one trackable link — every click and signup traces back to it." |
+| 28–35 | approvals | "Submissions land in your queue: the real post, the real person, the real story. Approve with one tap." |
+| 35–42 | control | "You stay in control. Set your reward budget up front — it can never be exceeded, and going viral can't blow your costs." |
+| 42–49 | rewards | "Every approved action earns something real — a discount, a voucher, a shout-out from the business, or the VIP treatment. You choose." |
+| 49–56 | traction | "One hundred fifty-five builders in a single night. One trackable link per campaign. Sixty seconds from link to first submission." |
+| 56–63 | CTA | "Friends — join a campaign. Businesses — run one free. Ubu-tangaza dot biz. We grow together." |
 
 ## Where each video goes (distribution map)
 
