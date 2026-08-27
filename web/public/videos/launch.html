@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Ubu-Tangaza — 58-second launch video (self-playing motion graphic).
+  Ubu-Tangaza — 63-second launch video (self-playing motion graphic).
 
   To make an MP4: open in a browser, press ⏵, screen-record the tab (OBS / ⇧⌘5 /
   Loom). The stage scales to any window; it loops. Voiceover script and timings
@@ -20,8 +20,9 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { height:100%; background:#000; overflow:hidden;
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  #frame { position:fixed; inset:0; display:grid; place-items:center; }
-  #stage { width:1920px; height:1080px; position:relative; background:
+  #frame { position:fixed; inset:0; overflow:hidden; }
+  #stage { width:1920px; height:1080px; position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%); background:
     radial-gradient(1200px 700px at 70% 15%, #0a1e3f 0%, var(--ink-950) 55%);
     color:var(--mist-100); overflow:hidden; }
 
@@ -59,12 +60,24 @@
   .approve { margin-left:auto; background:var(--blue-500); color:#fff; border-radius:999px;
     padding:16px 40px; font-size:32px; font-weight:700; }
   .on .q1 .approve { background:var(--jade-500); transition:background .3s 1.6s; }
-  .on .q1 .approve::after { content:"  ✓ on Avalanche"; }
+  .on .q1 .approve::after { content:"  ✓ rewarded"; }
   .chainNote { font-size:30px; color:var(--mist-500); margin-top:10px; }
 
   .rules { width:1280px; margin:64px auto 0; text-align:left; font-size:44px; line-height:1.5; }
   .rule { display:flex; gap:30px; margin-bottom:38px; color:var(--mist-300); }
   .rule .ic { font-size:52px; }
+
+  .rewards { display:flex; flex-wrap:wrap; gap:26px; justify-content:center;
+    margin-top:64px; max-width:1400px; margin-left:auto; margin-right:auto; }
+  .chip { background:var(--ink-850); border:2px solid var(--ink-700); border-radius:999px;
+    padding:26px 48px; font-size:40px; color:var(--mist-100); }
+  .chip .ic { margin-right:16px; }
+
+  .qrRow { display:flex; align-items:center; justify-content:center; gap:70px; margin-top:56px; }
+  .qrRow .domain { margin-top:0; }
+  .qrCard { background:#fff; border-radius:26px; padding:34px 34px 20px; display:grid; gap:12px; justify-items:center; }
+  .qrCard svg { width:216px; height:216px; display:block; }
+  .qrCard p { font-size:24px; font-weight:700; color:var(--ink-900); letter-spacing:.03em; }
 
   .traction { display:flex; gap:36px; justify-content:center; margin-top:70px; }
   .stat { background:var(--ink-850); border:2px solid var(--ink-700); border-radius:32px;
@@ -92,13 +105,19 @@
   #play p { position:absolute; bottom:120px; width:100%; text-align:center;
     color:var(--mist-400); font-size:30px; }
   #play.hidden { display:none; }
+  #download { position:fixed; top:22px; right:22px; z-index:60;
+    background:var(--ink-850); border:2px solid var(--ink-700); color:var(--mist-300);
+    border-radius:999px; padding:12px 26px; font-size:16px; font-family:inherit; cursor:pointer; }
+  #download:hover { border-color:var(--blue-500); color:#fff; }
+  #download.recording { display:none; }
+  @media (max-width:640px) { #download { font-size:14px; padding:10px 18px; top:14px; right:14px; } }
 </style>
 
 <div id="frame"><div id="stage">
 
   <section class="scene" data-t="0">
     <div class="inner">
-      <p class="kicker rise d1">proof-of-advocacy rewards · avalanche</p>
+      <p class="kicker rise d1">word of mouth, rewarded · built on avalanche 🔺</p>
       <h1 class="rise d2">We're live.</h1>
       <a class="domain rise d3">ubutangaza.biz</a>
     </div>
@@ -106,89 +125,117 @@
 
   <section class="scene" data-t="6">
     <div class="inner">
-      <h2 class="rise d1">Born at the <span class="accent">Avalanche Game Jam</span>,<br/>Nairobi — placed in the top projects.</h2>
+      <h2 class="rise d1">Born at the <span class="accent">Avalanche 🔺 Game Jam</span>,<br/>Nairobi — placed in the top projects.</h2>
       <p class="sub rise d3">Built for the businesses Kenya actually runs on:<br/>the ones that grow by word of mouth.</p>
     </div>
   </section>
 
   <section class="scene" data-t="13">
     <div class="inner">
-      <h2 class="rise d1">For advocates: <span class="accent">three steps.</span></h2>
+      <h2 class="rise d1">For friends of the business:<br/><span class="accent">three steps.</span></h2>
       <div class="steps">
-        <div class="step rise d2"><span class="n">1</span><b>Sign in</b>Google or X. No seed phrase, no gas, no crypto anything.</div>
+        <div class="step rise d2"><span class="n">1</span><b>Sign in</b>Google or X. No app to install, nothing new to learn.</div>
         <div class="step rise d3"><span class="n">2</span><b>Do the thing</b>Post about the business. Bring a friend. Show up.</div>
-        <div class="step rise d4"><span class="n">3</span><b>Send proof</b>Say what you did — your own wallet records it, invisibly.</div>
+        <div class="step rise d4"><span class="n">3</span><b>Share proof</b>Say what you did — it lands in the business's queue in seconds.</div>
       </div>
     </div>
   </section>
 
-  <section class="scene" data-t="21">
+  <section class="scene" data-t="20">
     <div class="inner">
-      <h2 class="rise d1">For the business: <span class="accent">one tap.</span></h2>
+      <h2 class="rise d1">For the business:<br/><span class="accent">live in minutes.</span></h2>
+      <div class="steps">
+        <div class="step rise d2"><span class="n">1</span><b>Create a campaign</b>Say what counts — posts, referrals, visits, reviews.</div>
+        <div class="step rise d3"><span class="n">2</span><b>Pick the rewards</b>Discounts, vouchers, perks — whatever fits your business.</div>
+        <div class="step rise d4"><span class="n">3</span><b>Share one link</b>Trackable anywhere — every click, signup and action traces back to it.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" data-t="28">
+    <div class="inner">
+      <h2 class="rise d1">Approvals: <span class="accent">one tap.</span></h2>
       <div class="queue">
         <div class="qrow q1 rise d2"><span class="who">Wanjiku</span><span class="what">𝕏 post — "best gym in Westlands" · 40 likes</span><span class="approve">Approve</span></div>
         <div class="qrow rise d3"><span class="who">Brian</span><span class="what">Brought two friends to Saturday's class</span><span class="approve">Approve</span></div>
       </div>
-      <p class="chainNote rise d4">You see the real post, the real person, the real description — then the approval is written to Avalanche.</p>
+      <p class="chainNote rise d4">You see the real post, the real person, the real story — one tap, and the reward is theirs. Every decision logged.</p>
     </div>
   </section>
 
-  <section class="scene" data-t="29">
+  <section class="scene" data-t="35">
     <div class="inner">
-      <h2 class="rise d1">The rules live in the <span class="accent">contract.</span></h2>
+      <h2 class="rise d1">You stay in <span class="accent">control.</span></h2>
       <div class="rules">
-        <div class="rule rise d2"><span class="ic">🔒</span><span>The reward budget is <b>fixed at sign-up</b> — no function can ever raise it.</span></div>
-        <div class="rule rise d3"><span class="ic">🛑</span><span>Minting <b>stops at the cap</b>. Success cannot bankrupt anyone.</span></div>
-        <div class="rule rise d4"><span class="ic">📉</span><span>Every redemption <b>shrinks the liability</b>. Rewards can't be traded or faked.</span></div>
+        <div class="rule rise d2"><span class="ic">🔒</span><span>Set your reward budget up front — <b>it can never be exceeded</b>.</span></div>
+        <div class="rule rise d3"><span class="ic">🛑</span><span>Rewards <b>stop at the cap</b>. Going viral can't blow your costs.</span></div>
+        <div class="rule rise d4"><span class="ic">📉</span><span>Every reward is <b>tracked from earned to redeemed</b> — nothing leaks, nothing's faked.</span></div>
       </div>
     </div>
   </section>
 
-  <section class="scene" data-t="37">
+  <section class="scene" data-t="42">
     <div class="inner">
-      <h2 class="rise d1">Real rewards, <span class="good">not points.</span></h2>
-      <p class="sub rise d2" style="font-size:52px; margin-top:56px;">Every 20 approved actions →<br/><span class="good" style="font-size:84px; font-weight:800;">KES 500</span> &nbsp;airtime · data · voucher</p>
+      <h2 class="rise d1">Every action <span class="good">earns something real.</span></h2>
+      <div class="rewards">
+        <div class="chip rise d2"><span class="ic">🏷️</span>In-house discounts</div>
+        <div class="chip rise d3"><span class="ic">🎟️</span>Vouchers &amp; offers</div>
+        <div class="chip rise d4"><span class="ic">📣</span>A shout-out from the business</div>
+        <div class="chip rise d5"><span class="ic">⭐</span>Special treatment</div>
+      </div>
+      <p class="sub rise d6" style="font-size:36px;">You choose what your friends earn — it's your campaign.</p>
     </div>
   </section>
 
-  <section class="scene" data-t="44">
+  <section class="scene" data-t="49">
     <div class="inner">
       <h2 class="rise d1">Already moving.</h2>
       <div class="traction">
         <div class="stat rise d2"><div class="v">155</div><div class="l">builders at one overnight jam — Nights of Code</div></div>
-        <div class="stat rise d3"><div class="v">KES 15</div><div class="l">per verified advocacy action, computed on-chain</div></div>
+        <div class="stat rise d3"><div class="v">1 link</div><div class="l">per campaign — every click, signup and action traced back to it</div></div>
         <div class="stat rise d4"><div class="v">60s</div><div class="l">from campaign link to first submission</div></div>
       </div>
     </div>
   </section>
 
-  <section class="scene" data-t="51">
+  <section class="scene" data-t="56">
     <div class="inner">
       <h2 class="rise d1">We grow <span class="accent">together.</span></h2>
       <div class="ctas">
-        <div class="cta ctaA rise d2"><b>Advocates</b>Join a campaign. Get rewarded for the hype you already bring.</div>
+        <div class="cta ctaA rise d2"><b>Friends</b>Join a campaign. Get rewarded for the hype you already bring.</div>
         <div class="cta ctaB rise d3"><b>Businesses</b>Run your first campaign free — budget capped by design.</div>
       </div>
-      <a class="domain rise d4">ubutangaza.biz</a>
+      <div class="qrRow rise d4">
+        <a class="domain">ubutangaza.biz</a>
+        <div class="qrCard"><svg viewBox="0 0 25 25" shape-rendering="crispEdges" role="img" aria-label="QR code linking to ubutangaza.biz"><path fill="#050b18" d="M0 0h7v1h-7zM8 0h1v1h-1zM13 0h4v1h-4zM18 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h2v1h-2zM12 1h3v1h-3zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM14 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h3v1h-3zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h4v1h-4zM13 3h1v1h-1zM18 3h1v1h-1zM20 3h3v1h-3zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h3v1h-3zM12 4h1v1h-1zM14 4h3v1h-3zM18 4h1v1h-1zM20 4h3v1h-3zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h7v1h-7zM8 7h2v1h-2zM15 7h2v1h-2zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h7v1h-7zM17 8h5v1h-5zM24 8h1v1h-1zM0 9h2v1h-2zM3 9h2v1h-2zM7 9h2v1h-2zM10 9h1v1h-1zM13 9h4v1h-4zM20 9h2v1h-2zM23 9h1v1h-1zM0 10h3v1h-3zM4 10h4v1h-4zM9 10h2v1h-2zM13 10h1v1h-1zM15 10h1v1h-1zM17 10h1v1h-1zM19 10h1v1h-1zM21 10h2v1h-2zM1 11h3v1h-3zM5 11h1v1h-1zM7 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM17 11h3v1h-3zM22 11h2v1h-2zM1 12h2v1h-2zM4 12h4v1h-4zM9 12h3v1h-3zM17 12h2v1h-2zM21 12h4v1h-4zM0 13h2v1h-2zM4 13h2v1h-2zM8 13h2v1h-2zM12 13h1v1h-1zM14 13h4v1h-4zM20 13h1v1h-1zM23 13h1v1h-1zM2 14h5v1h-5zM10 14h3v1h-3zM15 14h2v1h-2zM19 14h4v1h-4zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h4v1h-4zM14 15h1v1h-1zM19 15h2v1h-2zM22 15h2v1h-2zM0 16h2v1h-2zM3 16h1v1h-1zM5 16h3v1h-3zM9 16h1v1h-1zM12 16h1v1h-1zM15 16h8v1h-8zM8 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM0 18h7v1h-7zM8 18h1v1h-1zM10 18h1v1h-1zM13 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM12 19h1v1h-1zM16 19h1v1h-1zM20 19h5v1h-5zM0 20h1v1h-1zM2 20h3v1h-3zM6 20h1v1h-1zM8 20h2v1h-2zM11 20h1v1h-1zM13 20h2v1h-2zM16 20h9v1h-9zM0 21h1v1h-1zM2 21h3v1h-3zM6 21h1v1h-1zM10 21h1v1h-1zM12 21h1v1h-1zM14 21h2v1h-2zM17 21h3v1h-3zM22 21h3v1h-3zM0 22h1v1h-1zM2 22h3v1h-3zM6 22h1v1h-1zM9 22h1v1h-1zM11 22h6v1h-6zM18 22h1v1h-1zM21 22h1v1h-1zM23 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM19 23h5v1h-5zM0 24h7v1h-7zM8 24h3v1h-3zM12 24h2v1h-2zM15 24h1v1h-1zM18 24h1v1h-1zM22 24h3v1h-3z"/></svg><p>scan to open</p></div>
+      </div>
     </div>
   </section>
 
   <p class="foot">Ubu-Tangaza · a person is a person through other people</p>
   <div id="progress"></div>
-  <div id="play"><div class="btn">⏵</div><p>Click to play · loops every 58s · record the tab to make your MP4</p></div>
+  <div id="play"><div class="btn">⏵</div><p>Click to play · loops every 63s · record the tab to make your MP4</p></div>
 </div></div>
 
+<button id="download" title="Records one full loop of this tab, then saves it as a .webm video">⬇ Download video</button>
+
 <script>
-  const DURATION = 58_000;
+  const DURATION = 63_000;
   const scenes = [...document.querySelectorAll(".scene")].map(el => ({ el, t: Number(el.dataset.t) * 1000 }));
   const progress = document.getElementById("progress");
   const play = document.getElementById("play");
 
   function fit() {
-    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
-    document.getElementById("stage").style.transform = `scale(${s})`;
+    // visualViewport is the truly visible area on phones, where address bars
+    // and keyboards make innerWidth/innerHeight unreliable.
+    const vw = visualViewport?.width ?? innerWidth;
+    const vh = visualViewport?.height ?? innerHeight;
+    const s = Math.min(vw / 1920, vh / 1080);
+    document.getElementById("stage").style.transform = `translate(-50%,-50%) scale(${s})`;
   }
-  addEventListener("resize", fit); fit();
+  addEventListener("resize", fit);
+  visualViewport?.addEventListener("resize", fit);
+  fit();
 
   let start = null;
   function tick(now) {
@@ -200,6 +247,47 @@
     progress.style.width = (t / DURATION) * 100 + "%";
     requestAnimationFrame(tick);
   }
-  play.addEventListener("click", () => { play.classList.add("hidden"); requestAnimationFrame(tick); });
+  let running = false;
+  function startLoop() {
+    start = null; // restart from the first scene
+    play.classList.add("hidden");
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }
+  play.addEventListener("click", startLoop);
+
+  // Download = capture this tab for one full loop, then save the .webm.
+  const download = document.getElementById("download");
+  if (!navigator.mediaDevices?.getDisplayMedia) download.style.display = "none";
+  download.addEventListener("click", async () => {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia(
+        { video: { frameRate: 60 }, audio: false, preferCurrentTab: true });
+    } catch { return; } // user closed the share picker
+    // Crop the capture to the stage itself so the saved file is clean 16:9 —
+    // no black bars, whatever shape the window or device screen is.
+    const [track] = stream.getVideoTracks();
+    if (window.CropTarget?.fromElement && track.cropTo) {
+      try { await track.cropTo(await CropTarget.fromElement(document.getElementById("stage"))); }
+      catch {}
+    }
+    const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+      ? "video/webm;codecs=vp9" : "video/webm";
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
+    const chunks = [];
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const url = URL.createObjectURL(new Blob(chunks, { type: "video/webm" }));
+      Object.assign(document.createElement("a"),
+        { href: url, download: "ubu-tangaza-launch.webm" }).click();
+      URL.revokeObjectURL(url);
+      download.classList.remove("recording");
+    };
+    download.classList.add("recording");
+    startLoop();
+    rec.start();
+    setTimeout(() => rec.stop(), DURATION + 600);
+  });
 </script>
 </html>
