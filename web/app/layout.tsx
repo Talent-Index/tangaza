@@ -19,9 +19,9 @@ const display = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Ubu-Tangaza | Get rewarded for the word you spread",
+  title: "Ubu-Tangaza | Grow your business through trackable referrals",
   description:
-    "Proof-of-advocacy rewards on Avalanche. Businesses reward real advocacy from a capped budget that can never grow.",
+    "Reward your customers for what they do for your business — bringing you clients, referring friends, spreading the word. Proof behind every action, and a reward budget you control.",
 };
 
 export const viewport: Viewport = {

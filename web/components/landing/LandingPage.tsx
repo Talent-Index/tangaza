@@ -38,8 +38,8 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <BrandMark />
           <p className="max-w-md text-sm leading-relaxed text-mist-500">
-            Proof-of-advocacy rewards on Avalanche. Budgets are capped once and can never
-            be raised.
+            Trackable referral rewards for local businesses. Every action backed by proof;
+            your reward budget capped once and never raised.
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <Link
@@ -195,9 +195,9 @@ function Hero() {
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="max-w-xl animate-fade-up">
           <h1 className="font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Advocacy, rewarded.
+            Grow through
             <br />
-            Community, paid.
+            trackable referrals.
           </h1>
 
           <div className="mt-5 flex items-center gap-1.5 sm:mt-6" aria-hidden>
@@ -208,8 +208,9 @@ function Hero() {
           </div>
 
           <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-mist-300 sm:mt-6 sm:text-lg">
-            Ubu-Tangaza pays you for real advocacy — referrals, posts, events — from a
-            business budget written once on Avalanche and never raised.
+            Reward your customers for what they actually do for your business — bringing
+            you clients, referring friends, spreading the word. Proof behind every action,
+            and a reward budget you control.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-9">
