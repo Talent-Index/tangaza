@@ -4,23 +4,30 @@
 > through other people. **tangaza** — Swahili, *to announce, to proclaim*.
 > Together: what you say for your community, and what your community gives back.
 
-**Proof-of-advocacy rewards on Avalanche.** Customers earn real rewards for real
-advocacy — referrals, posts on X, events they bring in. A business approves each
-activity, and that approval is the on-chain write. The reward budget is capped at
-registration, can never be raised, and shrinks as people claim.
+**Grow your business through trackable referrals.** Your customers already bring you
+clients, refer their friends and talk you up — Ubu-Tangaza lets you see exactly who,
+back every action with proof, and reward them however you choose: cash, airtime, a
+voucher, a discount, free product. You set what counts, what it's worth, and the levels
+people climb.
 
-The name is the product's thesis: advocacy is not a transaction between one person
-and a brand, it's a thing a community does together, and the reward should come back
-into that community from a budget everyone can audit.
+Under the hood the trust is on-chain and invisible: a business registers with a reward
+budget written once — no function can raise it — and every approved action is attested
+by the business's own wallet. Customers can't be quietly stiffed, costs can't run past
+the budget even if you go viral, and nobody has to take a dashboard's word for it.
+Advocates sign in with Google and never see a wallet.
 
-Built for the Team1 Kenya Avalanche Game Jam / Mini Hack 2026. Pilot org: the
-Blockchain Centre.
+The name is the thesis: **ubu** (*ubuntu* — a person is a person through other people)
+and **tangaza** (*to announce*). Growth is something a business and its community do
+together, from a budget everyone can audit.
+
+Born at the Team1 Kenya Avalanche Game Jam / Mini Hack 2026; now focused on retail &
+SME loyalty — the coffee shops, salons and boutiques that live on referrals.
 
 ---
 
 ## Deployed
 
-**Live at [ubu-tangaza.vercel.app](https://ubu-tangaza.vercel.app)** — advocate surface at
+**Live at [ubutangaza.biz](https://ubutangaza.biz)** — advocate surface at
 `/`, business surface at `/org`.
 
 **Avalanche Fuji**, chain id `43113`. The only network this is deployed to.
@@ -32,7 +39,7 @@ Blockchain Centre.
 | Owner | [`0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7`](https://testnet.snowtrace.io/address/0x2B15bb3C65Cbd5E64Bd80F3DB5BfE085FA87dDD7) |
 | Trusted forwarder | `0x0000000000000000000000000000000000000000` — deliberate, see [Architecture notes](#architecture-notes) |
 | Pilot org | `orgId` `1` — "Blockchain Centre Kenya", KES 50,000 cap |
-| Second org | `orgId` `2` — "FitTribe", KES 5,000 cap, with the "Founding 20" campaign at [`/c/founding-members`](https://ubu-tangaza.vercel.app/c/founding-members). Proof that a second business is configuration, not a second app |
+| Second org | `orgId` `2` — "FitTribe", KES 5,000 cap, with the "Founding 20" campaign at [`/c/founding-members`](https://ubutangaza.biz/c/founding-members). Proof that a second business is configuration, not a second app |
 | Source | [verified on Snowtrace](https://testnet.snowtrace.io/address/0xECa2c9067355410EdFc1622246c64d6F1b29038E#code) |
 | Previous deployments | [`0x04AE7084…02086`](https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086) — identical source, carries the earlier demo state; [`0xF8A2612e…b7b86`](https://testnet.snowtrace.io/address/0xF8A2612e80fA7Ccc093F5c1B2a95b827fD0b7b86) — superseded when `submitActivity` was added. Contracts here are immutable, so a redeploy is always a new address and always starts empty |
 
