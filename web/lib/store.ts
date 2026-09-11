@@ -1320,6 +1320,7 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    where c.active
     group by c.id, o.name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));

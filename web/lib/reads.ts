@@ -179,17 +179,26 @@ export interface Community {
  */
 export async function getMyCommunities(address: string): Promise<Community[]> {
   const count = await getOrgCount();
-  const out: Community[] = [];
+  const ids: bigint[] = [];
+  for (let i = 1n; i <= count; i++) ids.push(i);
 
-  for (let i = 1n; i <= count; i++) {
-    const a = await getAdvocate(i, address);
-    const approved = Number(a.approvedActivities);
-    const streak = Number(a.streak);
-    const credits = Number(a.creditsEarned);
-    if (approved > 0 || streak > 0 || credits > 0) {
-      const org = await getOrg(i);
-      out.push({ orgId: i, name: org.name, approved, streak, creditsEarned: credits });
-    }
-  }
-  return out;
+  // One round-trip per org, all in flight at once. The sequential version cost
+  // ~2 RPC round-trips per registered org before the home page could render.
+  const advocates = await Promise.all(ids.map((i) => getAdvocate(i, address)));
+  const hits = ids.filter((_, k) => {
+    const a = advocates[k];
+    return Number(a.approvedActivities) > 0 || Number(a.streak) > 0 || Number(a.creditsEarned) > 0;
+  });
+  const orgs = await Promise.all(hits.map((i) => getOrg(i)));
+
+  return hits.map((i, k) => {
+    const a = advocates[ids.indexOf(i)];
+    return {
+      orgId: i,
+      name: orgs[k].name,
+      approved: Number(a.approvedActivities),
+      streak: Number(a.streak),
+      creditsEarned: Number(a.creditsEarned),
+    };
+  });
 }

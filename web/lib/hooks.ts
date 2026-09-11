@@ -85,7 +85,12 @@ function useAsync<T>(
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    // `loading` means "no data yet". Every poll tick and chain tick re-runs this
+    // effect, and flipping `loading` on each one made every list on the page collapse
+    // into a spinner every few seconds. Now: spinner only until the first result
+    // (including the common case where `enabled` turns on once the address arrives);
+    // every refetch after that updates in place, silently.
+    setLoading(data === null);
 
     load()
       .then((result) => {
@@ -112,7 +117,7 @@ function useAsync<T>(
 
 // Fuji produces a block roughly every 2s. These periods keep the demo feeling live
 // without turning the dashboard into an RPC stress test.
-const POLL_FAST = 6_000; // advocate-facing state: the moment a credit lands
+const POLL_FAST = 20_000; // advocate-facing on-chain state. Instant updates come from the chain tick; this is only the safety net, and 6s was rate-limiting the public RPC
 const POLL_ORG = 10_000; // org totals
 const POLL_LEDGER = 20_000; // full event replay — the expensive one
 const POLL_QUEUE = 5_000; // local JSON, essentially free
