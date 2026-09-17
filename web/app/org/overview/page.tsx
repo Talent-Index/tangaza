@@ -144,7 +144,7 @@ function Overview() {
   const account = useActiveAccount();
   const org = useOrg(orgId);
   const ledger = useOrgLedger(orgId);
-  const labels = useAdvocateLabels();
+  const labels = useAdvocateLabels(orgId);
 
   // Real name if they ever submitted through the app; pseudonym otherwise.
   const nameOf = (address: string) =>

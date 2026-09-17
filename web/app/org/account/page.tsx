@@ -1,6 +1,8 @@
 "use client";
 
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
+import { initialsFrom } from "@/lib/identity";
+import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { ThemeToggle, useTheme } from "@/components/theme";
 import { useToast } from "@/components/toast";
@@ -24,9 +26,11 @@ function AccountSettings() {
   const { success } = useToast();
   const { theme, setTheme } = useTheme();
   const { orgName, isApprover } = useOrgAccessContext();
+  const name = useDisplayName(account?.address);
+  const email = useCredentialEmail();
 
   if (!account) return null;
-  const initials = account.address.replace(/^0x/i, "").slice(0, 2).toUpperCase();
+  const initials = initialsFrom(name, email);
 
   function signOut() {
     if (wallet) disconnect(wallet);

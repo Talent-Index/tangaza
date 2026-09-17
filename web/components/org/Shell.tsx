@@ -183,18 +183,33 @@ function WithOrgAccess({
     return <NoBusinessYet address={address} applications={mine.data ?? []} />;
   }
 
+  /*
+   * Resolution failed (typically the public RPC rate-limiting the org walk) and we
+   * have nothing cached. This used to fall through to the default org's dashboard,
+   * which showed whoever was signed in the pilot business's campaigns and queue.
+   * Privacy beats convenience: say we couldn't verify them, and let them retry.
+   */
+  if (!access.data) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-24 text-center">
+        <p className="text-sm font-semibold text-mist-100">Couldn&rsquo;t verify your business</p>
+        <p className="text-sm text-mist-500">
+          {access.error ?? "The network didn't answer in time."} Nothing is shown until we can
+          confirm which business this account approves for.
+        </p>
+        <button
+          type="button"
+          onClick={access.refresh}
+          className="inline-flex min-h-10 items-center rounded-full bg-crimson-500 px-5 text-sm font-semibold text-white transition hover:bg-crimson-400"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <OrgAccessContext.Provider
-      value={
-        access.data ?? {
-          orgId: ORG_ID,
-          orgName: "",
-          isApprover: false,
-          approver: "",
-          kind: "visitor",
-        }
-      }
-    >
+    <OrgAccessContext.Provider value={access.data}>
       {children}
     </OrgAccessContext.Provider>
   );

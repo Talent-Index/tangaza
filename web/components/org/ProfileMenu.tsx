@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { useActiveAccount } from "thirdweb/react";
-import { useOrgAccess } from "@/lib/hooks";
+import { useCredentialEmail, useDisplayName, useOrgAccess } from "@/lib/hooks";
+import { initialsFrom } from "@/lib/identity";
 
 /** Avatar in the header — opens the full account page, not a dropdown. */
 export function OrgProfileMenu() {
   const account = useActiveAccount();
   const access = useOrgAccess(account?.address);
+  const name = useDisplayName(account?.address);
+  const email = useCredentialEmail();
 
   if (!account) return null;
 
-  const initials = account.address.replace(/^0x/i, "").slice(0, 2).toUpperCase();
+  // Initials from the person's name or login email — never from the wallet
+  // address, which produced things like "F6" for 0xf6… accounts.
+  const initials = initialsFrom(name, email);
   const orgName = access.data?.orgName;
 
   return (

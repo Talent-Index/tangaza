@@ -131,14 +131,21 @@ export async function resolveOrgAccess(
   const me = address.toLowerCase();
   const count = await getOrgCount();
 
+  // Read every org in one parallel round. The old sequential walk was one RPC
+  // round-trip per registered org, and the public RPC's rate limit routinely killed
+  // it partway — which is how the UI ended up with no verified org at all.
+  const ids: bigint[] = [];
+  for (let i = 1n; i <= count; i++) ids.push(i);
+  const orgs = await Promise.all(ids.map((i) => getOrg(i)));
+
   // Newest first: a business that just registered is the one asking, and its org is the
-  // highest id. Walking upward handed the earliest match to anyone who somehow approves
-  // for two, which in practice meant the seeded pilot org shadowed a real one.
-  for (let i = count; i >= 1n; i--) {
-    const org = await getOrg(i);
+  // highest id. Taking the earliest match handed anyone who approves for two orgs the
+  // seeded pilot org instead of their real one.
+  for (let k = ids.length - 1; k >= 0; k--) {
+    const org = orgs[k];
     if (org.approver.toLowerCase() === me) {
       return {
-        orgId: i,
+        orgId: ids[k],
         orgName: org.name,
         isApprover: true,
         approver: org.approver,
