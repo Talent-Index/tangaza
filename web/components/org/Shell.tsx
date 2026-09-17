@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useActiveAccount, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
@@ -128,13 +128,44 @@ function OrgSignedOut() {
 
 /* ------------------------------------------------------------------ access */
 
-const OrgAccessContext = createContext<OrgAccess>({
+/** OrgAccess plus the business's editable display name, already folded into `orgName`. */
+export type OrgAccessView = OrgAccess & { refreshOrgName: () => void };
+
+const OrgAccessContext = createContext<OrgAccessView>({
   orgId: ORG_ID,
   orgName: "",
   isApprover: false,
   approver: "",
   kind: "visitor",
+  refreshOrgName: () => {},
 });
+
+/**
+ * The business's editable display name (orgs.display_name). The on-chain name is
+ * immutable, so this is the one a business can change — and every org page must show
+ * the same one, or renaming on Overview contradicts Account & settings.
+ */
+function useOrgDisplayName(orgId: bigint | undefined) {
+  const [name, setName] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
+  const refresh = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => {
+    if (orgId === undefined) return;
+    let cancelled = false;
+    fetch(`/api/org?orgId=${orgId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { displayName?: string | null } | null) => {
+        if (!cancelled) setName(j?.displayName?.trim() || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, nonce]);
+
+  return { name, refresh };
+}
 
 /**
  * Resolves what the connected account may do — from the chain, not an env var.
@@ -154,6 +185,9 @@ function WithOrgAccess({
 }) {
   const access = useOrgAccess(address);
   const mine = useMyApplications(address);
+  const display = useOrgDisplayName(
+    access.data?.kind === "approver" ? access.data.orgId : undefined
+  );
 
   if (access.loading && !access.data) {
     return (
@@ -209,7 +243,13 @@ function WithOrgAccess({
   }
 
   return (
-    <OrgAccessContext.Provider value={access.data}>
+    <OrgAccessContext.Provider
+      value={{
+        ...access.data,
+        orgName: display.name ?? access.data.orgName,
+        refreshOrgName: display.refresh,
+      }}
+    >
       {children}
     </OrgAccessContext.Provider>
   );

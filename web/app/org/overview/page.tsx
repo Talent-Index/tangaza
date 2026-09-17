@@ -39,11 +39,13 @@ function EditableOrgName({
   fallback,
   canEdit,
   account,
+  onSaved,
 }: {
   orgId: string;
   fallback: string;
   canEdit: boolean;
   account: { address: string; signMessage: (a: { message: string }) => Promise<string> } | null;
+  onSaved: () => void;
 }) {
   const [name, setName] = useState<string>(fallback);
   const [editing, setEditing] = useState(false);
@@ -51,18 +53,9 @@ function EditableOrgName({
   const [saving, setSaving] = useState(false);
   const { success, error: toastError } = useToast();
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/org?orgId=${orgId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { displayName?: string | null } | null) => {
-        if (!cancelled && j?.displayName) setName(j.displayName);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId]);
+  // The shell owns the display name (so Account & settings, Campaigns, etc. agree);
+  // mirror it here and tell the shell to refetch after a rename.
+  useEffect(() => setName(fallback), [fallback]);
 
   async function save() {
     const next = draft.trim();
@@ -83,6 +76,7 @@ function EditableOrgName({
       if (!res.ok) throw new Error(json.error ?? "Could not rename");
       setName(json.displayName ?? next);
       setEditing(false);
+      onSaved();
       success("Business name updated");
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not rename");
@@ -139,7 +133,7 @@ function EditableOrgName({
 }
 
 function Overview() {
-  const { orgId } = useOrgAccessContext();
+  const { orgId, orgName, refreshOrgName } = useOrgAccessContext();
   const isApprover = useIsApprover();
   const account = useActiveAccount();
   const org = useOrg(orgId);
@@ -176,9 +170,10 @@ function Overview() {
         <div className="min-w-0">
           <EditableOrgName
             orgId={String(orgId)}
-            fallback={org.data.name}
+            fallback={orgName || org.data.name}
             canEdit={isApprover}
             account={account ?? null}
+            onSaved={refreshOrgName}
           />
           <p className="mt-1 text-sm text-mist-500">
             Reward your community your own way — set the amounts, currencies and levels
@@ -236,7 +231,7 @@ function Overview() {
         <Card>
           <BudgetMeter issued={issued} cap={cap} redeemed={redeemed} />
           <p className="mt-4 border-t border-ink-700 pt-4 text-xs leading-relaxed text-mist-500">
-            The on-chain spending guardrail, set once when {org.data.name} registered — the
+            The on-chain spending guardrail, set once when {orgName || org.data.name} registered — the
             contract has no function that can raise it. This tracks liability; what you
             actually give advocates is defined under Rewards.
           </p>
