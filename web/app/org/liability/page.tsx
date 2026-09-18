@@ -26,7 +26,7 @@ export default function OrgLiabilityPage() {
 }
 
 function Liability() {
-  const { orgId } = useOrgAccessContext();
+  const { orgId, orgName } = useOrgAccessContext();
   const org = useOrg(orgId);
   const ledger = useOrgLedger(orgId);
 
@@ -52,7 +52,7 @@ function Liability() {
       <div>
         <h1 className="text-2xl font-black">Liability</h1>
         <p className="mt-1 text-sm text-mist-500">
-          What {org.data.name} still owes its advocates — and the ceiling that can never
+          What {orgName || org.data.name} still owes its advocates — and the ceiling that can never
           move.
         </p>
       </div>
@@ -129,7 +129,7 @@ function Liability() {
           <h2 className="font-semibold">Why the cap can never move</h2>
           <p className="mt-2 text-sm leading-relaxed text-mist-400">
             <span className="text-mist-200">{kesLabel(cap)}</span> was written when{" "}
-            {org.data.name} registered. The contract exposes no function that writes it
+            {orgName || org.data.name} registered. The contract exposes no function that writes it
             again — not for the owner, not for you. At the cap, approvals still record
             advocacy on-chain, but no new reward is minted.
           </p>

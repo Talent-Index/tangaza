@@ -99,7 +99,7 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
         </h1>
         <p className="mt-3 max-w-xs text-sm text-mist-400">
           Your reward is being delivered. This claim is now permanently recorded, and the
-          Centre&rsquo;s outstanding balance just went down by {kesLabel(credit.valueKES)}.
+          The business&rsquo;s outstanding balance just went down by {kesLabel(credit.valueKES)}.
         </p>
 
         <div className="mt-8">

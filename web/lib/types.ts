@@ -4,21 +4,21 @@ export const ACTIVITY_TYPES = [
     id: 0,
     key: "REFERRAL",
     label: "Referral",
-    blurb: "You brought a new member to the Centre",
+    blurb: "You brought a new customer to the business",
     icon: "👥",
   },
   {
     id: 1,
     key: "SOCIAL_POST",
     label: "Post on X",
-    blurb: "You posted about the Centre on X",
+    blurb: "You posted about the business on X",
     icon: "𝕏",
   },
   {
     id: 2,
     key: "EVENT_HOSTED",
     label: "Brought an event",
-    blurb: "You brought an event or meetup to the Centre",
+    blurb: "You brought an event or meetup to the business",
     icon: "🎤",
   },
 ] as const;
@@ -35,7 +35,7 @@ export const activityIcon = (id: number) =>
 export const REWARD_TYPES = [
   { id: 0, key: "AIRTIME", label: "Airtime", blurb: "KES 500 airtime, any network", icon: "📱" },
   { id: 1, key: "DATA_BUNDLE", label: "Data bundle", blurb: "KES 500 of data", icon: "📶" },
-  { id: 2, key: "VOUCHER", label: "Voucher", blurb: "KES 500 Centre voucher", icon: "🎟️" },
+  { id: 2, key: "VOUCHER", label: "Voucher", blurb: "KES 500 voucher at the business", icon: "🎟️" },
 ] as const;
 
 export type RewardTypeId = (typeof REWARD_TYPES)[number]["id"];

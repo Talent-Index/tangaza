@@ -353,7 +353,7 @@ function WhyUs() {
           <ul className="mt-6 space-y-4 sm:mt-8">
             {[
               "No seed phrase. No gas fees. Social sign-in only.",
-              "Pilot with Blockchain Centre Kenya — built for Team1 Kenya.",
+              "Piloting with Nairobi businesses — born at Team1 Kenya's Avalanche Game Jam.",
               "Real in-house rewards every milestone — offers, discounts, vouchers.",
             ].map((line) => (
               <li key={line} className="flex gap-3 text-sm text-mist-300">

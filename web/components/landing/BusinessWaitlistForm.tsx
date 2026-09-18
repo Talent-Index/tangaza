@@ -87,7 +87,7 @@ export function BusinessWaitlistForm({ className = "", id }: BusinessWaitlistFor
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Blockchain Centre Kenya"
+            placeholder="Mama Njeri's Salon"
             className={inputClass}
           />
         </PortalField>

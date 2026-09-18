@@ -208,7 +208,7 @@ function ApplyForm({ address }: { address: string }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Blockchain Centre Kenya"
+            placeholder="Mama Njeri's Salon"
             className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
         </Field>
