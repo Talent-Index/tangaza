@@ -1295,7 +1295,7 @@ export interface CampaignWithOrg extends Campaign {
 /** Every live campaign across every registered business — the discovery feed. */
 export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
   const rows = (await sql`
-    select c.*, o.name as org_name,
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
       count(distinct p.address) as participant_count
@@ -1304,7 +1304,7 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
     where c.active and (c.ends_at is null or c.ends_at > now())
-    group by c.id, o.name
+    group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
 }
@@ -1312,7 +1312,7 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
 /** All campaigns on the platform — upcoming and past — for the campaigns timeline. */
 export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
   const rows = (await sql`
-    select c.*, o.name as org_name,
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
       count(distinct p.address) as participant_count
@@ -1321,7 +1321,25 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
     where c.active
-    group by c.id, o.name
+    group by c.id, o.name, o.display_name
+    order by c.starts_at desc`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+}
+
+/** Every campaign this advocate has joined, newest first, with the business's display name. */
+export async function listJoinedCampaigns(address: string): Promise<CampaignWithOrg[]> {
+  const rows = (await sql`
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaign_participants me
+    join campaigns c on c.id = me.campaign_id
+    join orgs o on o.id = c.org_id
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
+    where me.address = ${address.toLowerCase()}
+    group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
 }

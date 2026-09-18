@@ -7,6 +7,7 @@ import {
   joinCampaign,
   listAllActiveCampaigns,
   listAllCampaignsDiscover,
+  listJoinedCampaigns,
   peekShareCode,
   listCampaigns,
   upsertCampaign,
@@ -44,6 +45,15 @@ export async function GET(req: NextRequest) {
     const joined =
       address && isAddress(address) ? await hasJoinedCampaign(campaign.id, address) : false;
     return NextResponse.json({ campaign, joined });
+  }
+
+  const joinedBy = params.get("joinedBy");
+  if (joinedBy) {
+    if (!isAddress(joinedBy)) {
+      return NextResponse.json({ error: "joinedBy must be an address" }, { status: 400 });
+    }
+    const campaigns = await listJoinedCampaigns(joinedBy);
+    return NextResponse.json({ campaigns });
   }
 
   if (params.get("discover") === "true") {

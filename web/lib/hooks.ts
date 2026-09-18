@@ -264,6 +264,11 @@ export interface RewardTier {
   perk: string;
   icon: string;
   thresholdWeight: number;
+  amount?: number;
+  currency?: string;
+  rewardKind?: string;
+  engagementTypeId?: string;
+  targetCount?: number;
 }
 
 export interface LevelStanding {
@@ -279,12 +284,21 @@ export interface LevelStanding {
 
 /** The ladder a business offers, and where this person stands on it. */
 export function useTiers(address?: string, orgId: bigint = ORG_ID) {
-  return useAsync<{ tiers: RewardTier[]; standing?: LevelStanding }>(
+  return useAsync<{
+    tiers: RewardTier[];
+    standing?: LevelStanding;
+    /** Approved count per engagement type — what per-activity goals are measured in. */
+    activityProgress?: Record<string, number>;
+  }>(
     async () => {
       const qs = address ? `?orgId=${orgId}&address=${address}` : `?orgId=${orgId}`;
       const res = await fetch(`/api/tiers${qs}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Could not load levels (${res.status})`);
-      return (await res.json()) as { tiers: RewardTier[]; standing?: LevelStanding };
+      return (await res.json()) as {
+        tiers: RewardTier[];
+        standing?: LevelStanding;
+        activityProgress?: Record<string, number>;
+      };
     },
     [address, String(orgId)],
     true,
@@ -320,6 +334,20 @@ export function useAllCampaigns() {
     },
     [],
     true,
+    POLL_ORG
+  );
+}
+
+/** The campaigns this person has joined — the businesses whose rewards concern them. */
+export function useJoinedCampaigns(address?: string) {
+  return useAsync<CampaignWithOrg[]>(
+    async () => {
+      const res = await fetch(`/api/campaigns?joinedBy=${address}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load your campaigns (${res.status})`);
+      return ((await res.json()) as { campaigns: CampaignWithOrg[] }).campaigns;
+    },
+    [address],
+    Boolean(address),
     POLL_ORG
   );
 }

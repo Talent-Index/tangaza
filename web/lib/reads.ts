@@ -168,6 +168,24 @@ export async function getContractOwner(): Promise<string> {
   return (await readContract({ contract, method: "owner" })) as string;
 }
 
+
+/**
+ * The name a business currently goes by. The on-chain name is immutable, so a business
+ * that renamed itself would otherwise still show its registration-day name to every
+ * advocate. Best-effort: falls back to the chain name when the API is unreachable.
+ */
+async function getOrgDisplayName(orgId: bigint): Promise<string | undefined> {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const res = await fetch(`/api/org?orgId=${orgId}`, { cache: "no-store" });
+    if (!res.ok) return undefined;
+    const j = (await res.json()) as { displayName?: string | null };
+    return j.displayName?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface Community {
   orgId: bigint;
   name: string;
@@ -196,13 +214,16 @@ export async function getMyCommunities(address: string): Promise<Community[]> {
     const a = advocates[k];
     return Number(a.approvedActivities) > 0 || Number(a.streak) > 0 || Number(a.creditsEarned) > 0;
   });
-  const orgs = await Promise.all(hits.map((i) => getOrg(i)));
+  const [orgs, displayNames] = await Promise.all([
+    Promise.all(hits.map((i) => getOrg(i))),
+    Promise.all(hits.map((i) => getOrgDisplayName(i))),
+  ]);
 
   return hits.map((i, k) => {
     const a = advocates[ids.indexOf(i)];
     return {
       orgId: i,
-      name: orgs[k].name,
+      name: displayNames[k] ?? orgs[k].name,
       approved: Number(a.approvedActivities),
       streak: Number(a.streak),
       creditsEarned: Number(a.creditsEarned),
