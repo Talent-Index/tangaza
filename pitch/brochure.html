@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ubu-Tangaza — brochure</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Print: Chrome → Print → Paper A5 (or A4), double-sided, no margins. */
+  @page { size: A5; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #e9e9ee; font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif; color: #0f1117; }
+  .page { width: 148mm; height: 210mm; margin: 8mm auto; background: #fff; padding: 12mm 12mm 10mm; display: flex; flex-direction: column; position: relative; overflow: hidden; page-break-after: always; }
+  .page.dark { background: #0f1117; color: #f4f4f7; }
+  .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 15pt; }
+  .brand span { color: #e5344a; }
+  .kicker { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.16em; color: #8b8d98; margin-top: 2mm; }
+  h1 { font-size: 24pt; line-height: 1.08; letter-spacing: -0.02em; margin: 10mm 0 4mm; font-weight: 900; }
+  .lead { font-size: 11pt; line-height: 1.45; color: #3b3d47; margin: 0 0 6mm; }
+  .dark .lead { color: #c3c5cf; }
+  ul.benefits { list-style: none; padding: 0; margin: 0 0 6mm; display: grid; gap: 3mm; }
+  ul.benefits li { display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; align-items: start; font-size: 10pt; line-height: 1.4; }
+  ul.benefits .ic { width: 9mm; height: 9mm; border-radius: 3mm; background: #fde8eb; display: grid; place-items: center; font-size: 12pt; }
+  ul.benefits b { display: block; font-size: 10.5pt; }
+  .qr { margin-top: auto; display: grid; grid-template-columns: 38mm 1fr; gap: 5mm; align-items: center; border-top: 1px solid #e3e4ea; padding-top: 5mm; }
+  .dark .qr { border-color: #2a2c36; }
+  .qr img { width: 38mm; height: 38mm; display: block; background: #fff; border-radius: 2mm; }
+  .qr .cta { font-size: 12pt; font-weight: 800; line-height: 1.2; }
+  .qr .url { font-size: 9.5pt; color: #8b8d98; margin-top: 1.5mm; }
+  .qr .sub { font-size: 8.5pt; color: #8b8d98; margin-top: 2mm; line-height: 1.35; }
+  ol.steps { padding: 0; margin: 0 0 6mm; list-style: none; counter-reset: s; display: grid; gap: 3.2mm; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; font-size: 10pt; line-height: 1.4; }
+  ol.steps li::before { content: counter(s); width: 9mm; height: 9mm; border-radius: 50%; background: #e5344a; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 11pt; }
+  ol.steps b { display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 2mm; margin: 2mm 0 6mm; }
+  .chip { border: 1px solid #2a2c36; border-radius: 99px; padding: 1.4mm 3.2mm; font-size: 9pt; color: #e6e7ee; }
+  .chip.g { border-color: #1f6f4f; color: #7fe0b0; }
+  .fine { font-size: 8pt; color: #8b8d98; line-height: 1.4; }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; color: #8b8d98; }
+  @media print { html, body { background: #fff; } .page { margin: 0; } }
+</style>
+</head>
+<body>
+
+<!-- FRONT -->
+<section class="page">
+  <div class="brand">Ubu<span>·</span>Tangaza</div>
+  <div class="kicker">Grow through trackable referrals</div>
+
+  <h1>See, track and reward the customers who bring you customers.</h1>
+  <p class="lead">Your customers already refer friends and talk you up. Now you can see
+  exactly who does it, with proof — and reward them your way.</p>
+
+  <ul class="benefits">
+    <li><span class="ic">👥</span><div><b>Know who brings you business</b>Every referral, post and visit arrives with proof and a name. One tap to approve.</div></li>
+    <li><span class="ic">🎁</span><div><b>Reward it your way</b>500 bob airtime, 10% off, a free cut, a cake slice. Any amount, any form — you set the levels.</div></li>
+    <li><span class="ic">🔒</span><div><b>A budget that can't run away</b>You set a reward cap once. It can never be raised, and every approval is a signed record.</div></li>
+  </ul>
+
+  <div class="qr">
+    <img alt="QR code to ubutangaza.biz/waitlist" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=8&data=https%3A%2F%2Fubutangaza.biz%2Fwaitlist">
+    <div>
+      <div class="cta">Set up your shop free.<br>Scan to start.</div>
+      <div class="url">ubutangaza.biz/waitlist</div>
+      <div class="sub">Ten-minute setup. No app for your customers to install — they sign in with Google.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BACK -->
+<section class="page dark">
+  <div class="brand">Ubu<span>·</span>Tangaza</div>
+  <div class="kicker">How it works</div>
+
+  <h1 style="font-size:19pt">Four steps. Zero dashboard babysitting.</h1>
+
+  <ol class="steps">
+    <li><div><b>Say what you reward</b>Referral, a post about you, a visit, an event — and what each is worth to you.</div></li>
+    <li><div><b>Share one link</b>Your customers join in seconds. Each gets a personal link to bring friends with.</div></li>
+    <li><div><b>Approve with one tap</b>Proof comes attached — the post, a photo, the referred name. Approve or reject from your phone.</div></li>
+    <li><div><b>Honour the reward</b>Customers see exactly where they stand ("2 more to a free cut"). You see exactly what you owe.</div></li>
+  </ol>
+
+  <div class="kicker">A reward can be</div>
+  <div class="chips">
+    <span class="chip g">KSh 500 airtime</span><span class="chip g">15% off</span><span class="chip g">Free product</span>
+    <span class="chip">Data bundle</span><span class="chip">Voucher</span><span class="chip">Merch</span><span class="chip">Anything you choose</span>
+  </div>
+
+  <p class="fine">Built in Nairobi. Born at the Avalanche Team1 Game Jam, now in the Retail &amp; SME Loyalty
+  incubation track. Runs on Avalanche as the record-keeper only: no tokens, no wallets, nothing for you
+  or your customers to buy. M-Pesa Till referral pilot: a referred payment verifies itself.</p>
+
+  <div class="foot">
+    <div>ubutangaza.biz<br>hello@ubutangaza.biz</div>
+    <div style="text-align:right">Businesses: ubutangaza.biz/for-business<br>Customers: ubutangaza.biz</div>
+  </div>
+</section>
+
+</body>
+</html>
