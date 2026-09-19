@@ -36,6 +36,19 @@
   .chip.g { border-color: #1f6f4f; color: #7fe0b0; }
   .fine { font-size: 8pt; color: #8b8d98; line-height: 1.4; }
   .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; color: #8b8d98; }
+  .foot2 { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; border-top: 1px solid #2a2c36; padding-top: 4mm; }
+  .foot2 .q { display: grid; grid-template-columns: 24mm 1fr; gap: 3mm; align-items: center; }
+  .foot2 img { width: 24mm; height: 24mm; display: block; background: #fff; border-radius: 1.5mm; }
+  .foot2 b { display: block; font-size: 10pt; color: #fff; }
+  .foot2 div div { font-size: 8.5pt; line-height: 1.35; color: #c3c5cf; }
+  .foot2 span { display: block; color: #8b8d98; font-size: 8pt; margin-top: 1mm; }
+  .page.dark { padding-top: 9mm; }
+  .page.dark h1 { margin: 6mm 0 3mm; }
+  .page.dark ol.steps { gap: 2.2mm; margin-bottom: 4mm; }
+  .page.dark ol.steps li { font-size: 9.5pt; line-height: 1.35; }
+  .page.dark .chips { margin-bottom: 3.5mm; }
+  .page.dark .chip { padding: 1mm 2.8mm; font-size: 8.5pt; }
+  .page.dark .fine { font-size: 7.5pt; margin: 0 0 3mm; }
   @media print { html, body { background: #fff; } .page { margin: 0; } }
 </style>
 </head>
@@ -59,6 +72,7 @@
   <div class="qr">
     <img alt="QR code to ubutangaza.biz/waitlist" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=8&data=https%3A%2F%2Fubutangaza.biz%2Fwaitlist">
     <div>
+      <div class="kicker" style="margin:0 0 1.5mm">For businesses</div>
       <div class="cta">Set up your shop free.<br>Scan to start.</div>
       <div class="url">ubutangaza.biz/waitlist</div>
       <div class="sub">Any business can join, set its own rewards and create campaigns — "Bring a friend this month", "Post about us". Ten-minute setup. No app for your customers to install — they sign in with Google.</div>
@@ -92,9 +106,15 @@
   incubation track. Runs on Avalanche as the record-keeper only: no tokens, no wallets, nothing for you
   or your customers to buy. M-Pesa Till referral pilot: a referred payment verifies itself.</p>
 
-  <div class="foot">
-    <div>ubutangaza.biz</div>
-    <div style="text-align:right">Businesses: ubutangaza.biz/for-business<br>Customers: ubutangaza.biz</div>
+  <div class="foot2">
+    <div class="q">
+      <img alt="QR: businesses — ubutangaza.biz/waitlist" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=6&data=https%3A%2F%2Fubutangaza.biz%2Fwaitlist">
+      <div><b>Businesses</b>Register your shop, set rewards, create campaigns.<span>ubutangaza.biz/waitlist</span></div>
+    </div>
+    <div class="q">
+      <img alt="QR: customers — ubutangaza.biz" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=6&data=https%3A%2F%2Fubutangaza.biz">
+      <div><b>Individuals</b>Join a campaign, refer friends, earn rewards.<span>ubutangaza.biz</span></div>
+    </div>
   </div>
 </section>
 
