@@ -1,7 +1,7 @@
 "use client";
 
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
-import { Card, ConfigWarning, EmptyState, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
+import { ConfigWarning, EmptyState, ErrorNote, Spinner } from "@/components/ui";
 import { addressUrl, txUrl } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { advocateName, shortAddress, timeAgo } from "@/lib/format";
@@ -24,7 +24,7 @@ export default function ClientsPage() {
 }
 
 function Directory() {
-  const { orgId } = useOrgAccessContext();
+  const { orgId, orgName } = useOrgAccessContext();
   const directory = useDirectory(orgId);
   const tiers = useTiers(undefined, orgId);
 
@@ -60,46 +60,34 @@ function Directory() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Clients</p>
-          <p className="tabular mt-1 text-2xl font-bold">{people.length}</p>
-        </Card>
-        <Card>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">
-            Approved weight
-          </p>
-          <p className="tabular mt-1 text-2xl font-bold">{totalWeight}</p>
-        </Card>
-        <Card>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">X linked</p>
-          <p className="tabular mt-1 text-2xl font-bold">
-            {linked}
-            <span className="text-base text-mist-500">/{people.length}</span>
-          </p>
-        </Card>
+      <div>
+        <h1 className="text-2xl font-black">Clients</h1>
+        <p className="mt-1 text-sm text-mist-500">
+          Everyone who has engaged with {orgName || "you"}. {people.length} people,{" "}
+          {totalWeight} approved weight, {linked} with X linked.
+        </p>
       </div>
 
-      <section>
-        <SectionTitle>Everyone who has engaged</SectionTitle>
-        <Card className="overflow-x-auto p-0">
-          <table className="w-full min-w-[40rem] text-sm">
-            <thead>
-              <tr className="border-b border-ink-700 text-left text-[11px] uppercase tracking-[0.14em] text-mist-500">
-                <th className="px-4 py-3 font-semibold">Client</th>
-                <th className="px-4 py-3 font-semibold">Level</th>
-                <th className="px-4 py-3 text-right font-semibold">Weight</th>
-                <th className="px-4 py-3 text-right font-semibold">Approved</th>
-                <th className="px-4 py-3 text-right font-semibold">Pending</th>
-                <th className="px-4 py-3 font-semibold">Last seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {people.map((p) => {
-                const level = levelFor(p.approvedWeight);
-                return (
-                  <tr key={p.advocate} className="border-b border-ink-800 last:border-0">
-                    <td className="px-4 py-3">
+      <div className="border-t border-ink-700" />
+
+      <section className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-sm">
+          <thead>
+            <tr className="border-b border-ink-700 text-left font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+              <th className="py-3 pr-4 font-medium">Client</th>
+              <th className="px-4 py-3 font-medium">Level</th>
+              <th className="px-4 py-3 text-right font-medium">Weight</th>
+              <th className="px-4 py-3 text-right font-medium">Approved</th>
+              <th className="px-4 py-3 text-right font-medium">Pending</th>
+              <th className="px-4 py-3 text-left font-medium">Last seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {people.map((p) => {
+              const level = levelFor(p.approvedWeight);
+              return (
+                <tr key={p.advocate} className="border-b border-ink-800 last:border-0">
+                    <td className="py-3 pr-4">
                       <div className="font-medium">
                         {p.displayName ?? advocateName(p.advocate)}
                       </div>
@@ -170,7 +158,6 @@ function Directory() {
               })}
             </tbody>
           </table>
-        </Card>
         <p className="mt-3 text-xs text-mist-500">
           A <span className="text-mist-300">·?</span> next to a handle means the person
           typed it themselves and nobody has verified it.

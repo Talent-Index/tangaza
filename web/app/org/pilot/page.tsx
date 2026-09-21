@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
-import { Button, Card, ErrorNote, SectionTitle, Spinner, Stat } from "@/components/ui";
+import { Button, Card, ErrorNote, FlatStat, SectionTitle, Spinner, StatRow } from "@/components/ui";
 import { shortAddress } from "@/lib/format";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 import { PAYOUT_KINDS, REWARD_CURRENCIES, formatReward } from "@/lib/types";
@@ -132,20 +132,20 @@ function Pilot() {
       ) : null}
 
       {/* Progress toward the PMF target */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Stat
+      <StatRow cols={3}>
+        <FlatStat
           label="Verified referred sales"
           value={`${verified}`}
           hint={`of ${PMF_TARGET} pilot target`}
           tone="jade"
         />
-        <Stat label="Referrers earning" value={`${owed.size}`} hint="distinct people owed" />
-        <Stat
+        <FlatStat label="Referrers earning" value={`${owed.size}`} hint="distinct people owed" />
+        <FlatStat
           label="Till payments seen"
           value={`${data?.count.total ?? 0}`}
           hint="all C2B confirmations"
         />
-      </section>
+      </StatRow>
       <div className="h-2 w-full overflow-hidden rounded-full bg-ink-800">
         <div
           className="h-full rounded-full bg-jade-500 transition-all"

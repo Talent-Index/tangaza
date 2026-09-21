@@ -6,7 +6,7 @@ import { useToast } from "@/components/toast";
 import { ErrorNote } from "@/components/ui";
 
 const inputClass =
-  "w-full rounded-lg border-0 bg-[#e8eef7] px-4 py-3.5 text-sm text-[#0a1428] outline-none placeholder:text-[#5a6b84] focus:ring-2 focus:ring-crimson-500/50";
+  "w-full rounded-lg border-0 bg-[#ece8dc] px-4 py-3.5 text-sm text-[#15140d] outline-none placeholder:text-[#6b6858] focus:ring-2 focus:ring-crimson-500/50";
 
 type BusinessWaitlistFormProps = {
   className?: string;
@@ -129,7 +129,7 @@ export function BusinessWaitlistForm({ className = "", id }: BusinessWaitlistFor
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0a1428] transition hover:bg-[#e8eef7] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#15140d] transition hover:bg-[#ece8dc] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Submitting…" : "Join waitlist"}
         </button>

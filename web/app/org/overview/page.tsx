@@ -12,10 +12,11 @@ import {
   ConfigWarning,
   EmptyState,
   ErrorNote,
+  FlatStat,
   Pill,
   SectionTitle,
   Spinner,
-  Stat,
+  StatRow,
 } from "@/components/ui";
 import { CREDIT_VALUE_KES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
@@ -190,30 +191,30 @@ function Overview() {
       </div>
 
       {/* KPI row — headline numbers, not a grouped bar chart. */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
+      <StatRow>
+        <FlatStat
           label="Approved activities"
           value={kes(activities)}
           hint={`${advocates} advocate${advocates === 1 ? "" : "s"} taking part`}
         />
-        <Stat
+        <FlatStat
           label="Committed"
           value={kesLabel(issued)}
           hint={`of a ${kesLabel(cap)} cap`}
           tone="crimson"
         />
-        <Stat
+        <FlatStat
           label="Outstanding"
           value={kesLabel(outstanding)}
           hint="Owed but not yet claimed"
         />
-        <Stat
+        <FlatStat
           label="Cost per activity"
           value={kesLabel(Math.round(costPerActivity))}
           hint="Committed ÷ approved activities"
           tone="jade"
         />
-      </section>
+      </StatRow>
 
       <section>
         <SectionTitle

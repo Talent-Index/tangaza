@@ -37,7 +37,7 @@ export default function BusinessWaitlistPage() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-ink-950 px-4 py-8 sm:px-6 sm:py-10">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgb(30_122_239/0.2),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgb(194_85_31/0.2),transparent_60%)]"
         aria-hidden
       />
 

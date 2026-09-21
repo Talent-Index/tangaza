@@ -188,7 +188,7 @@ export function SignIn() {
             <button
               type="submit"
               disabled={busy || !email.trim()}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0a1428] transition hover:bg-[#e8eef7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#15140d] transition hover:bg-[#ece8dc] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? <Spinner /> : null}
               Send code
@@ -231,7 +231,7 @@ export function SignIn() {
             <button
               type="submit"
               disabled={busy || !code}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#0a1428] transition hover:bg-[#e8eef7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#15140d] transition hover:bg-[#ece8dc] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isConnecting ? <Spinner /> : null}
               Sign in
@@ -292,7 +292,7 @@ export function SignIn() {
 }
 
 const portalInput =
-  "w-full rounded-lg border-0 bg-[#e8eef7] px-4 py-3.5 text-sm text-[#0a1428] outline-none placeholder:text-[#5a6b84] focus:ring-2 focus:ring-crimson-500/50";
+  "w-full rounded-lg border-0 bg-[#ece8dc] px-4 py-3.5 text-sm text-[#15140d] outline-none placeholder:text-[#6b6858] focus:ring-2 focus:ring-crimson-500/50";
 
 function PortalField({
   label,
