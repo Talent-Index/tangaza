@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DukaIllustration } from "@/components/landing/DukaIllustration";
 import { BrandMark, Button } from "@/components/ui";
 
 const NAV = [
@@ -197,6 +198,8 @@ function Hero() {
         <div className="absolute -right-16 top-32 h-[14rem] w-[14rem] rounded-full border border-white/5 sm:-right-8 sm:top-40 sm:h-[20rem] sm:w-[20rem]" />
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
       </div>
+
+      <DukaIllustration className="pointer-events-none absolute -right-10 top-1/2 hidden w-[30rem] -translate-y-1/2 text-white/25 lg:block xl:w-[34rem]" />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="max-w-xl animate-fade-up">
