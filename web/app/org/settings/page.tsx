@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
-import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
+import { Button, ErrorNote, Spinner } from "@/components/ui";
 
 import { useEngagementTypes, useTiers } from "@/lib/hooks";
 import {
@@ -159,56 +159,58 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
 
   return (
     <section>
-      <SectionTitle>Engagements</SectionTitle>
+      <div className="mb-3 flex items-baseline gap-3 border-b border-ink-700 pb-3">
+        <span className="font-mono text-xs font-medium text-crimson-400">01</span>
+        <h2 className="text-base font-bold">Activities</h2>
+        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-mist-500">
+          what someone can do, and what it&rsquo;s worth
+        </span>
+      </div>
 
       {engagements.loading && types.length === 0 ? (
-        <Card className="grid place-items-center py-8">
+        <div className="grid place-items-center py-8">
           <Spinner />
-        </Card>
+        </div>
       ) : (
-        <ul className="mb-4 space-y-2">
+        <div className="mb-4 divide-y divide-ink-800 border-b border-ink-800">
           {types.map((t) => (
-            <li key={t.id}>
-              <Card className="flex items-center gap-3 py-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-                  {t.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{t.label}</p>
-                  <p className="truncate text-xs text-mist-500">
-                    {t.blurb ? `${t.blurb} · ` : ""}
-                    asks for {PROOF_KINDS.find((p) => p.id === t.proofKind)?.label}
-                  </p>
-                </div>
-                <span className="tabular shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] text-mist-400">
-                  +{t.weight}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => startEdit(t)}
-                  className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => retire(t.id)}
-                  className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
-                >
-                  Retire
-                </button>
-              </Card>
-            </li>
+            <div key={t.id} className="flex items-center gap-3 py-4">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-800 text-lg">
+                {t.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{t.label}</p>
+                <p className="truncate text-xs text-mist-500">
+                  {t.blurb ? `${t.blurb} · ` : ""}
+                  asks for {PROOF_KINDS.find((p) => p.id === t.proofKind)?.label}
+                </p>
+              </div>
+              <span className="tabular shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] text-mist-400">
+                +{t.weight}
+              </span>
+              <button
+                type="button"
+                onClick={() => startEdit(t)}
+                className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => retire(t.id)}
+                className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+              >
+                Retire
+              </button>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
 
-      <Card>
-        {editing ? (
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
-            Editing “{editing.label}”
-          </p>
-        ) : null}
+      <div className="rounded-xl border border-dashed border-ink-600 p-4">
+        <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+          {editing ? `Editing "${editing.label}"` : "Add an activity"}
+        </p>
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-6">
           <input
             required
@@ -269,7 +271,7 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
             <ErrorNote>{error}</ErrorNote>
           </div>
         ) : null}
-      </Card>
+      </div>
     </section>
   );
 }
@@ -406,52 +408,53 @@ function TierEditor({ orgId }: { orgId: bigint }) {
 
   return (
     <section>
-      <SectionTitle>Levels &amp; goals</SectionTitle>
-      <ul className="mb-4 space-y-2">
-        {ladder.map((t) => (
-          <li key={t.id}>
-            <Card className="flex items-center gap-3 py-4">
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-                {t.icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">
-                  {t.name} <span className="font-normal text-mist-500">{goalText(t)}</span>
-                </p>
-                <p className="truncate text-xs text-mist-500">
-                  {t.amount != null || t.rewardKind ? (
-                    <span className="mr-2 rounded-full bg-jade-500/15 px-2 py-0.5 text-jade-400">
-                      {formatReward({ amount: t.amount, currency: t.currency, rewardKind: t.rewardKind })}
-                    </span>
-                  ) : null}
-                  {t.perk}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => startEdit(t)}
-                className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => remove(t)}
-                className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
-              >
-                Delete
-              </button>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <div className="mb-3 flex items-baseline gap-3 border-b border-ink-700 pb-3">
+        <span className="font-mono text-xs font-medium text-crimson-400">02</span>
+        <h2 className="text-base font-bold">Levels and goals</h2>
+        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-mist-500">
+          what people unlock, and when
+        </span>
+      </div>
 
-      <Card>
-        {editingId ? (
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
-            Editing level {form.level}
-          </p>
-        ) : null}
+      <div className="mb-4 divide-y divide-ink-800 border-b border-ink-800">
+        {ladder.map((t) => (
+          <div key={t.id} className="flex items-center gap-4 py-4">
+            <span className="w-24 shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-mist-500">
+              {goalText(t)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{t.name}</p>
+              <p className="truncate text-xs text-mist-500">
+                {t.amount != null || t.rewardKind ? (
+                  <span className="mr-2 rounded-full bg-jade-500/15 px-2 py-0.5 text-jade-400">
+                    {formatReward({ amount: t.amount, currency: t.currency, rewardKind: t.rewardKind })}
+                  </span>
+                ) : null}
+                {t.perk}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => startEdit(t)}
+              className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => remove(t)}
+              className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-ink-600 p-4">
+        <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+          {editingId ? `Editing level ${form.level}` : "Add a level"}
+        </p>
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-6">
           <input
             type="number"
@@ -575,7 +578,7 @@ function TierEditor({ orgId }: { orgId: bigint }) {
             <ErrorNote>{error}</ErrorNote>
           </div>
         ) : null}
-      </Card>
+      </div>
     </section>
   );
 }

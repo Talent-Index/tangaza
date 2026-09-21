@@ -277,15 +277,15 @@ function CampaignsWorkspace() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           {live ? (
-                            <span className="rounded-full bg-jade-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-jade-400">
+                            <span className="rounded-full bg-jade-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-jade-400">
                               Live
                             </span>
                           ) : past || !c.active ? (
-                            <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-bold uppercase text-mist-500">
+                            <span className="rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-mist-500">
                               Ended
                             </span>
                           ) : (
-                            <span className="rounded-full bg-crimson-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-crimson-300">
+                            <span className="rounded-full bg-crimson-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-crimson-300">
                               Upcoming
                             </span>
                           )}
@@ -311,7 +311,7 @@ function CampaignsWorkspace() {
         <section className="min-w-0">
           {showForm ? (
             <Card className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
+              <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
                 {draft.id ? "Edit campaign" : "New campaign"}
               </p>
               <form onSubmit={save} className="space-y-4">
@@ -478,11 +478,11 @@ function CampaignDetailPanel({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {live ? (
-              <span className="rounded-full bg-jade-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-jade-400">
+              <span className="rounded-full bg-jade-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-jade-400">
                 Live
               </span>
             ) : (
-              <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-bold uppercase text-mist-500">
+              <span className="rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-mist-500">
                 {c.active ? "Upcoming" : "Closed"}
               </span>
             )}
@@ -550,7 +550,7 @@ function CampaignDetailPanel({
         </div>
 
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
             How to participate
           </p>
           {counted.length === 0 ? (
@@ -650,20 +650,12 @@ function CampaignOverview({ orgId }: { orgId: bigint }) {
   if (!data || data.campaigns.length === 0) return null;
 
   return (
-    <Card className="flex flex-wrap items-center gap-4">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Across all campaigns</p>
-        <p className="tabular mt-1 text-2xl font-bold">
-          {data.totalUniqueParticipants}
-          <span className="ml-2 text-sm font-normal text-mist-500">
-            distinct {data.totalUniqueParticipants === 1 ? "person" : "people"}
-          </span>
-        </p>
-      </div>
-      <p className="min-w-0 flex-1 text-right text-xs text-mist-500">
-        {data.campaigns.length} campaign{data.campaigns.length === 1 ? "" : "s"} total
-      </p>
-    </Card>
+    <p className="border-t border-ink-700 pt-4 text-sm text-mist-500">
+      {data.campaigns.length} campaign{data.campaigns.length === 1 ? "" : "s"} ·{" "}
+      <span className="font-semibold text-mist-100">{data.totalUniqueParticipants}</span>{" "}
+      distinct {data.totalUniqueParticipants === 1 ? "person" : "people"} reached across all
+      of them
+    </p>
   );
 }
 
@@ -689,7 +681,7 @@ function CampaignSharers({ campaignId }: { campaignId: string }) {
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         Who&rsquo;s spreading this
       </p>
       <ul className="space-y-1">
@@ -715,7 +707,7 @@ function CampaignRoster({ campaignId, orgId }: { campaignId: string; orgId: bigi
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         Who joined
       </p>
       <ul className="space-y-1">
@@ -780,7 +772,7 @@ function CampaignActivity({ campaignId }: { campaignId: string }) {
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         Activity
       </p>
       <ul className="space-y-1">

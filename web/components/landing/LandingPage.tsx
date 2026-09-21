@@ -54,6 +54,12 @@ export function LandingPage() {
             >
               Register on Avalanche →
             </Link>
+            <a
+              href="mailto:danielmwihoti@ubutangaza.biz"
+              className="text-mist-500 underline underline-offset-4 hover:text-mist-300"
+            >
+              danielmwihoti@ubutangaza.biz
+            </a>
           </div>
         </div>
       </footer>

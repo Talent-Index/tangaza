@@ -6,10 +6,11 @@ import {
   Card,
   ConfigWarning,
   ErrorNote,
+  FlatStat,
   Pill,
   SectionTitle,
   Spinner,
-  Stat,
+  StatRow,
 } from "@/components/ui";
 import { isConfigured } from "@/lib/client";
 import { kes, kesLabel } from "@/lib/format";
@@ -57,14 +58,16 @@ function Liability() {
         </p>
       </div>
 
+      <div className="border-t border-ink-700" />
+
       {/* Hero figure: the one number this dashboard leads with. */}
-      <Card className="flex flex-wrap items-end justify-between gap-6 py-8">
+      <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
+          <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
             Outstanding liability
           </p>
           {/* Proportional figures, not tabular — this is a display number. */}
-          <p className="mt-2 text-6xl font-black leading-none text-crimson-400">
+          <p className="mt-2 text-6xl font-black leading-none text-mist-100">
             {kesLabel(outstanding)}
           </p>
           <p className="mt-3 text-sm text-mist-500">
@@ -80,23 +83,23 @@ function Liability() {
             <Pill tone="warn">Budget exhausted — minting has stopped</Pill>
           ) : null}
         </div>
-      </Card>
+      </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Emission cap" value={kesLabel(cap)} hint="Set once. Immutable." />
-        <Stat
+      <StatRow cols={3}>
+        <FlatStat label="Emission cap" value={kesLabel(cap)} hint="Set once. Immutable." />
+        <FlatStat
           label="Committed"
           value={kesLabel(issued)}
           hint="Rewards minted to advocates"
           tone="crimson"
         />
-        <Stat
+        <FlatStat
           label="Settled"
           value={kesLabel(redeemed)}
           hint="Claimed and delivered"
           tone="jade"
         />
-      </section>
+      </StatRow>
 
       <section>
         <SectionTitle>Liability over time</SectionTitle>
@@ -113,8 +116,8 @@ function Liability() {
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <section className="grid gap-8 border-t border-ink-700 pt-6 md:grid-cols-2">
+        <div>
           <h2 className="font-semibold">Why this can only shrink</h2>
           <p className="mt-2 text-sm leading-relaxed text-mist-400">
             A reward exists only because you approved a real activity, and it is worth a
@@ -123,9 +126,9 @@ function Liability() {
             outstanding falls. Nothing in the contract can mint a reward without an
             approval, and nothing can un-burn a claimed one.
           </p>
-        </Card>
+        </div>
 
-        <Card>
+        <div>
           <h2 className="font-semibold">Why the cap can never move</h2>
           <p className="mt-2 text-sm leading-relaxed text-mist-400">
             <span className="text-mist-200">{kesLabel(cap)}</span> was written when{" "}
@@ -133,7 +136,7 @@ function Liability() {
             again — not for the owner, not for you. At the cap, approvals still record
             advocacy on-chain, but no new reward is minted.
           </p>
-        </Card>
+        </div>
       </section>
     </div>
   );

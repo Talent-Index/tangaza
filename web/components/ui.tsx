@@ -105,6 +105,53 @@ export function Pill({
   );
 }
 
+/** A hairline-divided row of flat stats — the editorial alternative to a grid of Cards. */
+export function StatRow({
+  children,
+  cols = 4,
+}: {
+  children: React.ReactNode;
+  cols?: 3 | 4;
+}) {
+  const gridCols = cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4";
+  return (
+    <div
+      className={`grid divide-y divide-ink-700 overflow-hidden rounded-xl border border-ink-700 sm:divide-x sm:divide-y-0 ${gridCols}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** One cell in a StatRow — same content model as Stat, without the card chrome. */
+export function FlatStat({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+  tone?: "default" | "crimson" | "jade";
+}) {
+  const valueTone = {
+    default: "text-mist-100",
+    crimson: "text-crimson-400",
+    jade: "text-jade-400",
+  }[tone];
+
+  return (
+    <div className="min-w-0 p-4 sm:p-5">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+        {label}
+      </p>
+      <p className={`tabular mt-2 truncate text-2xl font-bold ${valueTone}`}>{value}</p>
+      {hint ? <p className="mt-1 truncate text-xs text-mist-500">{hint}</p> : null}
+    </div>
+  );
+}
+
 export function Stat({
   label,
   value,
