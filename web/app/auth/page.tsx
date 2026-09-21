@@ -23,7 +23,7 @@ export default function AuthPage() {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-x-clip px-4 py-12 sm:px-6">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(194_85_31/0.12),transparent_70%)]"
         aria-hidden
       />
 

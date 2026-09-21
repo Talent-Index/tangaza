@@ -185,8 +185,8 @@ function Hero() {
       className="relative flex min-h-dvh items-end overflow-hidden pb-16 pt-24 sm:items-center sm:pb-24 sm:pt-28"
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_40%,rgb(30_122_239/0.28),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgb(5_11_24/0.55)_55%,rgb(5_11_24)_92%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_40%,rgb(194_85_31/0.30),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgb(11_11_9/0.55)_55%,rgb(11_11_9)_92%)]" />
         <div className="absolute -right-32 top-16 h-[22rem] w-[22rem] rounded-full border border-crimson-500/20 sm:-right-20 sm:top-24 sm:h-[28rem] sm:w-[28rem]" />
         <div className="absolute -right-16 top-32 h-[14rem] w-[14rem] rounded-full border border-white/5 sm:-right-8 sm:top-40 sm:h-[20rem] sm:w-[20rem]" />
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
@@ -319,7 +319,7 @@ function CardVisual({ kind }: { kind: string }) {
 
   return (
     <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[#0c1c3a] via-ink-850 to-ink-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgb(30_122_239/0.25),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgb(194_85_31/0.25),transparent_50%)]" />
       <div className="relative grid w-full max-w-sm grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-8">
         {["👥", "🎤", "★"].map((icon, i) => (
           <div

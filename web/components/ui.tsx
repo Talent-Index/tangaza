@@ -27,7 +27,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <h2 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
         {children}
       </h2>
       {action}
@@ -56,8 +56,8 @@ export function Button({
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 sm:px-6";
   const styles = {
     primary:
-      "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(30_122_239/0.65)]",
-    light: "bg-white text-[#050b18] hover:bg-[#e8eef7]",
+      "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(194_85_31/0.55)]",
+    light: "bg-[#f5f4ee] text-[#15140d] hover:bg-[#e8e6da]",
     ghost: "border border-ink-600 text-mist-300 hover:border-ink-500 hover:text-mist-100",
     danger: "border border-crimson-600 text-crimson-300 hover:bg-crimson-600/15",
   }[variant];
@@ -124,7 +124,7 @@ export function Stat({
 
   return (
     <Card>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         {label}
       </p>
       <p className={`tabular mt-2 text-2xl font-bold ${valueTone}`}>{value}</p>

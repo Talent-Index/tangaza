@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { useActiveAccount, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
+import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
 import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
@@ -35,15 +36,20 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/org/overview" className="flex min-w-0 items-center gap-2">
             <BrandMark className="text-base sm:text-lg" />
-            <span className="hidden text-sm text-mist-500 sm:inline">Business</span>
+            <span className="hidden font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-crimson-400 sm:inline">
+              Business
+            </span>
           </Link>
 
-          <OrgProfileMenu />
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
+            <OrgProfileMenu />
+          </div>
         </div>
 
         {account ? (
-          <nav className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
-            <div className="flex w-max min-w-full items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1 sm:w-auto sm:min-w-0 sm:flex-wrap">
+          <nav className="-mx-4 overflow-x-auto border-t border-ink-700 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+            <div className="flex w-max min-w-full items-center gap-5 sm:w-auto sm:min-w-0 sm:flex-wrap">
               {NAV.map((item) => {
                 const active =
                   item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
@@ -52,10 +58,10 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${
+                    className={`shrink-0 border-b-2 py-3 text-sm font-medium transition ${
                       active
-                        ? "bg-crimson-500/15 text-crimson-300"
-                        : "text-mist-500 hover:text-mist-300"
+                        ? "border-crimson-500 text-mist-100"
+                        : "border-transparent text-mist-500 hover:text-mist-300"
                     }`}
                   >
                     {item.label}
@@ -91,7 +97,7 @@ function OrgSignedOut() {
   return (
     <div className="relative grid place-items-center py-10 sm:py-16">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(194_85_31/0.12),transparent_70%)]"
         aria-hidden
       />
       <div className="relative w-full max-w-md">
