@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BrandMark, Button } from "@/components/ui";
-import { MILESTONE_ACTIVITIES } from "@/lib/chain";
 
 const NAV = [
   { href: "#about", label: "About" },
@@ -13,14 +12,14 @@ const NAV = [
 
 const CARDS = [
   {
-    title: "Referrals that count",
-    body: "Walk someone in, share your link, or host an event. The business approves what is real — and only then does it count toward your reward.",
+    title: "Proof of engagement",
+    body: "Engage with the business's campaign — refer a friend, share your link, host an event. The business approves what's real, and hitting its target unlocks your reward.",
     visual: "refer",
     offset: "lg:mt-0",
   },
   {
-    title: "Posts with proof",
-    body: "Shout-outs on X, Reels, WhatsApp status — submit the link or screenshot. Weighted by what the business values most.",
+    title: "The more you engage, the more you earn",
+    body: "Shout-outs on X, Reels, WhatsApp status — submit the link or a screenshot as proof. The more engagement you bring toward the business's target, the more you're rewarded.",
     visual: "post",
     offset: "lg:mt-24",
   },
@@ -33,13 +32,14 @@ export function LandingPage() {
       <Hero />
       <LiveCampaigns />
       <Solutions />
+      <ForBusiness />
       <WhyUs />
       <footer className="border-t border-ink-700/80 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <BrandMark />
           <p className="max-w-md text-sm leading-relaxed text-mist-500">
-            Trackable referral rewards for local businesses. Every action backed by proof;
-            your reward budget capped once and never raised.
+            Trackable business campaigns. Every engagement backed by proof; your reward
+            budget capped once and never raised.
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <Link
@@ -203,7 +203,7 @@ function Hero() {
           <h1 className="font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
             Grow through
             <br />
-            trackable referrals.
+            trackable campaigns.
           </h1>
 
           <div className="mt-5 flex items-center gap-1.5 sm:mt-6" aria-hidden>
@@ -214,9 +214,9 @@ function Hero() {
           </div>
 
           <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-mist-300 sm:mt-6 sm:text-lg">
-            Reward your customers for what they actually do for your business — bringing
-            you clients, referring friends, spreading the word. Proof behind every action,
-            and a reward budget you control.
+            Reward customers who engage with your campaign — referring friends, spreading
+            the word, pushing toward the target you set. Proof behind every action, and a
+            reward budget you control.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-9">
@@ -239,14 +239,14 @@ function Solutions() {
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl animate-fade-up">
           <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Connected reward
+            Engage the campaign,
             <br />
-            solutions
+            get rewarded.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-mist-400 sm:mt-5">
-            Whether it is a walk-in referral or a shout-out on X, Ubu-Tangaza coordinates
-            proof, approval, and payout in one loop — so you earn without juggling
-            spreadsheets or seed phrases.
+            A business sets what counts toward its campaign — a referral, a post, a visit
+            — and the target that unlocks the reward. Ubu-Tangaza tracks every engagement
+            so the business can approve what's real and watch the campaign live.
           </p>
         </div>
 
@@ -272,18 +272,18 @@ function Solutions() {
           {[
             {
               step: "01",
-              title: "Submit",
-              body: "File a referral, post, or event with the proof the business asks for.",
+              title: "Engage",
+              body: "Take part in the business's campaign — refer, post, or show up. Everything you do pushes toward the target it set.",
             },
             {
               step: "02",
               title: "Get approved",
-              body: "The business signs approval on-chain. That is what makes it real.",
+              body: "The business approves what's real and signs it on-chain. That's what makes it count toward the target.",
             },
             {
               step: "03",
               title: "Claim",
-              body: `Every ${MILESTONE_ACTIVITIES} approved activities unlocks in-house offers, rewards and discounts you can redeem.`,
+              body: "Hit the target and claim the reward the business set for it — cash, a voucher, a discount, whatever they chose.",
             },
           ].map((item) => (
             <div key={item.step}>
@@ -294,6 +294,34 @@ function Solutions() {
               <p className="mt-2 text-sm text-mist-500">{item.body}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** The business-side pitch — a campaign with a target, not a leaderboard to babysit. */
+function ForBusiness() {
+  return (
+    <section className="border-t border-ink-800 bg-ink-900/40 px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+        <div className="animate-fade-up">
+          <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-crimson-400">
+            For businesses
+          </p>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Have a product to push, or a target to reach?
+          </h2>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-mist-400">
+            Create a campaign on Ubu-Tangaza and let your customers do the reach for you.
+            Set what counts, track every engagement live, approve the proof, and set the
+            target that rewards them the moment they hit it.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 lg:justify-end">
+          <Button href="/register" className="min-h-12 px-6 sm:px-7">
+            Create a campaign
+          </Button>
         </div>
       </div>
     </section>
@@ -360,7 +388,7 @@ function WhyUs() {
             {[
               "No seed phrase. No gas fees. Social sign-in only.",
               "Piloting with Nairobi businesses — born at Team1 Kenya's Avalanche Game Jam.",
-              "Real in-house rewards every milestone — offers, discounts, vouchers.",
+              "Every activity is provable on-chain — the business sets the campaign target, and customers get rewarded the moment they hit it.",
             ].map((line) => (
               <li key={line} className="flex gap-3 text-sm text-mist-300">
                 <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-crimson-400" />
@@ -375,11 +403,12 @@ function WhyUs() {
             Solvency promise
           </p>
           <p className="mt-3 font-display text-xl font-bold leading-snug text-white sm:mt-4 sm:text-2xl">
-            The reward budget can never grow — only shrink as people claim.
+            Your reward budget fits your campaign targets — and can only shrink.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-mist-500 sm:mt-4">
-            That rule is enforced by the contract, not by a settings toggle. Advocacy is a
-            community act; the return should be something the community can verify.
+            That rule is enforced by the contract, not by a settings toggle. Engaging with
+            a campaign is a community act; the return should be something the community
+            can verify.
           </p>
         </div>
       </div>

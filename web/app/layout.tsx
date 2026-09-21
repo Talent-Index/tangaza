@@ -26,9 +26,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ubu-Tangaza | Grow your business through trackable referrals",
+  title: "Ubu-Tangaza | Grow your business through trackable campaigns",
   description:
-    "Reward your customers for what they do for your business — bringing you clients, referring friends, spreading the word. Proof behind every action, and a reward budget you control.",
+    "Create a campaign, set the target, and reward customers for engaging with it — referrals, posts, visits. Proof behind every action, and a reward budget you control.",
 };
 
 export const viewport: Viewport = {
