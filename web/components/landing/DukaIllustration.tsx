@@ -85,18 +85,32 @@ export function DukaIllustration({ className = "" }: { className?: string }) {
         <path d="M168,190 C168,163 222,163 222,190" />
         <path d="M206,180 c-3,-6 -12,-4 -12,3 c0,6 8,10 12,13 c4,-3 12,-7 12,-13 c0,-7 -9,-9 -12,-3 Z" />
 
-        {/* customers */}
-        <circle cx="390" cy="228" r="22" />
-        <path d="M364,340 L369,254 L411,254 L416,340 Z" />
-        <path d="M368,272 L300,253" />
+        {/* customers — each wrapped so it can bob and sway like a footstep cycle */}
+        <g className="duka-fig duka-fig-a">
+          <circle cx="390" cy="228" r="22" />
+          <path d="M364,340 L369,254 L411,254 L416,340 Z" />
+          <g className="duka-arm-swing">
+            <path d="M368,272 L300,253" />
+          </g>
+        </g>
+        <g className="duka-dust duka-dust-a">
+          <path d="M368,345 q12,6 24,0" />
+        </g>
 
-        <circle cx="452" cy="244" r="17" />
-        <path d="M431,340 L434,266 L470,266 L473,340 Z" />
+        <g className="duka-fig duka-fig-b">
+          <circle cx="452" cy="244" r="17" />
+          <path d="M431,340 L434,266 L470,266 L473,340 Z" />
+        </g>
+        <g className="duka-dust duka-dust-b">
+          <path d="M436,345 q12,6 24,0" />
+        </g>
 
         {/* attention marks */}
-        <path d="M472,150 L483,139" />
-        <path d="M483,161 L496,152" />
-        <path d="M490,177 L505,171" />
+        <g className="duka-notice">
+          <path d="M472,150 L483,139" />
+          <path d="M483,161 L496,152" />
+          <path d="M490,177 L505,171" />
+        </g>
 
         {/* ground */}
         <path d="M40,340 L480,340" />
@@ -132,6 +146,62 @@ export function DukaIllustration({ className = "" }: { className?: string }) {
         <path d="M466,340 L461,330" />
         </g>
       </g>
+
+      <style>{`
+        .duka-fig {
+          transform-box: fill-box;
+          transform-origin: 50% 100%;
+          animation: duka-walk 1s ease-in-out infinite;
+        }
+        .duka-fig-a { animation-delay: 0s; }
+        .duka-fig-b { animation-delay: 0.35s; animation-duration: 0.92s; }
+
+        .duka-arm-swing {
+          transform-box: fill-box;
+          transform-origin: 100% 30%;
+          animation: duka-arm-swing 1s ease-in-out infinite;
+        }
+
+        .duka-notice {
+          transform-box: fill-box;
+          transform-origin: 50% 50%;
+          animation: duka-notice 1.4s ease-in-out infinite;
+        }
+
+        .duka-dust {
+          transform-box: fill-box;
+          transform-origin: 50% 0%;
+          animation: duka-dust 1s ease-in-out infinite;
+        }
+        .duka-dust-a { animation-delay: 0s; }
+        .duka-dust-b { animation-delay: 0.35s; animation-duration: 0.92s; }
+
+        @keyframes duka-walk {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-3px) rotate(-1.2deg); }
+          50% { transform: translateY(0) rotate(0deg); }
+          75% { transform: translateY(-3px) rotate(1.2deg); }
+        }
+        @keyframes duka-arm-swing {
+          0%, 100% { transform: rotate(0deg); }
+          50% { transform: rotate(-6deg); }
+        }
+        @keyframes duka-notice {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 1; }
+        }
+        @keyframes duka-dust {
+          0%, 45%, 55%, 100% { opacity: 0; }
+          10% { opacity: 0.55; }
+          60% { opacity: 0.55; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .duka-fig, .duka-arm-swing, .duka-notice, .duka-dust {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </svg>
   );
 }
