@@ -296,7 +296,7 @@ function CommunityCard({
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 break-words text-sm font-semibold">{community.name}</p>
+        <p className="min-w-0 flex-1 break-words text-base font-bold">{community.name}</p>
         <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5">
           {community.streak > 0 ? (
             <Pill tone={community.streak > 1 ? "warn" : "neutral"}>

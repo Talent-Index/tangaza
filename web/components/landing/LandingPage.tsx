@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ThemeToggle, useTheme } from "@/components/theme";
 import { addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 
@@ -33,14 +34,19 @@ const STEPS = [
 ];
 
 /**
- * A compact, dashboard-style homepage — white and teal, one or two screens deep,
- * rather than a long dark narrative scroll. Live campaign data still comes from the
- * same feed every other campaign list on the site uses; the numbers here are real,
- * not the placeholder "16 of 20" style copy a static mock would show.
+ * This page doesn't use the app's ink, mist and crimson CSS-variable tokens (those
+ * drive the dark, orange-accented product surfaces) — it's deliberately white-and-teal
+ * to match a specific design. So it can't get dark mode "for free" the way every other
+ * page does by inheriting the tokens; each section below reads useTheme() itself and
+ * switches between two literal palettes. Both keep the teal accent — only the paper
+ * and text swap between the light and dark look.
  */
 export function LandingPage() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
-    <div className="min-h-dvh bg-white text-gray-900">
+    <div className={`min-h-dvh transition-colors ${dark ? "bg-[#0b0e11] text-gray-100" : "bg-white text-gray-900"}`}>
       <LandingNav />
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10">
@@ -56,6 +62,8 @@ export function LandingPage() {
 
 function LandingNav() {
   const [open, setOpen] = useState(false);
+  const { theme } = useTheme();
+  const dark = theme === "dark";
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -65,27 +73,36 @@ function LandingNav() {
   }, [open]);
 
   return (
-    <header className="border-b border-gray-200 bg-white/90 backdrop-blur">
+    <header
+      className={`border-b backdrop-blur transition-colors ${
+        dark ? "border-gray-800 bg-[#0b0e11]/90" : "border-gray-200 bg-white/90"
+      }`}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+        <Link href="/" className={`text-lg font-bold tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>
           ubu-tangaza
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-gray-500 lg:flex">
-          <a href="/" className="border-b-2 border-teal-600 pb-1 text-teal-700">
+        <nav className={`hidden items-center gap-6 text-sm font-medium lg:flex ${dark ? "text-gray-400" : "text-gray-500"}`}>
+          <a href="/" className="border-b-2 border-teal-500 pb-1 text-teal-500">
             Home
           </a>
           {NAV.map((item) => (
-            <a key={item.href} href={item.href} className="pb-1 transition hover:text-gray-900">
+            <a
+              key={item.href}
+              href={item.href}
+              className={`pb-1 transition ${dark ? "hover:text-white" : "hover:text-gray-900"}`}
+            >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle />
           <Link
             href="/auth"
-            className="hidden rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 sm:inline-block"
+            className="hidden rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 sm:inline-block"
           >
             Sign In
           </Link>
@@ -95,21 +112,29 @@ function LandingNav() {
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="grid size-9 place-items-center rounded-md border border-gray-300 text-gray-700 lg:hidden"
+            className={`grid size-9 place-items-center rounded-md border lg:hidden ${
+              dark ? "border-gray-700 text-gray-200" : "border-gray-300 text-gray-700"
+            }`}
           >
             <span className="flex w-4 flex-col gap-1" aria-hidden>
-              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "translate-y-1.5 rotate-45" : ""}`} />
-              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "opacity-0" : ""}`} />
-              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "-translate-y-1.5 -rotate-45" : ""}`} />
+              <span
+                className={`h-0.5 w-full rounded-full transition ${dark ? "bg-gray-200" : "bg-gray-700"} ${open ? "translate-y-1.5 rotate-45" : ""}`}
+              />
+              <span
+                className={`h-0.5 w-full rounded-full transition ${dark ? "bg-gray-200" : "bg-gray-700"} ${open ? "opacity-0" : ""}`}
+              />
+              <span
+                className={`h-0.5 w-full rounded-full transition ${dark ? "bg-gray-200" : "bg-gray-700"} ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
+              />
             </span>
           </button>
         </div>
       </div>
 
       {open ? (
-        <div id="mobile-nav" className="border-t border-gray-200 px-4 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3 text-sm font-medium text-gray-600">
-            <a href="/" onClick={() => setOpen(false)} className="text-teal-700">
+        <div id="mobile-nav" className={`border-t px-4 py-4 lg:hidden ${dark ? "border-gray-800" : "border-gray-200"}`}>
+          <nav className={`flex flex-col gap-3 text-sm font-medium ${dark ? "text-gray-300" : "text-gray-600"}`}>
+            <a href="/" onClick={() => setOpen(false)} className="text-teal-500">
               Home
             </a>
             {NAV.map((item) => (
@@ -132,16 +157,19 @@ function LandingNav() {
 }
 
 function Hero() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
     <section id="about" className="grid gap-8 pt-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-10">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
           Verified word-of-mouth platform &middot; Run a campaign
         </p>
-        <h1 className="mt-3 text-4xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-[2.75rem]">
+        <h1 className={`mt-3 text-4xl font-bold leading-[1.1] tracking-tight sm:text-[2.75rem] ${dark ? "text-white" : "text-gray-900"}`}>
           Grow through trackable campaigns.
         </h1>
-        <p className="mt-4 max-w-lg text-base leading-relaxed text-gray-600">
+        <p className={`mt-4 max-w-lg text-base leading-relaxed ${dark ? "text-gray-400" : "text-gray-600"}`}>
           Create campaigns for your business, grow by encouraging customer advocacy,
           track every action, and reward your most active campaigners.
         </p>
@@ -149,13 +177,17 @@ function Hero() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/register"
-            className="rounded-md bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+            className="rounded-md bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500"
           >
             Create a Campaign
           </Link>
           <Link
             href="/campaigns"
-            className="rounded-md border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:border-gray-400"
+            className={`rounded-md border px-5 py-2.5 text-sm font-semibold transition ${
+              dark
+                ? "border-gray-700 text-gray-100 hover:border-gray-500"
+                : "border-gray-300 text-gray-800 hover:border-gray-400"
+            }`}
           >
             Explore Live Pushes
           </Link>
@@ -173,6 +205,8 @@ function Hero() {
  * a "X of Y claimed" framing the schema has no per-campaign target to back up.
  */
 function HappeningNow() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
   const [campaigns, setCampaigns] = useState<
     Array<{ id: string; title: string; orgName: string; participantCount: number }>
   >([]);
@@ -191,13 +225,17 @@ function HappeningNow() {
   }, []);
 
   return (
-    <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-5">
+    <div
+      className={`rounded-xl border p-5 ${
+        dark ? "border-teal-900/50 bg-teal-950/20" : "border-teal-100 bg-teal-50/60"
+      }`}
+    >
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-gray-900">Happening Now in Nairobi</p>
-        <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-700">
+        <p className={`font-semibold ${dark ? "text-white" : "text-gray-900"}`}>Happening Now in Nairobi</p>
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-500">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-teal-500 opacity-75" />
-            <span className="relative inline-flex size-1.5 rounded-full bg-teal-600" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-teal-500" />
           </span>
           Live Updates
         </p>
@@ -205,16 +243,25 @@ function HappeningNow() {
 
       <div className="mt-4 space-y-2.5">
         {campaigns.length === 0 ? (
-          <div className="rounded-lg border border-teal-100 bg-white px-4 py-4 text-sm text-gray-500">
+          <div
+            className={`rounded-lg border px-4 py-4 text-sm ${
+              dark ? "border-teal-900/50 bg-[#0b0e11] text-gray-400" : "border-teal-100 bg-white text-gray-500"
+            }`}
+          >
             No campaigns live right now — check back shortly.
           </div>
         ) : (
           campaigns.map((c) => (
-            <div key={c.id} className="rounded-lg border border-teal-100 bg-white px-4 py-3">
-              <p className="text-sm font-semibold text-gray-900">
+            <div
+              key={c.id}
+              className={`rounded-lg border px-4 py-3 ${
+                dark ? "border-teal-900/50 bg-[#0b0e11]" : "border-teal-100 bg-white"
+              }`}
+            >
+              <p className={`text-sm font-semibold ${dark ? "text-white" : "text-gray-900"}`}>
                 {c.orgName} &mdash; {c.title}
               </p>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className={`mt-0.5 text-xs ${dark ? "text-gray-400" : "text-gray-500"}`}>
                 {c.participantCount > 0
                   ? `${c.participantCount} ${c.participantCount === 1 ? "person" : "people"} taking part`
                   : "Just launched — be the first to join"}
@@ -228,17 +275,20 @@ function HappeningNow() {
 }
 
 function PlatformMechanism() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
     <section id="how" className="mt-14 sm:mt-16">
-      <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">
+      <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
         Platform mechanism
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {STEPS.map((item) => (
-          <div key={item.step} className="rounded-xl border border-gray-200 p-5">
-            <p className="text-2xl font-bold text-teal-600">{item.step}</p>
-            <p className="mt-2 font-semibold text-gray-900">{item.title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.body}</p>
+          <div key={item.step} className={`rounded-xl border p-5 ${dark ? "border-gray-800" : "border-gray-200"}`}>
+            <p className="text-2xl font-bold text-teal-500">{item.step}</p>
+            <p className={`mt-2 font-semibold ${dark ? "text-white" : "text-gray-900"}`}>{item.title}</p>
+            <p className={`mt-2 text-sm leading-relaxed ${dark ? "text-gray-400" : "text-gray-500"}`}>{item.body}</p>
           </div>
         ))}
       </div>
@@ -247,12 +297,19 @@ function PlatformMechanism() {
 }
 
 function SolvencyBar() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
     <section id="why" className="mt-6">
-      <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center">
+      <div
+        className={`flex flex-col items-start justify-between gap-4 rounded-xl border p-5 sm:flex-row sm:items-center ${
+          dark ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-gray-50"
+        }`}
+      >
         <div>
-          <p className="font-semibold text-gray-900">Blockchain Solvency Guarantee</p>
-          <p className="mt-1 max-w-xl text-sm text-gray-500">
+          <p className={`font-semibold ${dark ? "text-white" : "text-gray-900"}`}>Blockchain Solvency Guarantee</p>
+          <p className={`mt-1 max-w-xl text-sm ${dark ? "text-gray-400" : "text-gray-500"}`}>
             Capped budgets are permanently set on the Avalanche Fuji network, ensuring
             rules can never be quietly altered.
           </p>
@@ -261,7 +318,7 @@ function SolvencyBar() {
           href={addressUrl(CONTRACT_ADDRESS)}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+          className="shrink-0 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-500"
         >
           Verified On-Chain
         </a>
@@ -271,20 +328,27 @@ function SolvencyBar() {
 }
 
 function Footer() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
-    <footer className="border-t border-gray-200 px-4 py-8 sm:px-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+    <footer className={`border-t px-4 py-8 sm:px-6 ${dark ? "border-gray-800" : "border-gray-200"}`}>
+      <div
+        className={`mx-auto flex max-w-6xl flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
+          dark ? "text-gray-400" : "text-gray-500"
+        }`}
+      >
         <p>Trackable business campaigns &middot; Nairobi, Kenya &middot; Avalanche Fuji</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <Link href="/waitlist" className="underline underline-offset-4 hover:text-gray-800">
+          <Link href="/waitlist" className={`underline underline-offset-4 ${dark ? "hover:text-gray-200" : "hover:text-gray-800"}`}>
             Business waitlist
           </Link>
-          <Link href="/register" className="underline underline-offset-4 hover:text-gray-800">
+          <Link href="/register" className={`underline underline-offset-4 ${dark ? "hover:text-gray-200" : "hover:text-gray-800"}`}>
             Register on Avalanche
           </Link>
           <a
             href="mailto:danielmwihoti@ubutangaza.biz"
-            className="underline underline-offset-4 hover:text-gray-800"
+            className={`underline underline-offset-4 ${dark ? "hover:text-gray-200" : "hover:text-gray-800"}`}
           >
             danielmwihoti@ubutangaza.biz
           </a>
