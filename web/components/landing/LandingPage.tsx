@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DukaIllustration } from "@/components/landing/DukaIllustration";
-import { BrandMark, Button } from "@/components/ui";
+import { addressUrl } from "@/lib/chain";
+import { CONTRACT_ADDRESS } from "@/lib/client";
 
 const NAV = [
   { href: "#about", label: "About" },
@@ -11,59 +11,45 @@ const NAV = [
   { href: "#why", label: "Why us" },
 ];
 
-const CARDS = [
+const STEPS = [
   {
-    title: "Proof of engagement",
-    body: "Engage with the business's campaign — refer a friend, share your link, host an event. The business approves what's real, and hitting its target unlocks your reward.",
-    visual: "refer",
-    offset: "lg:mt-0",
+    step: "01",
+    title: "Create Campaigns",
+    body: "Businesses define custom social or walk-in actions and set milestones.",
   },
   {
-    title: "The more you engage, the more you earn",
-    body: "Shout-outs on X, Reels, WhatsApp status — submit the link or a screenshot as proof. The more engagement you bring toward the business's target, the more you're rewarded.",
-    visual: "post",
-    offset: "lg:mt-24",
+    step: "02",
+    title: "Track Progress",
+    body: "Advocates submit link/photo proof, verified directly before credit issuance.",
+  },
+  {
+    step: "03",
+    title: "Reward Campaigners",
+    // The pilot verifies M-Pesa referrals for attribution only — the payout itself is
+    // still honoured by the business, not sent automatically by the platform. Said that
+    // way so this line stays true once the pilot is live, not just aspirational.
+    body: "Unlock in-house perks, tiers, and M-Pesa-verified rewards.",
   },
 ];
 
+/**
+ * A compact, dashboard-style homepage — white and teal, one or two screens deep,
+ * rather than a long dark narrative scroll. Live campaign data still comes from the
+ * same feed every other campaign list on the site uses; the numbers here are real,
+ * not the placeholder "16 of 20" style copy a static mock would show.
+ */
 export function LandingPage() {
   return (
-    <div className="min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
+    <div className="min-h-dvh bg-white text-gray-900">
       <LandingNav />
-      <Hero />
-      <LiveCampaigns />
-      <Solutions />
-      <ForBusiness />
-      <WhyUs />
-      <footer className="border-t border-ink-700/80 px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <BrandMark />
-          <p className="max-w-md text-sm leading-relaxed text-mist-500">
-            Trackable business campaigns. Every engagement backed by proof; your reward
-            budget capped once and never raised.
-          </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <Link
-              href="/waitlist"
-              className="text-mist-300 underline underline-offset-4 hover:text-mist-100"
-            >
-              Business waitlist →
-            </Link>
-            <Link
-              href="/register"
-              className="text-mist-400 underline underline-offset-4 hover:text-mist-200"
-            >
-              Register on Avalanche →
-            </Link>
-            <a
-              href="mailto:danielmwihoti@ubutangaza.biz"
-              className="text-mist-500 underline underline-offset-4 hover:text-mist-300"
-            >
-              danielmwihoti@ubutangaza.biz
-            </a>
-          </div>
-        </div>
-      </footer>
+
+      <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10">
+        <Hero />
+        <PlatformMechanism />
+        <SolvencyBar />
+      </main>
+
+      <Footer />
     </div>
   );
 }
@@ -78,52 +64,30 @@ function LandingNav() {
     };
   }, [open]);
 
-  function close() {
-    setOpen(false);
-  }
-
   return (
-    <header
-      className={`absolute inset-x-0 top-0 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 ${
-        open ? "z-50" : "z-30"
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-        <Link
-          href="/"
-          className="min-w-0 shrink rounded-md bg-ink-950/90 px-2.5 py-2 backdrop-blur sm:px-3"
-          aria-label="Ubu-Tangaza home"
-          onClick={close}
-        >
-          <BrandMark className="text-base sm:text-lg" />
+    <header className="border-b border-gray-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+          ubu-tangaza
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-ink-900/70 px-2 py-1.5 backdrop-blur lg:flex">
+        <nav className="hidden items-center gap-6 text-sm font-medium text-gray-500 lg:flex">
+          <a href="/" className="border-b-2 border-teal-600 pb-1 text-teal-700">
+            Home
+          </a>
           {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mist-300 transition hover:text-white"
-            >
+            <a key={item.href} href={item.href} className="pb-1 transition hover:text-gray-900">
               {item.label}
             </a>
           ))}
-          <span className="mx-1 h-4 w-px bg-white/25" aria-hidden />
-          <Link
-            href="/auth"
-            className="rounded-full bg-crimson-500 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-crimson-400"
-          >
-            Sign in
-          </Link>
         </nav>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-3">
           <Link
             href="/auth"
-            className="rounded-full bg-crimson-500 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white"
-            onClick={close}
+            className="hidden rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 sm:inline-block"
           >
-            Sign in
+            Sign In
           </Link>
           <button
             type="button"
@@ -131,52 +95,34 @@ function LandingNav() {
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="grid size-10 place-items-center rounded-full border border-white/15 bg-ink-900/80 text-white backdrop-blur"
+            className="grid size-9 place-items-center rounded-md border border-gray-300 text-gray-700 lg:hidden"
           >
             <span className="flex w-4 flex-col gap-1" aria-hidden>
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "translate-y-1.5 rotate-45" : ""}`}
-              />
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "opacity-0" : ""}`}
-              />
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
-              />
+              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "translate-y-1.5 rotate-45" : ""}`} />
+              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "opacity-0" : ""}`} />
+              <span className={`h-0.5 w-full rounded-full bg-gray-700 transition ${open ? "-translate-y-1.5 -rotate-45" : ""}`} />
             </span>
           </button>
         </div>
       </div>
 
       {open ? (
-        <div
-          id="mobile-nav"
-          className="fixed inset-0 z-40 bg-ink-950/95 px-4 pt-24 backdrop-blur-md lg:hidden"
-        >
-          <nav className="mx-auto flex max-w-sm flex-col gap-2">
+        <div id="mobile-nav" className="border-t border-gray-200 px-4 py-4 lg:hidden">
+          <nav className="flex flex-col gap-3 text-sm font-medium text-gray-600">
+            <a href="/" onClick={() => setOpen(false)} className="text-teal-700">
+              Home
+            </a>
             {NAV.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={close}
-                className="rounded-full border border-ink-700 bg-ink-900 px-5 py-3.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-mist-100"
-              >
+              <a key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 {item.label}
               </a>
             ))}
             <Link
               href="/auth"
-              onClick={close}
-              className="mt-4 text-center text-sm font-semibold uppercase tracking-[0.12em] text-crimson-400"
+              onClick={() => setOpen(false)}
+              className="mt-2 inline-block rounded-md bg-teal-600 px-4 py-2 text-center text-white"
             >
-              Sign in
-            </Link>
-            <Link
-              href="/waitlist"
-              onClick={close}
-              className="text-center text-sm text-mist-300 underline underline-offset-4"
-            >
-              Business waitlist →
+              Sign In
             </Link>
           </nav>
         </div>
@@ -187,247 +133,48 @@ function LandingNav() {
 
 function Hero() {
   return (
-    <section
-      id="about"
-      className="relative flex min-h-dvh items-end overflow-hidden pb-16 pt-24 sm:items-center sm:pb-24 sm:pt-28"
-    >
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_40%,rgb(194_85_31/0.30),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgb(11_11_9/0.55)_55%,rgb(11_11_9)_92%)]" />
-        <div className="absolute -right-32 top-16 h-[22rem] w-[22rem] rounded-full border border-crimson-500/20 sm:-right-20 sm:top-24 sm:h-[28rem] sm:w-[28rem]" />
-        <div className="absolute -right-16 top-32 h-[14rem] w-[14rem] rounded-full border border-white/5 sm:-right-8 sm:top-40 sm:h-[20rem] sm:w-[20rem]" />
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
-      </div>
+    <section id="about" className="grid gap-8 pt-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-10">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">
+          Verified word-of-mouth platform &middot; Run a campaign
+        </p>
+        <h1 className="mt-3 text-4xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-[2.75rem]">
+          Grow through trackable campaigns.
+        </h1>
+        <p className="mt-4 max-w-lg text-base leading-relaxed text-gray-600">
+          Create campaigns for your business, grow by encouraging customer advocacy,
+          track every action, and reward your most active campaigners.
+        </p>
 
-      <DukaIllustration className="pointer-events-none absolute -right-10 top-1/2 hidden w-[30rem] -translate-y-1/2 text-white/25 lg:block xl:w-[34rem]" />
-
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="max-w-xl animate-fade-up">
-          <h1 className="font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Grow through
-            <br />
-            trackable campaigns.
-          </h1>
-
-          <div className="mt-5 flex items-center gap-1.5 sm:mt-6" aria-hidden>
-            <span className="size-2 rounded-full bg-crimson-400" />
-            <span className="h-px w-8 bg-white/35" />
-            <span className="h-px w-8 bg-white/20" />
-            <span className="h-px w-8 bg-white/10" />
-          </div>
-
-          <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-mist-300 sm:mt-6 sm:text-lg">
-            Reward customers who engage with your campaign — referring friends, spreading
-            the word, pushing toward the target you set. Proof behind every action, and a
-            reward budget you control.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-9">
-            <Button href="#how" variant="light" className="min-h-12 px-5 sm:px-7">
-              How it works
-            </Button>
-            <Button href="/waitlist" variant="ghost" className="min-h-12 border-white/25 px-5 sm:px-7">
-              Join waitlist
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Solutions() {
-  return (
-    <section id="how" className="border-t border-ink-800 bg-ink-950 px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl animate-fade-up">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Engage the campaign,
-            <br />
-            get rewarded.
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-mist-400 sm:mt-5">
-            A business sets what counts toward its campaign — a referral, a post, a visit
-            — and the target that unlocks the reward. Ubu-Tangaza tracks every engagement
-            so the business can approve what's real and watch the campaign live.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-10 md:mt-16 md:grid-cols-2 md:gap-12">
-          {CARDS.map((card, i) => (
-            <article
-              key={card.title}
-              className={`animate-fade-up ${card.offset}`}
-              style={{ animationDelay: `${120 + i * 100}ms` }}
-            >
-              <div className="overflow-hidden rounded-sm border border-ink-600/80">
-                <CardVisual kind={card.visual} />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-bold text-white sm:mt-5 sm:text-xl">
-                {card.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-mist-500">{card.body}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-12 grid gap-8 border-t border-ink-800 pt-10 sm:mt-20 sm:grid-cols-3 sm:gap-6 sm:pt-12">
-          {[
-            {
-              step: "01",
-              title: "Engage",
-              body: "Take part in the business's campaign — refer, post, or show up. Everything you do pushes toward the target it set.",
-            },
-            {
-              step: "02",
-              title: "Get approved",
-              body: "The business approves what's real and signs it on-chain. That's what makes it count toward the target.",
-            },
-            {
-              step: "03",
-              title: "Claim",
-              body: "Hit the target and claim the reward the business set for it — cash, a voucher, a discount, whatever they chose.",
-            },
-          ].map((item) => (
-            <div key={item.step}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-crimson-400">
-                {item.step}
-              </p>
-              <p className="mt-2 font-display text-lg font-bold text-white">{item.title}</p>
-              <p className="mt-2 text-sm text-mist-500">{item.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** The business-side pitch — a campaign with a target, not a leaderboard to babysit. */
-function ForBusiness() {
-  return (
-    <section className="border-t border-ink-800 bg-ink-900/40 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
-        <div className="animate-fade-up">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-crimson-400">
-            For businesses
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            Have a product to push, or a target to reach?
-          </h2>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-mist-400">
-            Create a campaign on Ubu-Tangaza and let your customers do the reach for you.
-            Set what counts, track every engagement live, approve the proof, and set the
-            target that rewards them the moment they hit it.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 lg:justify-end">
-          <Button href="/register" className="min-h-12 px-6 sm:px-7">
-            Create a campaign
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CardVisual({ kind }: { kind: string }) {
-  if (kind === "post") {
-    return (
-      <div className="relative flex aspect-[16/10] items-end bg-gradient-to-br from-ink-800 via-ink-850 to-ink-950 p-4 sm:p-6">
-        <div className="absolute right-6 top-6 h-16 w-16 rounded-full border border-crimson-400/30 sm:right-8 sm:top-8 sm:h-24 sm:w-24" />
-        <div className="absolute right-12 top-12 h-12 w-12 rounded-full bg-crimson-500/20 blur-xl sm:right-16 sm:top-16 sm:h-16 sm:w-16" />
-        <div className="relative w-full max-w-xs rounded-xl border border-ink-600 bg-ink-900/80 p-4">
-          <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-ink-700 text-xs font-bold">
-              𝕏
-            </span>
-            <div className="h-2 w-24 rounded-full bg-ink-600" />
-          </div>
-          <div className="mt-3 space-y-2">
-            <div className="h-2 w-full rounded-full bg-ink-700" />
-            <div className="h-2 w-[80%] rounded-full bg-ink-700" />
-            <div className="h-2 w-[65%] rounded-full bg-ink-700" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[#0c1c3a] via-ink-850 to-ink-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgb(194_85_31/0.25),transparent_50%)]" />
-      <div className="relative grid w-full max-w-sm grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-8">
-        {["👥", "🎤", "★"].map((icon, i) => (
-          <div
-            key={icon}
-            className="flex aspect-square flex-col items-center justify-center rounded-xl border border-ink-600/80 bg-ink-900/70"
-            style={{ transform: `translateY(${i === 1 ? -8 : 0}px)` }}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/register"
+            className="rounded-md bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
           >
-            <span className="text-lg sm:text-xl" aria-hidden>
-              {icon}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WhyUs() {
-  return (
-    <section id="why" className="border-t border-ink-800 px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
-        <div>
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            A budget everyone can audit
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-mist-400 sm:mt-5">
-            The emission cap is set once at registration. No function can raise it. Credits
-            only exist because a business approved a real activity — and every claim shrinks
-            outstanding liability on Avalanche Fuji.
-          </p>
-          <ul className="mt-6 space-y-4 sm:mt-8">
-            {[
-              "No seed phrase. No gas fees. Social sign-in only.",
-              "Piloting with Nairobi businesses — born at Team1 Kenya's Avalanche Game Jam.",
-              "Every activity is provable on-chain — the business sets the campaign target, and customers get rewarded the moment they hit it.",
-            ].map((line) => (
-              <li key={line} className="flex gap-3 text-sm text-mist-300">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-crimson-400" />
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="card p-5 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mist-500">
-            Solvency promise
-          </p>
-          <p className="mt-3 font-display text-xl font-bold leading-snug text-white sm:mt-4 sm:text-2xl">
-            Your reward budget fits your campaign targets — and can only shrink.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-mist-500 sm:mt-4">
-            That rule is enforced by the contract, not by a settings toggle. Engaging with
-            a campaign is a community act; the return should be something the community
-            can verify.
-          </p>
+            Create a Campaign
+          </Link>
+          <Link
+            href="/campaigns"
+            className="rounded-md border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-800 transition hover:border-gray-400"
+          >
+            Explore Live Pushes
+          </Link>
         </div>
       </div>
+
+      <HappeningNow />
     </section>
   );
 }
-
 
 /**
- * What's happening right now, shown to everyone — the door is visible from the
- * street. Opening a campaign asks you to sign in: viewing is the hook, taking part
- * is the account.
+ * Live campaigns, pulled from the same feed the discovery page uses. The progress
+ * line is generated from what a campaign actually reports — participants joined, not
+ * a "X of Y claimed" framing the schema has no per-campaign target to back up.
  */
-function LiveCampaigns() {
+function HappeningNow() {
   const [campaigns, setCampaigns] = useState<
-    Array<{ id: string; slug: string; title: string; blurb?: string; orgName: string; participantCount: number }>
+    Array<{ id: string; title: string; orgName: string; participantCount: number }>
   >([]);
 
   useEffect(() => {
@@ -435,7 +182,7 @@ function LiveCampaigns() {
     fetch("/api/campaigns?all=true")
       .then((r) => (r.ok ? r.json() : { campaigns: [] }))
       .then((j: { campaigns: typeof campaigns }) => {
-        if (!cancelled) setCampaigns(j.campaigns ?? []);
+        if (!cancelled) setCampaigns((j.campaigns ?? []).slice(0, 3));
       })
       .catch(() => {});
     return () => {
@@ -443,38 +190,106 @@ function LiveCampaigns() {
     };
   }, []);
 
-  if (campaigns.length === 0) return null;
-
   return (
-    <section className="border-t border-ink-700/80 px-4 py-12 sm:px-6 sm:py-16">
-      <div className="mx-auto max-w-6xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-crimson-400">
-          Happening now
+    <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-gray-900">Happening Now in Nairobi</p>
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-700">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-teal-500 opacity-75" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-teal-600" />
+          </span>
+          Live Updates
         </p>
-        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-          Live campaigns you can join today.
-        </h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {campaigns.map((c) => (
-            <Link
-              key={c.id}
-              href={`/c/${c.slug}`}
-              className="group rounded-2xl border border-ink-700 bg-ink-850/60 p-5 transition hover:border-crimson-500/50"
-            >
-              <p className="text-xs text-mist-500">{c.orgName}</p>
-              <p className="mt-1 font-semibold text-mist-100 group-hover:text-white">
-                {c.title}
+      </div>
+
+      <div className="mt-4 space-y-2.5">
+        {campaigns.length === 0 ? (
+          <div className="rounded-lg border border-teal-100 bg-white px-4 py-4 text-sm text-gray-500">
+            No campaigns live right now — check back shortly.
+          </div>
+        ) : (
+          campaigns.map((c) => (
+            <div key={c.id} className="rounded-lg border border-teal-100 bg-white px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">
+                {c.orgName} &mdash; {c.title}
               </p>
-              {c.blurb ? (
-                <p className="mt-2 line-clamp-2 text-sm text-mist-500">{c.blurb}</p>
-              ) : null}
-              <p className="mt-3 text-xs text-crimson-300">
-                {c.participantCount} taking part · sign in to view →
+              <p className="mt-0.5 text-xs text-gray-500">
+                {c.participantCount > 0
+                  ? `${c.participantCount} ${c.participantCount === 1 ? "person" : "people"} taking part`
+                  : "Just launched — be the first to join"}
               </p>
-            </Link>
-          ))}
-        </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlatformMechanism() {
+  return (
+    <section id="how" className="mt-14 sm:mt-16">
+      <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">
+        Platform mechanism
+      </p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {STEPS.map((item) => (
+          <div key={item.step} className="rounded-xl border border-gray-200 p-5">
+            <p className="text-2xl font-bold text-teal-600">{item.step}</p>
+            <p className="mt-2 font-semibold text-gray-900">{item.title}</p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.body}</p>
+          </div>
+        ))}
       </div>
     </section>
+  );
+}
+
+function SolvencyBar() {
+  return (
+    <section id="why" className="mt-6">
+      <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center">
+        <div>
+          <p className="font-semibold text-gray-900">Blockchain Solvency Guarantee</p>
+          <p className="mt-1 max-w-xl text-sm text-gray-500">
+            Capped budgets are permanently set on the Avalanche Fuji network, ensuring
+            rules can never be quietly altered.
+          </p>
+        </div>
+        <a
+          href={addressUrl(CONTRACT_ADDRESS)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+        >
+          Verified On-Chain
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-gray-200 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+        <p>Trackable business campaigns &middot; Nairobi, Kenya &middot; Avalanche Fuji</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <Link href="/waitlist" className="underline underline-offset-4 hover:text-gray-800">
+            Business waitlist
+          </Link>
+          <Link href="/register" className="underline underline-offset-4 hover:text-gray-800">
+            Register on Avalanche
+          </Link>
+          <a
+            href="mailto:danielmwihoti@ubutangaza.biz"
+            className="underline underline-offset-4 hover:text-gray-800"
+          >
+            danielmwihoti@ubutangaza.biz
+          </a>
+        </div>
+      </div>
+    </footer>
   );
 }
