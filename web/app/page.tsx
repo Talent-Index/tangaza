@@ -72,14 +72,14 @@ function Home({ address }: { address: string }) {
   });
 
   return (
-    <div className="animate-rise space-y-6 md:space-y-8">
+    <div className="animate-rise flex min-h-[calc(100dvh-9rem)] flex-col gap-6 md:gap-8">
       <header className="min-w-0">
         <h1 className="text-2xl font-black tracking-tight md:text-3xl">{greeting.headline}</h1>
         <p className="mt-1 text-sm text-mist-500">{greeting.sub}</p>
       </header>
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-8">
-        <div className="min-w-0 space-y-6">
+      <div className="grid min-w-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-6">
           {mine.length === 0 ? (
             <section className="flex flex-col items-center pt-2 text-center lg:items-start lg:text-left">
               <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
@@ -89,7 +89,7 @@ function Home({ address }: { address: string }) {
               </p>
             </section>
           ) : (
-            <section className="space-y-3">
+            <section className="flex flex-1 flex-col gap-3 lg:[&>*]:flex-1">
               {mine.map((c) => (
                 <CommunityCard key={String(c.orgId)} community={c} address={address} />
               ))}
@@ -122,7 +122,7 @@ function Home({ address }: { address: string }) {
           </Button>
         </div>
 
-        <div className="min-w-0 space-y-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <CampaignStrip />
 
           <section>

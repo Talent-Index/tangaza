@@ -46,10 +46,10 @@ export function LandingPage() {
   const dark = theme === "dark";
 
   return (
-    <div className={`min-h-dvh transition-colors ${dark ? "bg-[#0b0e11] text-gray-100" : "bg-white text-gray-900"}`}>
+    <div className={`flex min-h-dvh flex-col transition-colors ${dark ? "bg-[#0b0e11] text-gray-100" : "bg-white text-gray-900"}`}>
       <LandingNav />
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 py-8 sm:px-6 lg:py-8">
         <Hero />
         <PlatformMechanism />
         <SolvencyBar />
@@ -166,24 +166,24 @@ function Hero() {
         <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
           Verified word-of-mouth platform &middot; Run a campaign
         </p>
-        <h1 className={`mt-3 text-4xl font-bold leading-[1.1] tracking-tight sm:text-[2.75rem] ${dark ? "text-white" : "text-gray-900"}`}>
+        <h1 className={`mt-3 text-4xl font-bold leading-[1.1] tracking-tight sm:text-[2.75rem] lg:text-5xl ${dark ? "text-white" : "text-gray-900"}`}>
           Grow through trackable campaigns.
         </h1>
-        <p className={`mt-4 max-w-lg text-base leading-relaxed ${dark ? "text-gray-400" : "text-gray-600"}`}>
+        <p className={`mt-4 max-w-lg text-base leading-relaxed lg:mt-5 lg:text-lg ${dark ? "text-gray-400" : "text-gray-600"}`}>
           Create campaigns for your business, grow by encouraging customer advocacy,
           track every action, and reward your most active campaigners.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap gap-3 lg:mt-6">
           <Link
             href="/register"
-            className="rounded-md bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500"
+            className="rounded-md bg-teal-600 px-5 py-2.5 text-sm font-semibold lg:px-6 lg:py-3 lg:text-base text-white transition hover:bg-teal-500"
           >
             Create a Campaign
           </Link>
           <Link
             href="/campaigns"
-            className={`rounded-md border px-5 py-2.5 text-sm font-semibold transition ${
+            className={`rounded-md border px-5 py-2.5 text-sm font-semibold lg:px-6 lg:py-3 lg:text-base transition ${
               dark
                 ? "border-gray-700 text-gray-100 hover:border-gray-500"
                 : "border-gray-300 text-gray-800 hover:border-gray-400"
@@ -226,7 +226,7 @@ function HappeningNow() {
 
   return (
     <div
-      className={`rounded-xl border p-5 ${
+      className={`rounded-xl border p-5 lg:p-6 ${
         dark ? "border-teal-900/50 bg-teal-950/20" : "border-teal-100 bg-teal-50/60"
       }`}
     >
@@ -279,16 +279,16 @@ function PlatformMechanism() {
   const dark = theme === "dark";
 
   return (
-    <section id="how" className="mt-14 sm:mt-16">
+    <section id="how" className="mt-14 sm:mt-16 lg:mt-10">
       <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
         Platform mechanism
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {STEPS.map((item) => (
-          <div key={item.step} className={`rounded-xl border p-5 ${dark ? "border-gray-800" : "border-gray-200"}`}>
-            <p className="text-2xl font-bold text-teal-500">{item.step}</p>
-            <p className={`mt-2 font-semibold ${dark ? "text-white" : "text-gray-900"}`}>{item.title}</p>
-            <p className={`mt-2 text-sm leading-relaxed ${dark ? "text-gray-400" : "text-gray-500"}`}>{item.body}</p>
+          <div key={item.step} className={`rounded-xl border p-5 lg:p-6 ${dark ? "border-gray-800" : "border-gray-200"}`}>
+            <p className="text-2xl font-bold text-teal-500 lg:text-3xl">{item.step}</p>
+            <p className={`mt-2 font-semibold lg:text-lg ${dark ? "text-white" : "text-gray-900"}`}>{item.title}</p>
+            <p className={`mt-2 text-sm leading-relaxed lg:text-base ${dark ? "text-gray-400" : "text-gray-500"}`}>{item.body}</p>
           </div>
         ))}
       </div>
@@ -301,9 +301,9 @@ function SolvencyBar() {
   const dark = theme === "dark";
 
   return (
-    <section id="why" className="mt-6">
+    <section id="why" className="mt-6 lg:mt-5">
       <div
-        className={`flex flex-col items-start justify-between gap-4 rounded-xl border p-5 sm:flex-row sm:items-center ${
+        className={`flex flex-col items-start justify-between gap-4 rounded-xl border p-5 lg:p-6 sm:flex-row sm:items-center ${
           dark ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-gray-50"
         }`}
       >
