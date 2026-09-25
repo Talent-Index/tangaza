@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { CustomerShell } from "@/components/customer/Shell";
 import { LandingPage } from "@/components/landing/LandingPage";
-import { ProgressRing } from "@/components/customer/ProgressRing";
 import { SessionRestoreScreen } from "@/components/customer/SessionRestore";
-import { Button, Card, ConfigWarning, EmptyState, Pill, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
-import { MILESTONE_ACTIVITIES, ORG_ID } from "@/lib/chain";
+import { ConfigWarning, Pill, Spinner, TxReceipt } from "@/components/ui";
 import { isConfigured } from "@/lib/client";
-import { homeGreeting } from "@/lib/greeting";
+import { firstNameFrom } from "@/lib/greeting";
 import { timeAgo } from "@/lib/format";
 import {
   useAllCampaigns,
@@ -16,7 +14,6 @@ import {
   useDisplayName,
   useMyCommunities,
   usePendingActivities,
-  useTiers,
 } from "@/lib/hooks";
 import { useAdvocateSession } from "@/lib/session";
 import type { PendingActivity } from "@/lib/types";
@@ -34,16 +31,14 @@ export default function Page() {
   );
 }
 
+const KICKER = "font-mono text-[11px] font-semibold uppercase tracking-[0.22em]";
+
 function Home({ address }: { address: string }) {
   const displayName = useDisplayName(address);
-  // One card per business the advocate has real standing with — the chain, not the
-  // app, decides whose names appear here. Org 1 was only ever sample data.
+  // The chain, not the app, decides whose businesses count here.
   const communities = useMyCommunities(address);
   const credits = useCredits(address);
-  // Everything waiting, across every business.
   const pending = usePendingActivities({ advocate: address, status: "pending" });
-  // Names for the expanded view: which business a pending item is with, and which
-  // campaign carried it there. Campaigns are already fetched for the strip below.
   const campaigns = useAllCampaigns();
 
   if (!isConfigured) return <ConfigWarning />;
@@ -57,106 +52,193 @@ function Home({ address }: { address: string }) {
   }
 
   const mine = communities.data ?? [];
-  const available = (credits.data ?? []).filter((c) => !c.redeemed);
+  const ready = (credits.data ?? []).filter((c) => !c.redeemed).length;
   const pendingItems = pending.data ?? [];
+  const liveCampaigns = campaigns.data ?? [];
+  const approvedTotal = mine.reduce((sum, c) => sum + c.approved, 0);
 
   const orgNames = new Map(mine.map((c) => [String(c.orgId), c.name] as const));
   const campaignTitles = new Map(
-    (campaigns.data ?? []).map((c) => [c.id, { title: c.title, org: c.orgName }] as const)
+    liveCampaigns.map((c) => [c.id, { title: c.title, org: c.orgName }] as const)
   );
 
-  const greeting = homeGreeting(displayName, {
-    communities: mine.length,
-    pending: pendingItems.length,
-    rewardsReady: available.length,
-  });
+  const first = firstNameFrom(displayName);
+  const submitHref = mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit";
 
   return (
-    <div className="animate-rise flex min-h-[calc(100dvh-9rem)] flex-col gap-6 md:gap-8">
-      <header className="min-w-0">
-        <h1 className="text-2xl font-black tracking-tight md:text-3xl">{greeting.headline}</h1>
-        <p className="mt-1 text-sm text-mist-500">{greeting.sub}</p>
-      </header>
-
-      <div className="grid min-w-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch lg:gap-8">
-        <div className="flex min-w-0 flex-col gap-6">
-          {mine.length === 0 ? (
-            <section className="flex flex-col items-center pt-2 text-center lg:items-start lg:text-left">
-              <ProgressRing done={0} total={Number(MILESTONE_ACTIVITIES)} />
-              <p className="mt-5 max-w-xs text-sm text-mist-400 lg:max-w-md">
-                Every journey we move together, we grow together. Join our campaigns and
-                get good deals from our partners.
-              </p>
-            </section>
-          ) : (
-            <section className="flex flex-1 flex-col gap-3 lg:[&>*]:flex-1">
-              {mine.map((c) => (
-                <CommunityCard key={String(c.orgId)} community={c} address={address} />
-              ))}
-            </section>
-          )}
-
-          {available.length > 0 ? (
-            <Card className="animate-pop border-crimson-500/40 bg-crimson-500/10">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-crimson-300">
-                    {available.length} reward{available.length === 1 ? "" : "s"} ready
-                  </p>
-                  <p className="mt-1 break-words text-lg font-black">
-                    Redeem for in-house offers, discounts or vouchers
-                  </p>
-                </div>
-                <Button href="/rewards" className="w-full shrink-0 sm:w-auto">
-                  Claim
-                </Button>
-              </div>
-            </Card>
-          ) : null}
-
-          <Button
-            href={mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit"}
-            className="w-full md:w-auto md:min-w-56"
+    <div className="animate-rise space-y-10 md:space-y-12">
+      {/* Intro + primary action */}
+      <section className="grid gap-8 md:grid-cols-[1.25fr_1fr] md:items-stretch">
+        <div>
+          <p className={`${KICKER} text-crimson-500`}>Advocate portal</p>
+          <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">Hi, {first}</h1>
+          <p className="mt-4 max-w-lg text-base leading-relaxed text-mist-400 sm:text-lg">
+            Choose a campaign, submit genuine proof, then check back once the business has
+            reviewed it.
+          </p>
+        </div>
+        <div className="border-ink-700 md:border-l md:pl-8">
+          <p className={`${KICKER} text-mist-500`}>Advocate actions</p>
+          <p className="mt-4 text-sm leading-relaxed text-mist-400">
+            Choose a campaign and keep every activity clear, genuine, and ready for review.
+          </p>
+          <Link
+            href={submitHref}
+            className="mt-5 inline-flex items-center gap-2 bg-crimson-500 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-crimson-400"
           >
-            Submit an activity
-          </Button>
+            <span aria-hidden>↗</span> Submit an activity
+          </Link>
+        </div>
+      </section>
+
+      {/* Summary */}
+      <section className="grid divide-y divide-ink-700 border-y border-ink-700 bg-ink-850/60 md:grid-cols-3 md:divide-x md:divide-y-0">
+        <Tile
+          label="Awaiting approval"
+          value={pendingItems.length}
+          empty="No activity waiting right now."
+          filled={`${pendingItems.length === 1 ? "Submission is" : "Submissions are"} with the business.`}
+        />
+        <Tile
+          label="Approved activity"
+          value={approvedTotal}
+          empty="Approved activity will appear here."
+          filled={`Across ${mine.length} business${mine.length === 1 ? "" : "es"}.`}
+        />
+        <Tile
+          label="Rewards"
+          value={ready}
+          empty="Eligible rewards will appear here."
+          filled={`Ready to claim.`}
+          href={ready > 0 ? "/rewards" : undefined}
+        />
+      </section>
+
+      {/* Two columns */}
+      <section className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-12">
+        <div>
+          <ColumnHead title="Awaiting approval" action="Submit proof" href={submitHref} />
+          {pending.loading && !pending.data ? (
+            <div className="grid place-items-center border border-ink-700 bg-ink-850 py-12">
+              <Spinner />
+            </div>
+          ) : pendingItems.length === 0 ? (
+            <div className="border border-ink-700 bg-ink-850 p-7 shadow-sm sm:p-9">
+              <span className="text-2xl text-crimson-500" aria-hidden>
+                ☑
+              </span>
+              <p className="mt-6 text-xl font-bold">Nothing to review yet</p>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-mist-400 sm:text-base">
+                New here? Find a campaign, complete a genuine action, then send clear proof
+                for the business to review.
+              </p>
+              <Link
+                href="/campaigns"
+                className="mt-6 inline-block border-b border-mist-100 pb-0.5 text-sm font-semibold hover:text-crimson-500"
+              >
+                Find a campaign →
+              </Link>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {pendingItems.map((item) => {
+                const campaign = item.campaignId ? campaignTitles.get(item.campaignId) : undefined;
+                return (
+                  <PendingRow
+                    key={item.id}
+                    item={item}
+                    orgName={orgNames.get(item.orgId) ?? campaign?.org}
+                    campaignTitle={campaign?.title}
+                  />
+                );
+              })}
+            </ul>
+          )}
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <CampaignStrip />
-
-          <section>
-            <SectionTitle>Waiting for approval</SectionTitle>
-            {pending.loading ? (
-              <Card className="grid place-items-center py-8">
-                <Spinner />
-              </Card>
-            ) : pendingItems.length === 0 ? (
-              <EmptyState
-                icon="📮"
-                title="Nothing pending"
-                body="Submit a referral, a post, or an event you brought in. The business approves it and it counts."
-              />
-            ) : (
-              <ul className="space-y-2">
-                {pendingItems.map((item) => {
-                  const campaign = item.campaignId
-                    ? campaignTitles.get(item.campaignId)
-                    : undefined;
-                  return (
-                    <PendingRow
-                      key={item.id}
-                      item={item}
-                      orgName={orgNames.get(item.orgId) ?? campaign?.org}
-                      campaignTitle={campaign?.title}
-                    />
-                  );
-                })}
-              </ul>
-            )}
-          </section>
+        <div>
+          <ColumnHead title="Happening now" action="See all" href="/campaigns" />
+          {liveCampaigns.length === 0 ? (
+            <div className="border border-ink-700 bg-ink-850 p-6 text-sm text-mist-500">
+              No campaigns are live right now. Check back soon.
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {liveCampaigns.slice(0, 3).map((c) => (
+                <li key={c.id} className="border border-ink-700 bg-ink-850 p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className={`${KICKER} min-w-0 truncate text-mist-400`}>{c.orgName}</p>
+                    <span className="shrink-0 rounded-full bg-ink-700/70 px-3 py-1 text-xs font-semibold text-mist-300">
+                      Available
+                    </span>
+                  </div>
+                  <p className="mt-2 text-lg font-bold leading-snug">{c.title}</p>
+                  {c.blurb ? (
+                    <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-mist-400">{c.blurb}</p>
+                  ) : null}
+                  <Link
+                    href={`/c/${c.slug}`}
+                    className="mt-4 inline-block border-b border-mist-100 pb-0.5 text-sm font-semibold hover:text-crimson-500"
+                  >
+                    View campaign
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      </div>
+      </section>
+
+      {/* Full-width primary action */}
+      <Link
+        href={submitHref}
+        className="flex items-center justify-center gap-3 bg-crimson-500 px-6 py-5 text-base font-bold text-white transition hover:bg-crimson-400"
+      >
+        <span aria-hidden>➤</span> Submit an activity
+      </Link>
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  empty,
+  filled,
+  href,
+}: {
+  label: string;
+  value: number;
+  empty: string;
+  filled: string;
+  href?: string;
+}) {
+  const body = (
+    <div className="p-6 sm:p-8">
+      <p className={`${KICKER} text-mist-400`}>{label}</p>
+      <p className="tabular mt-5 text-3xl font-black">{value > 0 ? value : "—"}</p>
+      <p className="mt-3 text-sm text-mist-400">{value > 0 ? filled : empty}</p>
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="block transition hover:bg-ink-800/60">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+}
+
+function ColumnHead({ title, action, href }: { title: string; action: string; href: string }) {
+  return (
+    <div className="mb-5 flex items-baseline justify-between gap-3 border-b border-ink-700 pb-3">
+      <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+      <Link
+        href={href}
+        className="border-b border-mist-100 pb-0.5 text-sm font-semibold hover:text-crimson-500"
+      >
+        {action}
+      </Link>
     </div>
   );
 }
@@ -183,7 +265,7 @@ function PendingRow({
 
   return (
     <li>
-      <details className="group rounded-2xl border border-ink-700 bg-ink-850 transition open:border-ink-600">
+      <details className="group rounded-none border border-ink-700 bg-ink-850 transition open:border-ink-600">
         <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4 [&::-webkit-details-marker]:hidden">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink-700 text-lg">
             {item.typeIcon}
@@ -278,154 +360,3 @@ function PendingRow({
   );
 }
 
-/**
- * One business relationship: progress toward the next credit there, streak, and the
- * level ladder if that business runs one. The name is data — whichever orgs the chain
- * says this advocate has standing with.
- */
-function CommunityCard({
-  community,
-  address,
-}: {
-  community: { orgId: bigint; name: string; approved: number; streak: number };
-  address: string;
-}) {
-  const total = Number(MILESTONE_ACTIVITIES);
-  const done = community.approved % total;
-
-  return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 break-words text-base font-bold">{community.name}</p>
-        <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5">
-          {community.streak > 0 ? (
-            <Pill tone={community.streak > 1 ? "warn" : "neutral"}>
-              🔥 {community.streak}d
-            </Pill>
-          ) : null}
-          <Pill>{community.approved} approved</Pill>
-        </div>
-      </div>
-
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-700">
-        <div
-          className="h-full rounded-full bg-crimson-500 transition-all"
-          style={{ width: `${(done / total) * 100}%` }}
-        />
-      </div>
-      <p className="mt-2 break-words text-xs text-mist-500">
-        <span className="tabular text-mist-300">{done} of {total}</span> toward your next
-        reward from the house
-      </p>
-
-      <LevelCard address={address} orgId={community.orgId} />
-
-      <div className="mt-3 border-t border-ink-700 pt-3">
-        <Link
-          href={`/submit?org=${community.orgId}`}
-          className="text-xs text-crimson-300 underline underline-offset-4 hover:text-crimson-200"
-        >
-          Submit an activity here →
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
-function LevelCard({ address, orgId }: { address: string; orgId: bigint }) {
-  const { data } = useTiers(address, orgId);
-  const standing = data?.standing;
-  const tiers = data?.tiers ?? [];
-
-  if (tiers.length === 0 || !standing) return null;
-
-  const current = standing.currentLevelName;
-  const next = standing.nextLevelName;
-  const toGo = standing.weightToNext ?? 0;
-
-  const floor = tiers.find((t) => t.name === current)?.thresholdWeight ?? 0;
-  const ceiling = tiers.find((t) => t.name === next)?.thresholdWeight ?? floor;
-  const span = Math.max(1, ceiling - floor);
-  const pct = next
-    ? Math.min(100, Math.max(0, ((standing.approvedWeight - floor) / span) * 100))
-    : 100;
-
-  return (
-    <div className="mt-3 border-t border-ink-700 pt-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 break-words text-sm font-semibold">
-          {current ? (
-            <>
-              {tiers.find((t) => t.name === current)?.icon} {current}
-            </>
-          ) : (
-            <span className="text-mist-400">Not yet a member</span>
-          )}
-        </p>
-      </div>
-
-      {next ? (
-        <>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-700">
-            <div
-              className="h-full rounded-full bg-crimson-500 transition-all"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <p className="mt-2 break-words text-xs text-mist-500">
-            <span className="text-mist-300">{toGo} more</span> to {next}
-            {standing.nextPerk ? ` — ${standing.nextPerk}` : ""}
-          </p>
-        </>
-      ) : (
-        <p className="mt-2 break-words text-xs text-mist-500">
-          Top level. {standing.currentPerk}
-        </p>
-      )}
-
-      {standing.currentPerk && next ? (
-        <p className="mt-2 break-words text-xs text-mist-400">You have: {standing.currentPerk}</p>
-      ) : null}
-    </div>
-  );
-}
-
-/** What every business on the platform is pushing right now. */
-function CampaignStrip() {
-  const { data } = useAllCampaigns();
-  const live = data ?? [];
-  if (live.length === 0) return null;
-
-  return (
-    <section className="min-w-0">
-      <SectionTitle
-        action={
-          <Link href="/campaigns" className="text-xs font-medium text-crimson-400 hover:text-crimson-300">
-            See all →
-          </Link>
-        }
-      >
-        Happening now
-      </SectionTitle>
-      <ul className="grid grid-cols-1 gap-2">
-        {live.map((c) => (
-          <li key={c.id} className="min-w-0">
-            <Link
-              href={`/c/${c.slug}`}
-              className="block min-w-0 rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-crimson-500/50"
-            >
-              <p className="truncate text-xs text-mist-500">{c.orgName}</p>
-              <p className="break-words text-sm font-semibold">{c.title}</p>
-              {c.blurb ? (
-                <p className="mt-1 line-clamp-2 break-words text-xs text-mist-500">{c.blurb}</p>
-              ) : null}
-              <p className="mt-2 text-[11px] text-mist-500">
-                {c.participantCount} taking part →
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
