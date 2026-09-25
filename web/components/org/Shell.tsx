@@ -31,49 +31,53 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col overflow-x-clip px-4 py-6 sm:px-6 sm:py-8">
-      <header className="mb-6 flex flex-col gap-4 sm:mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/org/overview" className="flex min-w-0 items-center gap-2">
-            <BrandMark className="text-base sm:text-lg" />
-            <span className="hidden font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-crimson-400 sm:inline">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <header className="border-b border-ink-700 bg-ink-850">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 pt-3 sm:px-6 lg:flex-nowrap lg:py-3">
+          <Link href="/org/overview" className="flex min-w-0 items-center gap-3">
+            <LogoMark />
+            <span className="text-lg font-bold tracking-tight">ubu-tangaza</span>
+            <span className="hidden text-sm font-semibold uppercase tracking-[0.22em] text-crimson-500 sm:inline">
               Business
             </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-2">
+          {account ? (
+            <nav
+              aria-label="Business sections"
+              className="order-3 -mx-4 w-full overflow-x-auto px-4 [scrollbar-width:none] lg:order-none lg:mx-0 lg:w-auto lg:px-0 [&::-webkit-scrollbar]:hidden"
+            >
+              <div className="flex w-max items-center gap-5 lg:w-auto">
+                {NAV.map((item) => {
+                  const active =
+                    item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`shrink-0 border-b-2 py-3 text-[13px] font-medium transition ${
+                        active
+                          ? "border-crimson-500 text-crimson-500"
+                          : "border-transparent text-mist-300 hover:text-mist-100"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+          ) : null}
+
+          <div className="flex shrink-0 items-center gap-2 py-1">
             <ThemeToggle />
             <OrgProfileMenu />
           </div>
         </div>
-
-        {account ? (
-          <nav className="-mx-4 overflow-x-auto border-t border-ink-700 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
-            <div className="flex w-max min-w-full items-center gap-5 sm:w-auto sm:min-w-0 sm:flex-wrap">
-              {NAV.map((item) => {
-                const active =
-                  item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`shrink-0 border-b-2 py-3 text-sm font-medium transition ${
-                      active
-                        ? "border-crimson-500 text-mist-100"
-                        : "border-transparent text-mist-500 hover:text-mist-300"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        ) : null}
       </header>
 
-      <main className="min-w-0 flex-1">
+      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         {account ? (
           <WithOrgAccess address={account.address}>{children}</WithOrgAccess>
         ) : isRestoring ? (
@@ -85,11 +89,28 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         )}
       </main>
 
-      <footer className="mt-10 border-t border-ink-800 pt-5 text-xs leading-relaxed text-mist-500 sm:mt-12">
-        Avalanche Fuji · every approval and every redemption below is a real on-chain
-        transaction.
+      <footer className="bg-[#111412] text-gray-300">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <LogoMark />
+            <span className="text-lg font-bold tracking-tight text-white">ubu-tangaza</span>
+          </div>
+          <p className="max-w-md text-sm leading-relaxed text-gray-400">
+            A lightweight record of approved reward activity may be kept on Avalanche for
+            transparency. Your business and advocates do not need to manage crypto wallets.
+          </p>
+        </div>
       </footer>
     </div>
+  );
+}
+
+/** Dark rounded square with a teal dot — the business-side mark. */
+function LogoMark() {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#111412]" aria-hidden>
+      <span className="size-3 rounded-full bg-teal-400" />
+    </span>
   );
 }
 

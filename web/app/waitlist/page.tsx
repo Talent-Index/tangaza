@@ -98,7 +98,7 @@ export default function BusinessWaitlistPage() {
 
           <p className="mt-8 text-sm leading-relaxed text-mist-500">
             <span className="font-semibold text-mist-300">Why we&rsquo;re a fit:</span> built
-            for Kenyan shops — coffee spots, salons, boutiques. Nothing for your customers
+            for local shops — coffee spots, salons, boutiques. Nothing for your customers
             to download, nothing upfront, and you only ever reward actions you can see
             actually happened.
           </p>

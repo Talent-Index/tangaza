@@ -260,7 +260,7 @@ function Hero({ dark }: { dark: boolean }) {
             Turn happy customers into measurable referrals.
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-            Ubu-Tangaza helps Nairobi businesses launch verified referral campaigns, see
+            Ubu-Tangaza helps businesses launch verified referral campaigns, see
             what brought customers through the door, and reward real results.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
@@ -498,7 +498,7 @@ function FinalCta() {
     <section className="bg-teal-600 px-4 py-20 text-center text-white sm:px-6 sm:py-24">
       <div className="mx-auto max-w-2xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-100">
-          For Nairobi and Kenyan businesses
+          For businesses of every size
         </p>
         <h2 className="mt-4 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
           Turn word of mouth into something you can measure.
