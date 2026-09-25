@@ -49,10 +49,15 @@ export function LandingPage() {
     <div className={`flex min-h-dvh flex-col transition-colors ${dark ? "bg-[#0b0e11] text-gray-100" : "bg-white text-gray-900"}`}>
       <LandingNav />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 py-8 sm:px-6 lg:py-8">
-        <Hero />
-        <PlatformMechanism />
-        <SolvencyBar />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
+        <div className="flex min-h-[calc(100dvh-4.5rem)] flex-col justify-center py-8">
+          <Hero />
+          <PlatformMechanism />
+          <SolvencyBar />
+        </div>
+        <About />
+        <HowItWorks />
+        <WhyUs />
       </main>
 
       <Footer />
@@ -161,7 +166,7 @@ function Hero() {
   const dark = theme === "dark";
 
   return (
-    <section id="about" className="grid gap-8 pt-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-10">
+    <section id="top" className="grid gap-8 pt-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-10">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
           Verified word-of-mouth platform &middot; Run a campaign
@@ -279,7 +284,7 @@ function PlatformMechanism() {
   const dark = theme === "dark";
 
   return (
-    <section id="how" className="mt-14 sm:mt-16 lg:mt-10">
+    <section className="mt-14 sm:mt-16 lg:mt-10">
       <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">
         Platform mechanism
       </p>
@@ -301,7 +306,7 @@ function SolvencyBar() {
   const dark = theme === "dark";
 
   return (
-    <section id="why" className="mt-6 lg:mt-5">
+    <section className="mt-6 lg:mt-5">
       <div
         className={`flex flex-col items-start justify-between gap-4 rounded-xl border p-5 lg:p-6 sm:flex-row sm:items-center ${
           dark ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-gray-50"
@@ -324,6 +329,155 @@ function SolvencyBar() {
         </a>
       </div>
     </section>
+  );
+}
+
+/** Shared frame for the long-form sections below the first screen. */
+function InfoSection({
+  id,
+  kicker,
+  title,
+  children,
+}: {
+  id: string;
+  kicker: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+  return (
+    <section
+      id={id}
+      className={`scroll-mt-4 border-t py-14 sm:py-16 ${dark ? "border-gray-800" : "border-gray-200"}`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">{kicker}</p>
+      <h2 className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${dark ? "text-white" : "text-gray-900"}`}>
+        {title}
+      </h2>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
+function About() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+  return (
+    <InfoSection id="about" kicker="About" title="Campaigns that reach the target you set.">
+      <p className={`max-w-3xl text-base leading-relaxed sm:text-lg ${dark ? "text-gray-400" : "text-gray-600"}`}>
+        Grow your business by running campaigns for the target reach you want to achieve
+        with your product or service. Track your campaign growth and the activity
+        happening on it, approve or reject submissions, and reward the most active
+        campaigners on your business campaigns.
+      </p>
+    </InfoSection>
+  );
+}
+
+const BUSINESS_STEPS = [
+  "Authenticate as a business person.",
+  "Register your business.",
+  "Pledge what you have to put behind your campaigns.",
+  "Set aside what you'll award campaigners when they achieve each campaign goal.",
+];
+
+const ADVOCATE_STEPS = [
+  "Join through advocacy: pick any campaign, or open a campaign's share link.",
+  "Do good deeds for the business and submit proof of what you did.",
+  "Get rewarded for it once the business approves and you reach the goal.",
+  "Every activity is trackable and recorded on-chain.",
+];
+
+function StepList({ title, steps }: { title: string; steps: string[] }) {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+  return (
+    <div className={`rounded-xl border p-6 ${dark ? "border-gray-800" : "border-gray-200"}`}>
+      <p className={`font-semibold ${dark ? "text-white" : "text-gray-900"}`}>{title}</p>
+      <ol className="mt-4 space-y-3">
+        {steps.map((step, i) => (
+          <li key={step} className="flex gap-3">
+            <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-teal-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <span className={`text-sm leading-relaxed ${dark ? "text-gray-400" : "text-gray-600"}`}>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <InfoSection id="how" kicker="How it works" title="One side sets the goal, the other earns the reward.">
+      <div className="grid gap-4 md:grid-cols-2">
+        <StepList title="For businesses" steps={BUSINESS_STEPS} />
+        <StepList title="For your users" steps={ADVOCATE_STEPS} />
+      </div>
+    </InfoSection>
+  );
+}
+
+const WHY_BUSINESS = [
+  {
+    title: "Verified word-of-mouth",
+    body: "Convert social posts, referrals, and walk-ins into trackable growth using mandatory proof of action.",
+  },
+  {
+    title: "Protected budgets",
+    body: "Set campaign rewards once with a hard on-chain cap — no budget overruns, ever.",
+  },
+  {
+    title: "Local payment integration",
+    // The pilot verifies a referred M-Pesa Till payment for attribution; the reward
+    // itself is still honoured by the business. Worded to stay true.
+    body: "Link campaigns to your M-Pesa Till so referred sales are verified automatically, without manual tracking.",
+  },
+];
+
+const WHY_ADVOCATE = [
+  {
+    title: "Earn from support",
+    body: "Turn everyday recommendations and shout-outs into real discounts, cash perks, and vouchers.",
+  },
+  {
+    title: "Transparent progress",
+    body: "Track submission status and milestone goals in real time through simple tier dashboards.",
+  },
+  {
+    title: "Zero friction",
+    body: "Log in with a social account — no crypto wallets, gas fees, or complex keys required.",
+  },
+];
+
+function WhyGroup({ title, items }: { title: string; items: { title: string; body: string }[] }) {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-teal-500">{title}</p>
+      <div className="mt-3 space-y-3">
+        {items.map((item) => (
+          <div key={item.title} className={`rounded-xl border p-5 ${dark ? "border-gray-800" : "border-gray-200"}`}>
+            <p className={`font-semibold ${dark ? "text-white" : "text-gray-900"}`}>{item.title}</p>
+            <p className={`mt-1.5 text-sm leading-relaxed ${dark ? "text-gray-400" : "text-gray-500"}`}>{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WhyUs() {
+  return (
+    <InfoSection id="why" kicker="Why us" title="Built for both sides of a campaign.">
+      <div className="grid gap-8 md:grid-cols-2">
+        <WhyGroup title="For businesses" items={WHY_BUSINESS} />
+        <WhyGroup title="For advocates" items={WHY_ADVOCATE} />
+      </div>
+    </InfoSection>
   );
 }
 
