@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DukaIllustration } from "@/components/landing/DukaIllustration";
 import { ThemeToggle, useTheme } from "@/components/theme";
 import { addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
@@ -80,22 +79,25 @@ const USE_CASES = [
     tag: "Café or restaurant",
     title: "Bring a friend to lunch",
     body: "Encourage regulars to introduce someone new. Reward a verified first visit with a discount or a voucher for the next meal.",
-    icon: "☕",
-    tone: "from-amber-200 to-orange-300",
+    img: "/images/landing/usecase-cafe.webp",
+    alt: "Two friends sharing a meal at a restaurant",
+    pos: "50% 45%",
   },
   {
     tag: "Salon or barbershop",
     title: "Reward a trusted recommendation",
     body: "Ask happy clients to refer a friend for a service. After the new client's visit is verified, issue a simple perk or service discount.",
-    icon: "✂️",
-    tone: "from-rose-200 to-pink-300",
+    img: "/images/landing/usecase-salon.webp",
+    alt: "A hairdresser styling a client's hair in a salon",
+    pos: "50% 16%",
   },
   {
     tag: "Boutique or retail shop",
     title: "Turn WhatsApp shares into visits",
     body: "Run a campaign around a collection drop or seasonal offer. Recognise supporters when a referred customer comes in and completes a purchase.",
-    icon: "🛍️",
-    tone: "from-stone-200 to-amber-200",
+    img: "/images/landing/usecase-boutique.webp",
+    alt: "Two women looking at clothes in a boutique",
+    pos: "50% 35%",
   },
 ];
 
@@ -293,8 +295,17 @@ function HeroVisual({ dark }: { dark: boolean }) {
     <div className="relative mx-auto w-full max-w-md pb-14 lg:max-w-none">
       <div className="absolute -right-4 bottom-6 h-[78%] w-[80%] rounded-[2rem] bg-teal-500" aria-hidden />
       <div className="relative aspect-[5/4] overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#3b2a1e] via-[#261c15] to-[#120f0d] shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(251,191,36,0.28),transparent_55%)]" />
-        <DukaIllustration className="absolute inset-x-0 bottom-20 mx-auto w-[88%] text-white/45" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/landing/hero-campaign.webp"
+          alt="A shop owner checking a referral on her phone in her café"
+          width={1400}
+          height={933}
+          fetchPriority="high"
+          className="absolute inset-0 size-full object-cover"
+          style={{ objectPosition: "35% 40%" }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute inset-x-4 bottom-4 flex items-start gap-3 rounded-xl bg-white p-3.5 text-gray-900 shadow-lg sm:inset-x-6">
           <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-teal-100 text-teal-700">✓</span>
           <div>
@@ -399,9 +410,16 @@ function UseCases() {
         <div className="mt-10 grid gap-5 md:grid-cols-2">
           {USE_CASES.map((item) => (
             <article key={item.title} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-              <div className={`grid h-40 place-items-center bg-gradient-to-br text-6xl ${item.tone}`} aria-hidden>
-                {item.icon}
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.img}
+                alt={item.alt}
+                loading="lazy"
+                width={1000}
+                height={600}
+                className="h-56 w-full object-cover"
+                style={{ objectPosition: item.pos }}
+              />
               <div className="p-6">
                 <Kicker className="!text-[10px]">{item.tag}</Kicker>
                 <p className="mt-2 text-lg font-bold">{item.title}</p>
