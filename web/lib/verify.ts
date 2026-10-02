@@ -3,6 +3,7 @@ import { createPublicClient, http, parseAbiItem, parseEventLogs } from "viem";
 import { avalancheFuji } from "viem/chains";
 import { CONTRACT_ADDRESS } from "./client";
 import { proofHashOf } from "./proof";
+import { orgActionMessage, type OrgAction } from "./org-action";
 
 /**
  * Proving that the account named in a request actually sent it.
@@ -92,6 +93,95 @@ export async function verifySignedText(p: {
     const detail = err instanceof Error ? err.message.split("\n")[0] : String(err);
     return { ok: false, reason: `Could not verify signature: ${detail}` };
   }
+}
+
+/**
+ * The org's approver, read from the contract — the same source of truth the UI uses
+ * (lib/reads.ts resolveOrgAccess). Read on-chain, not from the `orgs` table, because
+ * the seeded pilot org has no approver row there; the chain has always known it.
+ */
+const GET_ORG_ABI = [
+  {
+    inputs: [{ name: "orgId", type: "uint256" }],
+    name: "getOrg",
+    outputs: [
+      {
+        components: [
+          { name: "name", type: "string" },
+          { name: "approver", type: "address" },
+          { name: "emissionCapKES", type: "uint256" },
+          { name: "issuedKES", type: "uint256" },
+          { name: "redeemedKES", type: "uint256" },
+          { name: "approvedActivities", type: "uint256" },
+          { name: "active", type: "bool" },
+          { name: "exists", type: "bool" },
+        ],
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+async function onChainApprover(orgId: string): Promise<string | null> {
+  let id: bigint;
+  try {
+    id = BigInt(orgId);
+  } catch {
+    return null;
+  }
+  try {
+    const org = await publicClient.readContract({
+      address: CONTRACT_ADDRESS as `0x${string}`,
+      abi: GET_ORG_ABI,
+      functionName: "getOrg",
+      args: [id],
+    });
+    return org.exists ? org.approver.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Authorises an off-chain business mutation: the caller must sign the canonical
+ * action message AND be the org's registered approver.
+ *
+ * Off-chain writes (campaigns, levels, engagements) have no on-chain gate, so this is
+ * the whole of their authorisation. Mirrors the pledge check: rebuild the exact text
+ * the browser signed (see lib/org-action.ts), verify it ERC-1271/6492-aware, then
+ * confirm the signer is the org's on-chain approver.
+ */
+export async function requireApprover(p: {
+  orgId: string;
+  address: string;
+  action: OrgAction;
+  ts: number;
+  signature: string;
+}): Promise<VerifyResult> {
+  if (!p.address) return { ok: false, reason: "address is required" };
+
+  const signed = await verifySignedText({
+    address: p.address,
+    message: orgActionMessage({
+      orgId: p.orgId,
+      address: p.address,
+      action: p.action,
+      ts: p.ts,
+    }),
+    signature: p.signature,
+    ts: p.ts,
+  });
+  if (!signed.ok) return signed;
+
+  const approver = await onChainApprover(p.orgId);
+  if (!approver) return { ok: false, reason: "No such business" };
+  if (approver !== p.address.toLowerCase()) {
+    return { ok: false, reason: "That account is not this business's approver" };
+  }
+  return { ok: true };
 }
 
 /* ------------------------------------------------------------- approval receipts */

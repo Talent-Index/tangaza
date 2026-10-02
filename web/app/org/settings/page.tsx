@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { useToast } from "@/components/toast";
-import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
+import { Button, ErrorNote, Spinner } from "@/components/ui";
 
 import { useEngagementTypes, useTiers } from "@/lib/hooks";
-import { PROOF_KINDS, type ProofKind } from "@/lib/types";
+import {
+  PAYOUT_KINDS,
+  PROOF_KINDS,
+  REWARD_CURRENCIES,
+  formatReward,
+  type EngagementType,
+  type ProofKind,
+} from "@/lib/types";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /**
  * What the business rewards, and what it gives for it.
@@ -30,8 +39,12 @@ function Settings() {
       <div>
         <h1 className="text-2xl font-black md:text-3xl">Rewards setup</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
-          Define what {orgName || "you"} reward{orgName ? "s" : ""} and the levels advocates
-          climb. Campaigns are managed separately under{" "}
+          Two steps: <span className="text-mist-300">1)</span> add the{" "}
+          <span className="text-mist-300">activities</span> you want people to do, then{" "}
+          <span className="text-mist-300">2)</span> set the{" "}
+          <span className="text-mist-300">goals</span> — a total, or a specific activity a
+          number of times (e.g. 5 referrals) — and what each earns: cash or an incentive
+          like merch, a voucher or a discount. Campaigns live under{" "}
           <a href="/org/campaigns" className="text-crimson-400 hover:text-crimson-300">
             Campaigns
           </a>
@@ -54,34 +67,66 @@ function Settings() {
 
 /* ------------------------------------------------------------- engagements */
 
+const EMPTY_ENGAGEMENT = {
+  label: "",
+  blurb: "",
+  icon: "★",
+  proofKind: "link" as ProofKind,
+  chainCategory: 1,
+  weight: 1,
+};
+
 function EngagementEditor({ orgId }: { orgId: bigint }) {
   const engagements = useEngagementTypes(orgId);
+  const account = useActiveAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
-  const [form, setForm] = useState({
-    label: "",
-    blurb: "",
-    icon: "★",
-    proofKind: "link" as ProofKind,
-    chainCategory: 1,
-    weight: 1,
-  });
+  const [editing, setEditing] = useState<EngagementType | null>(null);
+  const [form, setForm] = useState(EMPTY_ENGAGEMENT);
 
-  async function add(e: React.FormEvent) {
+  function startEdit(t: EngagementType) {
+    setEditing(t);
+    setForm({
+      label: t.label,
+      blurb: t.blurb ?? "",
+      icon: t.icon,
+      proofKind: t.proofKind,
+      chainCategory: t.chainCategory,
+      weight: t.weight,
+    });
+    setError(null);
+  }
+
+  function resetForm() {
+    setEditing(null);
+    setForm(EMPTY_ENGAGEMENT);
+    setError(null);
+  }
+
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.engagementSave);
       const res = await fetch("/api/engagement-types", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(orgId), ...form }),
+        body: JSON.stringify({
+          orgId: String(orgId),
+          ...form,
+          // Editing overwrites every column, so round-trip the fields the form
+          // doesn't expose or they reset to defaults.
+          ...(editing ? { id: editing.id, active: editing.active, sortOrder: editing.sortOrder } : {}),
+          ...auth,
+        }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
-      setForm({ ...form, label: "", blurb: "" });
-      success("Engagement added");
+      success(editing ? "Engagement updated" : "Engagement added");
+      resetForm();
       engagements.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not save";
@@ -94,7 +139,15 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
 
   async function retire(id: string) {
     try {
-      await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, { method: "DELETE" });
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.engagementRetire);
+      const res = await fetch(`/api/engagement-types?orgId=${orgId}&id=${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(auth),
+      });
+      if (!res.ok) throw new Error("Could not retire");
+      if (editing?.id === id) resetForm();
       success("Engagement retired");
       engagements.refresh();
     } catch (err) {
@@ -106,45 +159,59 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
 
   return (
     <section>
-      <SectionTitle>Engagements</SectionTitle>
+      <div className="mb-3 flex items-baseline gap-3 border-b border-ink-700 pb-3">
+        <span className="font-mono text-xs font-medium text-crimson-400">01</span>
+        <h2 className="text-base font-bold">Activities</h2>
+        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-mist-500">
+          what someone can do, and what it&rsquo;s worth
+        </span>
+      </div>
 
       {engagements.loading && types.length === 0 ? (
-        <Card className="grid place-items-center py-8">
+        <div className="grid place-items-center py-8">
           <Spinner />
-        </Card>
+        </div>
       ) : (
-        <ul className="mb-4 space-y-2">
+        <div className="mb-4 divide-y divide-ink-800 border-b border-ink-800">
           {types.map((t) => (
-            <li key={t.id}>
-              <Card className="flex items-center gap-3 py-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-                  {t.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{t.label}</p>
-                  <p className="truncate text-xs text-mist-500">
-                    {t.blurb ? `${t.blurb} · ` : ""}
-                    asks for {PROOF_KINDS.find((p) => p.id === t.proofKind)?.label}
-                  </p>
-                </div>
-                <span className="tabular shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] text-mist-400">
-                  +{t.weight}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => retire(t.id)}
-                  className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
-                >
-                  Retire
-                </button>
-              </Card>
-            </li>
+            <div key={t.id} className="flex items-center gap-3 py-4">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-800 text-lg">
+                {t.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{t.label}</p>
+                <p className="truncate text-xs text-mist-500">
+                  {t.blurb ? `${t.blurb} · ` : ""}
+                  asks for {PROOF_KINDS.find((p) => p.id === t.proofKind)?.label}
+                </p>
+              </div>
+              <span className="tabular shrink-0 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] text-mist-400">
+                +{t.weight}
+              </span>
+              <button
+                type="button"
+                onClick={() => startEdit(t)}
+                className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => retire(t.id)}
+                className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+              >
+                Retire
+              </button>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
 
-      <Card>
-        <form onSubmit={add} className="grid gap-3 sm:grid-cols-6">
+      <div className="rounded-xl border border-dashed border-ink-600 p-4">
+        <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+          {editing ? `Editing "${editing.label}"` : "Add an activity"}
+        </p>
+        <form onSubmit={save} className="grid gap-3 sm:grid-cols-6">
           <input
             required
             value={form.label}
@@ -181,7 +248,7 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
             ))}
           </select>
           <Button type="submit" disabled={saving || !form.label.trim()}>
-            {saving ? "…" : "Add"}
+            {saving ? "…" : editing ? "Save" : "Add"}
           </Button>
           <input
             value={form.blurb}
@@ -189,40 +256,119 @@ function EngagementEditor({ orgId }: { orgId: bigint }) {
             placeholder="What should someone do? (shown on the submit form)"
             className="sm:col-span-6 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
+          {editing ? (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="sm:col-span-6 justify-self-start text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300"
+            >
+              Cancel edit
+            </button>
+          ) : null}
         </form>
         {error ? (
           <div className="mt-3">
             <ErrorNote>{error}</ErrorNote>
           </div>
         ) : null}
-      </Card>
+      </div>
     </section>
   );
 }
 
 /* ------------------------------------------------------------------ levels */
 
+interface LadderTier {
+  id: string;
+  level: number;
+  name: string;
+  perk: string;
+  icon: string;
+  thresholdWeight: number;
+  amount?: number;
+  currency?: string;
+  rewardKind?: string;
+  engagementTypeId?: string;
+  targetCount?: number;
+}
+
+const EMPTY_TIER = {
+  level: 1,
+  name: "",
+  perk: "",
+  icon: "★",
+  count: 5, // activities needed (total, or of the chosen activity)
+  goalEngagementId: "", // "" = total activities; else a specific engagement
+  amount: "" as number | "",
+  currency: "KES",
+  rewardKind: "cash",
+};
+
 function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
+  const engagements = useEngagementTypes(orgId);
+  const account = useActiveAccount();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
-  const [form, setForm] = useState({ level: 1, name: "", perk: "", icon: "★", thresholdWeight: 5 });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_TIER);
 
-  async function add(e: React.FormEvent) {
+  function startEdit(t: LadderTier) {
+    const perActivity = Boolean(t.engagementTypeId);
+    setEditingId(t.id);
+    setForm({
+      level: t.level,
+      name: t.name,
+      perk: t.perk,
+      icon: t.icon,
+      count: perActivity ? t.targetCount ?? 1 : t.thresholdWeight,
+      goalEngagementId: t.engagementTypeId ?? "",
+      amount: t.amount ?? "",
+      currency: t.currency ?? "KES",
+      rewardKind: t.rewardKind ?? "cash",
+    });
+    setError(null);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setForm(EMPTY_TIER);
+    setError(null);
+  }
+
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.tierSave);
+      // A level is keyed by its number, so re-posting the same level updates it in place.
       const res = await fetch("/api/tiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: String(orgId), ...form }),
+        body: JSON.stringify({
+          orgId: String(orgId),
+          level: form.level,
+          name: form.name,
+          perk: form.perk,
+          icon: form.icon,
+          thresholdWeight: form.count,
+          engagementTypeId: form.goalEngagementId || null,
+          targetCount: form.goalEngagementId ? form.count : null,
+          amount: form.amount === "" ? null : Number(form.amount),
+          currency: form.currency,
+          rewardKind: form.rewardKind,
+          ...auth,
+        }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Could not save");
-      setForm({ ...form, name: "", perk: "", level: form.level + 1 });
-      success("Level added");
+      success(editingId ? "Level updated" : "Level added");
+      // After adding a new level, tee up the next one; after an edit, clear.
+      if (editingId) resetForm();
+      else setForm({ ...EMPTY_TIER, level: form.level + 1, icon: form.icon });
       tiers.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not save";
@@ -233,34 +379,83 @@ function TierEditor({ orgId }: { orgId: bigint }) {
     }
   }
 
-  const ladder = tiers.data?.tiers ?? [];
+  async function remove(t: LadderTier) {
+    if (typeof window !== "undefined" && !window.confirm(`Delete level "${t.name}"?`)) return;
+    try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.tierDelete);
+      const res = await fetch(`/api/tiers?orgId=${orgId}&id=${encodeURIComponent(t.id)}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(auth),
+      });
+      if (!res.ok) throw new Error("Could not delete");
+      if (editingId === t.id) resetForm();
+      success("Level deleted");
+      tiers.refresh();
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not delete");
+    }
+  }
+
+  const ladder = (tiers.data?.tiers ?? []) as LadderTier[];
+  const types = engagements.data ?? [];
+  const typeLabel = (id?: string) => types.find((x) => x.id === id)?.label ?? "activity";
+  const goalText = (t: LadderTier) =>
+    t.engagementTypeId
+      ? `after ${t.targetCount} ${typeLabel(t.engagementTypeId)}`
+      : `after ${t.thresholdWeight} activities`;
 
   return (
     <section>
-      <SectionTitle>Levels</SectionTitle>
-      <ul className="mb-4 space-y-2">
-        {ladder.map((t) => (
-          <li key={t.id}>
-            <Card className="flex items-center gap-3 py-4">
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg">
-                {t.icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">
-                  {t.name}{" "}
-                  <span className="font-normal text-mist-500">
-                    at {t.thresholdWeight} weight
-                  </span>
-                </p>
-                <p className="truncate text-xs text-mist-500">{t.perk}</p>
-              </div>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <div className="mb-3 flex items-baseline gap-3 border-b border-ink-700 pb-3">
+        <span className="font-mono text-xs font-medium text-crimson-400">02</span>
+        <h2 className="text-base font-bold">Levels and goals</h2>
+        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-mist-500">
+          what people unlock, and when
+        </span>
+      </div>
 
-      <Card>
-        <form onSubmit={add} className="grid gap-3 sm:grid-cols-6">
+      <div className="mb-4 divide-y divide-ink-800 border-b border-ink-800">
+        {ladder.map((t) => (
+          <div key={t.id} className="flex items-center gap-4 py-4">
+            <span className="w-24 shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-mist-500">
+              {goalText(t)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{t.name}</p>
+              <p className="truncate text-xs text-mist-500">
+                {t.amount != null || t.rewardKind ? (
+                  <span className="mr-2 rounded-full bg-jade-500/15 px-2 py-0.5 text-jade-400">
+                    {formatReward({ amount: t.amount, currency: t.currency, rewardKind: t.rewardKind })}
+                  </span>
+                ) : null}
+                {t.perk}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => startEdit(t)}
+              className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-crimson-300"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => remove(t)}
+              className="shrink-0 text-xs text-mist-500 underline underline-offset-4 hover:text-crimson-300"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-ink-600 p-4">
+        <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+          {editingId ? `Editing level ${form.level}` : "Add a level"}
+        </p>
+        <form onSubmit={save} className="grid gap-3 sm:grid-cols-6">
           <input
             type="number"
             min={1}
@@ -282,31 +477,108 @@ function TierEditor({ orgId }: { orgId: bigint }) {
             className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-center text-sm outline-none focus:border-crimson-500"
             aria-label="Icon"
           />
+          {/* The goal: a total activity count, or a specific activity N times. */}
+          <select
+            value={form.goalEngagementId}
+            onChange={(e) => setForm({ ...form, goalEngagementId: e.target.value })}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+            aria-label="Goal — which activity"
+          >
+            <option value="">Any activity (total)</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.icon} {t.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1}
+            value={form.count}
+            onChange={(e) => setForm({ ...form, count: Number(e.target.value) })}
+            className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+            aria-label="How many needed"
+            title={
+              form.goalEngagementId
+                ? `How many ${typeLabel(form.goalEngagementId)} to reach this level`
+                : "Total activities to reach this level"
+            }
+            placeholder="How many"
+          />
+          <Button type="submit" disabled={saving || !form.name.trim() || !form.perk.trim()}>
+            {saving ? "…" : editingId ? "Save" : "Add"}
+          </Button>
+
+          {/* The reward this level unlocks — cash or an incentive, any currency, off-chain. */}
+          <select
+            value={form.rewardKind}
+            onChange={(e) => setForm({ ...form, rewardKind: e.target.value })}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
+            aria-label="Reward type"
+          >
+            <optgroup label="Cash">
+              {PAYOUT_KINDS.filter((k) => k.id === "cash").map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.icon} {k.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Incentive">
+              {PAYOUT_KINDS.filter((k) => k.id !== "cash").map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.icon} {k.label}
+                </option>
+              ))}
+            </optgroup>
+          </select>
           <input
             type="number"
             min={0}
-            value={form.thresholdWeight}
-            onChange={(e) => setForm({ ...form, thresholdWeight: Number(e.target.value) })}
-            className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
-            aria-label="Weight needed"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value === "" ? "" : Number(e.target.value) })
+            }
+            placeholder={form.rewardKind === "discount" ? "% off" : "Amount"}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            aria-label="Reward amount"
           />
-          <Button type="submit" disabled={saving || !form.name.trim() || !form.perk.trim()}>
-            {saving ? "…" : "Add"}
-          </Button>
+          <select
+            value={form.currency}
+            onChange={(e) => setForm({ ...form, currency: e.target.value })}
+            disabled={form.rewardKind === "discount"}
+            className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500 disabled:opacity-40"
+            aria-label="Currency"
+          >
+            {REWARD_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} · {c.symbol}
+              </option>
+            ))}
+          </select>
+
           <input
             required
             value={form.perk}
             onChange={(e) => setForm({ ...form, perk: e.target.value })}
-            placeholder="What do they unlock? e.g. a free seat at any paid workshop"
+            placeholder="Describe it, e.g. “500 KSh airtime” or “a free seat at any paid workshop”"
             className="sm:col-span-6 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
+          {editingId ? (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="sm:col-span-6 justify-self-start text-xs text-mist-500 underline underline-offset-4 hover:text-mist-300"
+            >
+              Cancel edit
+            </button>
+          ) : null}
         </form>
         {error ? (
           <div className="mt-3">
             <ErrorNote>{error}</ErrorNote>
           </div>
         ) : null}
-      </Card>
+      </div>
     </section>
   );
 }

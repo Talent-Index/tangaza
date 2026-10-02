@@ -90,12 +90,16 @@ function ApplyForm({ address }: { address: string }) {
     setSubmitting(true);
 
     try {
+      // Budget is optional for the business; the on-chain cap must still be > 0, so a
+      // blank/zero entry falls back to a sensible default guardrail.
+      const effectiveCap = cap > 0 ? cap : 50000;
+      if (effectiveCap !== cap) setCap(effectiveCap);
       const ts = Date.now();
       const signature = await account.signMessage({
         message: pledgeMessage({
           name: name.trim(),
           approverAddress: address,
-          emissionCapKes: cap,
+          emissionCapKes: effectiveCap,
           pledge: pledge.trim(),
           ts,
         }),
@@ -108,7 +112,7 @@ function ApplyForm({ address }: { address: string }) {
           name: name.trim(),
           contactEmail: email.trim() || undefined,
           approverAddress: address,
-          emissionCapKes: cap,
+          emissionCapKes: effectiveCap,
           pledge: pledge.trim(),
           ts,
           signature,
@@ -147,21 +151,29 @@ function ApplyForm({ address }: { address: string }) {
           <>
             <p className="text-xl font-bold">{name} is live on Avalanche</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
-              Registered as org #{done.orgId} with a {kesLabel(cap)} budget that can never
-              be raised. Your wallet is the approver — open the business portal and your
-              queue is already there.
+              Registered as org #{done.orgId}, and your wallet is the approver. Next: set up
+              your rewards — choose the activities you want people to do, and what each one
+              earns (cash or an incentive like merch, a voucher or a discount).
             </p>
             {done.txHash ? (
               <div className="mt-5 flex justify-center">
                 <TxReceipt hash={done.txHash} label="Registration" />
               </div>
             ) : null}
-            <Link
-              href="/org"
-              className="mt-6 inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
-            >
-              Open the business portal →
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/org/settings"
+                className="inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
+              >
+                Set up your rewards →
+              </Link>
+              <Link
+                href="/org"
+                className="inline-block rounded-full border border-ink-600 px-5 py-3 text-sm font-medium text-mist-300 transition hover:border-ink-500"
+              >
+                Business portal
+              </Link>
+            </div>
           </>
         ) : (
           <>
@@ -196,7 +208,7 @@ function ApplyForm({ address }: { address: string }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Blockchain Centre Kenya"
+            placeholder="Mama Njeri's Salon"
             className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
         </Field>
@@ -211,20 +223,20 @@ function ApplyForm({ address }: { address: string }) {
         </Field>
       </div>
 
-      <Field label="Reward budget (KES)">
+      <Field label="Reward budget (optional)">
         <input
           type="number"
-          required
-          min={500}
+          min={0}
           step={500}
           value={cap}
           onChange={(e) => setCap(Number(e.target.value))}
           className="tabular w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none focus:border-crimson-500"
         />
         <p className="mt-2 text-xs text-mist-500">
-          {kesLabel(cap)} is {Math.floor(cap / 500)} rewards of KES 500. Written once
-          on-chain — <span className="text-mist-300">it can never be raised</span>, only
-          spent down. Set it to what you can genuinely honour.
+          An on-chain spending guardrail — written once and{" "}
+          <span className="text-mist-300">never raisable</span>, only spent down. Optional:
+          leave the default if you&rsquo;re not sure. You decide the actual rewards,
+          amounts and currencies later under Rewards.
         </p>
       </Field>
 
@@ -235,7 +247,7 @@ function ApplyForm({ address }: { address: string }) {
           maxLength={2000}
           value={pledge}
           onChange={(e) => setPledge(e.target.value)}
-          placeholder="e.g. Every 20 approved activities earns KES 500 in airtime, data or a Centre voucher. Regulars get 10% off the café; Champions get a free seat at any paid workshop."
+          placeholder="e.g. Refer 5 friends → 500 KSh airtime. Post 3 times → a café voucher. Reach 10 approved activities → 10% off anything. Rewards can be cash or not, in any currency you choose."
           className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
         />
         <p className="mt-2 text-xs text-mist-500">

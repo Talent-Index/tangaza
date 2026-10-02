@@ -131,14 +131,21 @@ export async function resolveOrgAccess(
   const me = address.toLowerCase();
   const count = await getOrgCount();
 
+  // Read every org in one parallel round. The old sequential walk was one RPC
+  // round-trip per registered org, and the public RPC's rate limit routinely killed
+  // it partway — which is how the UI ended up with no verified org at all.
+  const ids: bigint[] = [];
+  for (let i = 1n; i <= count; i++) ids.push(i);
+  const orgs = await Promise.all(ids.map((i) => getOrg(i)));
+
   // Newest first: a business that just registered is the one asking, and its org is the
-  // highest id. Walking upward handed the earliest match to anyone who somehow approves
-  // for two, which in practice meant the seeded pilot org shadowed a real one.
-  for (let i = count; i >= 1n; i--) {
-    const org = await getOrg(i);
+  // highest id. Taking the earliest match handed anyone who approves for two orgs the
+  // seeded pilot org instead of their real one.
+  for (let k = ids.length - 1; k >= 0; k--) {
+    const org = orgs[k];
     if (org.approver.toLowerCase() === me) {
       return {
-        orgId: i,
+        orgId: ids[k],
         orgName: org.name,
         isApprover: true,
         approver: org.approver,
@@ -161,6 +168,24 @@ export async function getContractOwner(): Promise<string> {
   return (await readContract({ contract, method: "owner" })) as string;
 }
 
+
+/**
+ * The name a business currently goes by. The on-chain name is immutable, so a business
+ * that renamed itself would otherwise still show its registration-day name to every
+ * advocate. Best-effort: falls back to the chain name when the API is unreachable.
+ */
+async function getOrgDisplayName(orgId: bigint): Promise<string | undefined> {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const res = await fetch(`/api/org?orgId=${orgId}`, { cache: "no-store" });
+    if (!res.ok) return undefined;
+    const j = (await res.json()) as { displayName?: string | null };
+    return j.displayName?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface Community {
   orgId: bigint;
   name: string;
@@ -179,17 +204,29 @@ export interface Community {
  */
 export async function getMyCommunities(address: string): Promise<Community[]> {
   const count = await getOrgCount();
-  const out: Community[] = [];
+  const ids: bigint[] = [];
+  for (let i = 1n; i <= count; i++) ids.push(i);
 
-  for (let i = 1n; i <= count; i++) {
-    const a = await getAdvocate(i, address);
-    const approved = Number(a.approvedActivities);
-    const streak = Number(a.streak);
-    const credits = Number(a.creditsEarned);
-    if (approved > 0 || streak > 0 || credits > 0) {
-      const org = await getOrg(i);
-      out.push({ orgId: i, name: org.name, approved, streak, creditsEarned: credits });
-    }
-  }
-  return out;
+  // One round-trip per org, all in flight at once. The sequential version cost
+  // ~2 RPC round-trips per registered org before the home page could render.
+  const advocates = await Promise.all(ids.map((i) => getAdvocate(i, address)));
+  const hits = ids.filter((_, k) => {
+    const a = advocates[k];
+    return Number(a.approvedActivities) > 0 || Number(a.streak) > 0 || Number(a.creditsEarned) > 0;
+  });
+  const [orgs, displayNames] = await Promise.all([
+    Promise.all(hits.map((i) => getOrg(i))),
+    Promise.all(hits.map((i) => getOrgDisplayName(i))),
+  ]);
+
+  return hits.map((i, k) => {
+    const a = advocates[ids.indexOf(i)];
+    return {
+      orgId: i,
+      name: displayNames[k] ?? orgs[k].name,
+      approved: Number(a.approvedActivities),
+      streak: Number(a.streak),
+      creditsEarned: Number(a.creditsEarned),
+    };
+  });
 }

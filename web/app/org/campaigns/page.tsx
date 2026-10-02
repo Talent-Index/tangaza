@@ -9,6 +9,8 @@ import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
+import { txUrl } from "@/lib/chain";
+import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 export default function OrgCampaignsPage() {
   return (
@@ -37,6 +39,7 @@ const EMPTY_DRAFT: CampaignDraft = {
 
 function CampaignsWorkspace() {
   const isApprover = useIsApprover();
+  const account = useActiveAccount();
   const { orgId, orgName } = useOrgAccessContext();
   const campaigns = useCampaigns(orgId);
   const engagements = useEngagementTypes(orgId);
@@ -87,6 +90,8 @@ function CampaignsWorkspace() {
     setError(null);
     setSaving(true);
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -97,8 +102,10 @@ function CampaignsWorkspace() {
           blurb: draft.blurb || undefined,
           coverUrl: draft.coverUrl.trim() || null,
           endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
-          active: true,
+          // Editing must not silently reopen a closed campaign; only a new one starts active.
+          active: draft.id ? selected?.active ?? true : true,
           engagementTypeIds: draft.engagementTypeIds,
+          ...auth,
         }),
       });
       const json = (await res.json()) as { error?: string; campaign?: Campaign };
@@ -121,6 +128,8 @@ function CampaignsWorkspace() {
 
   async function setActive(c: Campaign, active: boolean) {
     try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignSave);
       const res = await fetch("/api/campaigns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -132,6 +141,7 @@ function CampaignsWorkspace() {
           coverUrl: c.coverUrl ?? null,
           endsAt: c.endsAt ?? null,
           active,
+          ...auth,
         }),
       });
       if (!res.ok) throw new Error("Could not update");
@@ -139,6 +149,37 @@ function CampaignsWorkspace() {
       campaigns.refresh();
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not update");
+    }
+  }
+
+  async function remove(c: Campaign) {
+    const warning =
+      c.participantCount > 0
+        ? `Delete "${c.title}"? ${c.participantCount} ${
+            c.participantCount === 1 ? "person has" : "people have"
+          } joined. This removes the campaign and its share links for good — approved work and weight are kept. Consider closing it instead.`
+        : `Delete "${c.title}"? This cannot be undone.`;
+    if (typeof window !== "undefined" && !window.confirm(warning)) return;
+    try {
+      if (!account) throw new Error("Connect your approver wallet first");
+      const auth = await signOrgAction(account, orgId, ORG_ACTIONS.campaignDelete);
+      const res = await fetch(
+        `/api/campaigns?orgId=${orgId}&id=${encodeURIComponent(c.id)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(auth),
+        }
+      );
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not delete");
+      success("Campaign deleted");
+      setSelectedId(null);
+      setCreating(false);
+      setDraft(EMPTY_DRAFT);
+      campaigns.refresh();
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not delete");
     }
   }
 
@@ -236,15 +277,15 @@ function CampaignsWorkspace() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           {live ? (
-                            <span className="rounded-full bg-jade-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-jade-400">
+                            <span className="rounded-full bg-jade-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-jade-400">
                               Live
                             </span>
                           ) : past || !c.active ? (
-                            <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-bold uppercase text-mist-500">
+                            <span className="rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-mist-500">
                               Ended
                             </span>
                           ) : (
-                            <span className="rounded-full bg-crimson-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-crimson-300">
+                            <span className="rounded-full bg-crimson-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-crimson-300">
                               Upcoming
                             </span>
                           )}
@@ -270,7 +311,7 @@ function CampaignsWorkspace() {
         <section className="min-w-0">
           {showForm ? (
             <Card className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mist-500">
+              <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
                 {draft.id ? "Edit campaign" : "New campaign"}
               </p>
               <form onSubmit={save} className="space-y-4">
@@ -351,6 +392,7 @@ function CampaignsWorkspace() {
               orgId={orgId}
               onEdit={() => openEdit(selected)}
               onToggleActive={(active) => setActive(selected, active)}
+              onDelete={() => remove(selected)}
             />
           ) : (
             <Card className="py-12 text-center">
@@ -372,6 +414,7 @@ function CampaignDetailPanel({
   orgId,
   onEdit,
   onToggleActive,
+  onDelete,
 }: {
   campaign: Campaign;
   types: Array<{ id: string; label: string; blurb?: string; icon: string; weight: number }>;
@@ -379,11 +422,23 @@ function CampaignDetailPanel({
   orgId: bigint;
   onEdit: () => void;
   onToggleActive: (active: boolean) => void;
+  onDelete: () => void;
 }) {
   const account = useActiveAccount();
   const live = isCampaignLive(c);
   const publicUrl =
     typeof window !== "undefined" ? `${window.location.origin}/c/${c.slug}` : `/c/${c.slug}`;
+  const [copied, setCopied] = useState(false);
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard?.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the link is shown for manual copy */
+    }
+  }
 
   const counted = c.engagementTypeIds.length
     ? types.filter((t) => c.engagementTypeIds.includes(t.id))
@@ -423,11 +478,11 @@ function CampaignDetailPanel({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {live ? (
-              <span className="rounded-full bg-jade-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-jade-400">
+              <span className="rounded-full bg-jade-500/15 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-jade-400">
                 Live
               </span>
             ) : (
-              <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-bold uppercase text-mist-500">
+              <span className="rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-mist-500">
                 {c.active ? "Upcoming" : "Closed"}
               </span>
             )}
@@ -465,12 +520,37 @@ function CampaignDetailPanel({
               >
                 {c.active ? "Close campaign" : "Reopen"}
               </Button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium text-mist-500 transition hover:text-crimson-300"
+              >
+                Delete
+              </button>
             </>
           ) : null}
         </div>
 
+        {/* The broadcast invite: send this to people so they join the campaign. */}
+        <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-400">
+            Invite link — send this so people join
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-ink-850 px-3 py-2 text-xs text-crimson-300">
+              {publicUrl}
+            </code>
+            <Button type="button" variant="ghost" onClick={copyInvite}>
+              {copied ? "Copied ✓" : "Copy"}
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] text-mist-500">
+            Anyone who opens it can join. Everything they do then shows in Activity below.
+          </p>
+        </div>
+
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
             How to participate
           </p>
           {counted.length === 0 ? (
@@ -517,6 +597,7 @@ function CampaignDetailPanel({
 
         <CampaignSharers campaignId={c.id} />
         <CampaignRoster campaignId={c.id} orgId={orgId} />
+        <CampaignActivity campaignId={c.id} />
       </div>
     </div>
   );
@@ -569,20 +650,12 @@ function CampaignOverview({ orgId }: { orgId: bigint }) {
   if (!data || data.campaigns.length === 0) return null;
 
   return (
-    <Card className="flex flex-wrap items-center gap-4">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Across all campaigns</p>
-        <p className="tabular mt-1 text-2xl font-bold">
-          {data.totalUniqueParticipants}
-          <span className="ml-2 text-sm font-normal text-mist-500">
-            distinct {data.totalUniqueParticipants === 1 ? "person" : "people"}
-          </span>
-        </p>
-      </div>
-      <p className="min-w-0 flex-1 text-right text-xs text-mist-500">
-        {data.campaigns.length} campaign{data.campaigns.length === 1 ? "" : "s"} total
-      </p>
-    </Card>
+    <p className="border-t border-ink-700 pt-4 text-sm text-mist-500">
+      {data.campaigns.length} campaign{data.campaigns.length === 1 ? "" : "s"} ·{" "}
+      <span className="font-semibold text-mist-100">{data.totalUniqueParticipants}</span>{" "}
+      distinct {data.totalUniqueParticipants === 1 ? "person" : "people"} reached across all
+      of them
+    </p>
   );
 }
 
@@ -608,7 +681,7 @@ function CampaignSharers({ campaignId }: { campaignId: string }) {
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         Who&rsquo;s spreading this
       </p>
       <ul className="space-y-1">
@@ -634,7 +707,7 @@ function CampaignRoster({ campaignId, orgId }: { campaignId: string; orgId: bigi
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
         Who joined
       </p>
       <ul className="space-y-1">
@@ -654,6 +727,86 @@ function CampaignRoster({ campaignId, orgId }: { campaignId: string; orgId: bigi
         ))}
         {participants.length > 10 ? (
           <li className="text-xs text-mist-600">…and {participants.length - 10} more</li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+interface ActivityRow {
+  advocate: string;
+  name?: string;
+  typeLabel: string;
+  typeIcon: string;
+  weight: number;
+  status: string;
+  submittedAt: string;
+  txHash?: string;
+}
+
+/** Every activity logged under this campaign — what people actually did, and its status. */
+function CampaignActivity({ campaignId }: { campaignId: string }) {
+  const [items, setItems] = useState<ActivityRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/campaigns/activity?campaignId=${campaignId}`)
+      .then((r) => (r.ok ? r.json() : { activity: [] }))
+      .then((j: { activity: ActivityRow[] }) => {
+        if (!cancelled) setItems(j.activity ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  if (items.length === 0) return null;
+
+  const badge = (status: string) =>
+    status === "approved"
+      ? "bg-jade-500/15 text-jade-400"
+      : status === "rejected"
+        ? "bg-ink-700 text-mist-500"
+        : "bg-crimson-500/15 text-crimson-300";
+
+  return (
+    <div>
+      <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+        Activity
+      </p>
+      <ul className="space-y-1">
+        {items.slice(0, 20).map((a, i) => (
+          <li key={i} className="flex items-center justify-between gap-3 text-xs text-mist-400">
+            <span className="min-w-0 truncate">
+              <span className="mr-1">{a.typeIcon}</span>
+              {a.name ?? `${a.advocate.slice(0, 6)}…${a.advocate.slice(-4)}`}
+              <span className="text-mist-500"> — {a.typeLabel}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              {a.txHash ? (
+                <a
+                  href={txUrl(a.txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-jade-400 hover:text-jade-300"
+                  title="On-chain proof of this approval"
+                >
+                  proof ↗
+                </a>
+              ) : null}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${badge(
+                  a.status
+                )}`}
+              >
+                {a.status}
+              </span>
+            </span>
+          </li>
+        ))}
+        {items.length > 20 ? (
+          <li className="text-[11px] text-mist-600">…and {items.length - 20} more</li>
         ) : null}
       </ul>
     </div>

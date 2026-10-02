@@ -479,14 +479,25 @@ export interface DirectoryEntry {
   lastSubmittedAt?: string;
   lastApprovedAt?: string;
   firstSeenAt?: string;
+  /** The advocate's most recent on-chain approval tx — real proof of their activity. */
+  lastTxHash?: string;
 }
 
 /** The business's contact list: who they are, what they're worth, how to find them. */
 export async function listDirectory(orgId: string, limit = 100): Promise<DirectoryEntry[]> {
+  // The directory view is aggregate; pull the latest approved submission's tx per
+  // advocate so the UI can link to on-chain proof (the advocate's OWN address is empty —
+  // approvals are sent by the org's approver, recorded as contract events).
   const rows = (await sql`
-    select * from advocate_directory
-    where org_id = ${orgId}
-    order by approved_weight desc nulls last, last_submitted_at desc nulls last
+    select d.*, (
+      select s.tx_hash from submissions s
+      where s.org_id = d.org_id and s.advocate = d.advocate
+        and s.status = 'approved' and s.tx_hash is not null
+      order by s.decided_at desc nulls last limit 1
+    ) as last_tx_hash
+    from advocate_directory d
+    where d.org_id = ${orgId}
+    order by d.approved_weight desc nulls last, d.last_submitted_at desc nulls last
     limit ${limit}`) as Array<Record<string, unknown>>;
 
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : undefined);
@@ -503,6 +514,7 @@ export async function listDirectory(orgId: string, limit = 100): Promise<Directo
     lastSubmittedAt: iso(r.last_submitted_at),
     lastApprovedAt: iso(r.last_approved_at),
     firstSeenAt: iso(r.first_seen_at),
+    lastTxHash: (r.last_tx_hash as string) ?? undefined,
   }));
 }
 
@@ -516,6 +528,15 @@ export interface RewardTier {
   perk: string;
   icon: string;
   thresholdWeight: number;
+  // The off-chain reward this level unlocks — any amount, currency, form. All optional
+  // so perk-only levels created before 012 keep working.
+  amount?: number;
+  currency?: string;
+  rewardKind?: string;
+  // Per-activity goal (013): when set, this reward is reached by doing a specific
+  // engagement `targetCount` times, rather than by total weighted activity.
+  engagementTypeId?: string;
+  targetCount?: number;
 }
 
 const toTier = (r: Record<string, unknown>): RewardTier => ({
@@ -526,6 +547,11 @@ const toTier = (r: Record<string, unknown>): RewardTier => ({
   perk: r.perk as string,
   icon: r.icon as string,
   thresholdWeight: Number(r.threshold_weight),
+  amount: r.amount == null ? undefined : Number(r.amount),
+  currency: (r.currency as string) ?? undefined,
+  rewardKind: (r.reward_kind as string) ?? undefined,
+  engagementTypeId: (r.engagement_type_id as string) ?? undefined,
+  targetCount: r.target_count == null ? undefined : Number(r.target_count),
 });
 
 export async function listRewardTiers(orgId: string): Promise<RewardTier[]> {
@@ -541,16 +567,57 @@ export async function upsertRewardTier(input: {
   perk: string;
   icon?: string;
   thresholdWeight: number;
+  amount?: number | null;
+  currency?: string | null;
+  rewardKind?: string | null;
+  engagementTypeId?: string | null;
+  targetCount?: number | null;
 }): Promise<RewardTier> {
   const rows = await sql`
-    insert into reward_tiers (org_id, level, name, perk, icon, threshold_weight)
+    insert into reward_tiers
+      (org_id, level, name, perk, icon, threshold_weight, amount, currency, reward_kind,
+       engagement_type_id, target_count)
     values (${input.orgId}, ${input.level}, ${input.name}, ${input.perk},
-            ${input.icon ?? "★"}, ${input.thresholdWeight})
+            ${input.icon ?? "★"}, ${input.thresholdWeight},
+            ${input.amount ?? null}, ${input.currency ?? null}, ${input.rewardKind ?? null},
+            ${input.engagementTypeId ?? null}, ${input.targetCount ?? null})
     on conflict (org_id, level) do update
       set name = excluded.name, perk = excluded.perk, icon = excluded.icon,
-          threshold_weight = excluded.threshold_weight
+          threshold_weight = excluded.threshold_weight,
+          amount = excluded.amount, currency = excluded.currency,
+          reward_kind = excluded.reward_kind,
+          engagement_type_id = excluded.engagement_type_id,
+          target_count = excluded.target_count
     returning *`;
   return toTier((rows as Array<Record<string, unknown>>)[0]);
+}
+
+/**
+ * How many APPROVED submissions of each engagement an advocate has, for measuring
+ * per-activity goals ("5 referrals → …"). Keyed off the same approved submissions the
+ * on-chain attestation backs. Returns a map of engagementTypeId → approved count.
+ */
+export async function listAdvocateActivityProgress(
+  orgId: string,
+  address: string
+): Promise<Record<string, number>> {
+  const rows = (await sql`
+    select engagement_type_id, count(*)::int as approved
+    from submissions
+    where org_id = ${orgId} and advocate = ${address.toLowerCase()}
+      and status = 'approved' and engagement_type_id is not null
+    group by engagement_type_id`) as Array<Record<string, unknown>>;
+  const out: Record<string, number> = {};
+  for (const r of rows) out[String(r.engagement_type_id)] = Number(r.approved);
+  return out;
+}
+
+/** Remove a level. Scoped to the org so an id alone cannot touch another business. */
+export async function deleteRewardTier(orgId: string, id: string): Promise<boolean> {
+  const rows = (await sql`delete from reward_tiers
+                          where id = ${id} and org_id = ${orgId}
+                          returning id`) as Array<Record<string, unknown>>;
+  return rows.length > 0;
 }
 
 export interface AdvocateLevel {
@@ -649,6 +716,42 @@ export async function getCampaignBySlug(slug: string): Promise<Campaign | undefi
     where c.slug = ${slug}
     group by c.id`) as Array<Record<string, unknown>>;
   return rows[0] ? toCampaign(rows[0]) : undefined;
+}
+
+export interface CampaignActivity {
+  advocate: string;
+  name?: string;
+  typeLabel: string;
+  typeIcon: string;
+  weight: number;
+  status: string;
+  submittedAt: string;
+  /** The on-chain approval tx — proof of this activity. Only set once approved. */
+  txHash?: string;
+}
+
+/** Every activity logged under a campaign — what people actually did, newest first. */
+export async function listCampaignActivity(
+  campaignId: string,
+  limit = 50
+): Promise<CampaignActivity[]> {
+  const rows = (await sql`
+    select advocate, advocate_label, current_name, type_label, type_icon, weight, status,
+           tx_hash, submitted_at
+    from submissions
+    where campaign_id = ${campaignId}
+    order by submitted_at desc
+    limit ${limit}`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    advocate: r.advocate as string,
+    name: (r.current_name as string) ?? (r.advocate_label as string) ?? undefined,
+    typeLabel: r.type_label as string,
+    typeIcon: r.type_icon as string,
+    weight: Number(r.weight ?? 0),
+    status: r.status as string,
+    submittedAt: new Date(r.submitted_at as string).toISOString(),
+    txHash: (r.tx_hash as string) ?? undefined,
+  }));
 }
 
 /** Joining is free and reversible — it only scopes what you see, never what you earn. */
@@ -925,6 +1028,167 @@ export async function getApplication(id: string): Promise<OrgApplication | undef
   return rows[0] ? toApplication(rows[0]) : undefined;
 }
 
+/** The editable display name a business set, if any. Null falls back to the on-chain name. */
+export async function getOrgDisplayName(orgId: string): Promise<string | null> {
+  const rows = (await sql`select display_name from orgs where id = ${orgId}`) as Array<
+    Record<string, unknown>
+  >;
+  const name = rows[0]?.display_name;
+  return name ? String(name) : null;
+}
+
+/**
+ * Set (or clear, with null) a business's editable display name. Upserts the orgs row so
+ * it works even for the seeded pilot org, which has no orgs row until someone writes one.
+ */
+export async function setOrgDisplayName(orgId: string, name: string | null): Promise<void> {
+  await sql`insert into orgs (id, name, display_name)
+            values (${orgId}, ${name ?? ""}, ${name})
+            on conflict (id) do update set display_name = excluded.display_name`;
+}
+
+/* ------------------------------------------------- M-Pesa referral pilot (C2B) */
+
+/** A share code → its referrer + org, with NO click side-effect (unlike resolveShareCode). */
+export async function resolveReferralCode(
+  code: string
+): Promise<{ sharer: string; orgId: string; campaignId: string } | undefined> {
+  const rows = (await sql`
+    select sharer, org_id, campaign_id from campaign_shares
+    where code = ${code.trim().toUpperCase()}`) as Array<Record<string, unknown>>;
+  const r = rows[0];
+  return r
+    ? { sharer: String(r.sharer), orgId: String(r.org_id), campaignId: String(r.campaign_id) }
+    : undefined;
+}
+
+/** Which merchant a Till/shortcode belongs to. */
+export async function getOrgByShortcode(shortcode: string): Promise<string | undefined> {
+  const rows = (await sql`select id from orgs where till_shortcode = ${shortcode}`) as Array<
+    Record<string, unknown>
+  >;
+  return rows[0] ? String(rows[0].id) : undefined;
+}
+
+export interface OrgMpesaConfig {
+  tillShortcode?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  rewardKind?: string;
+}
+
+export async function getOrgMpesaConfig(orgId: string): Promise<OrgMpesaConfig> {
+  const rows = (await sql`
+    select till_shortcode, referral_reward_amount, referral_reward_currency, referral_reward_kind
+    from orgs where id = ${orgId}`) as Array<Record<string, unknown>>;
+  const r = rows[0];
+  return {
+    tillShortcode: (r?.till_shortcode as string) ?? undefined,
+    rewardAmount: r?.referral_reward_amount == null ? undefined : Number(r.referral_reward_amount),
+    rewardCurrency: (r?.referral_reward_currency as string) ?? undefined,
+    rewardKind: (r?.referral_reward_kind as string) ?? undefined,
+  };
+}
+
+export async function setOrgMpesaConfig(orgId: string, cfg: OrgMpesaConfig): Promise<void> {
+  await sql`
+    insert into orgs (id, name, till_shortcode, referral_reward_amount,
+                      referral_reward_currency, referral_reward_kind)
+    values (${orgId}, '', ${cfg.tillShortcode ?? null}, ${cfg.rewardAmount ?? null},
+            ${cfg.rewardCurrency ?? null}, ${cfg.rewardKind ?? null})
+    on conflict (id) do update set
+      till_shortcode = excluded.till_shortcode,
+      referral_reward_amount = excluded.referral_reward_amount,
+      referral_reward_currency = excluded.referral_reward_currency,
+      referral_reward_kind = excluded.referral_reward_kind`;
+}
+
+export interface MpesaPayment {
+  id: string;
+  transId: string;
+  shortcode: string;
+  orgId?: string;
+  amount: number;
+  msisdn?: string;
+  firstName?: string;
+  billRef?: string;
+  referralCode?: string;
+  referrer?: string;
+  verified: boolean;
+  createdAt: string;
+}
+
+const toPayment = (r: Record<string, unknown>): MpesaPayment => ({
+  id: r.id as string,
+  transId: r.trans_id as string,
+  shortcode: r.shortcode as string,
+  orgId: r.org_id == null ? undefined : String(r.org_id),
+  amount: Number(r.amount ?? 0),
+  msisdn: (r.msisdn as string) ?? undefined,
+  firstName: (r.first_name as string) ?? undefined,
+  billRef: (r.bill_ref as string) ?? undefined,
+  referralCode: (r.referral_code as string) ?? undefined,
+  referrer: (r.referrer as string) ?? undefined,
+  verified: Boolean(r.verified),
+  createdAt: new Date(r.created_at as string).toISOString(),
+});
+
+/**
+ * Record a C2B confirmation, idempotent on Daraja's TransID (retried callbacks are
+ * no-ops). Matches the typed account/reference to a referral code → referrer; a match
+ * marks the payment a VERIFIED referred purchase. Resolves the merchant from the code's
+ * org, falling back to the Till/shortcode.
+ */
+export async function recordMpesaPayment(input: {
+  transId: string;
+  shortcode: string;
+  amount: number;
+  msisdn?: string;
+  firstName?: string;
+  billRef?: string;
+}): Promise<MpesaPayment> {
+  const code = input.billRef?.trim().toUpperCase() || null;
+  const referral = code ? await resolveReferralCode(code) : undefined;
+  const orgId = referral?.orgId ?? (await getOrgByShortcode(input.shortcode));
+
+  const rows = (await sql`
+    insert into mpesa_payments
+      (trans_id, shortcode, org_id, amount, msisdn, first_name, bill_ref, referral_code,
+       referrer, verified)
+    values (${input.transId}, ${input.shortcode}, ${orgId ?? null}, ${input.amount},
+            ${input.msisdn ?? null}, ${input.firstName ?? null}, ${input.billRef ?? null},
+            ${referral ? code : null}, ${referral?.sharer ?? null}, ${Boolean(referral)})
+    on conflict (trans_id) do nothing
+    returning *`) as Array<Record<string, unknown>>;
+
+  if (rows[0]) return toPayment(rows[0]);
+  // Already recorded (idempotent replay): return the stored row.
+  const existing = (await sql`
+    select * from mpesa_payments where trans_id = ${input.transId}`) as Array<
+    Record<string, unknown>
+  >;
+  return toPayment(existing[0]);
+}
+
+/** Verified referred purchases for a merchant, newest first — the "who's owed" list. */
+export async function listReferredPurchases(orgId: string, limit = 100): Promise<MpesaPayment[]> {
+  const rows = (await sql`
+    select * from mpesa_payments
+    where org_id = ${orgId} and verified = true
+    order by created_at desc limit ${limit}`) as Array<Record<string, unknown>>;
+  return rows.map(toPayment);
+}
+
+/** Pilot metric: verified referred purchases vs total payments seen for a merchant. */
+export async function countMpesaReferrals(
+  orgId: string
+): Promise<{ verified: number; total: number }> {
+  const rows = (await sql`
+    select count(*) filter (where verified)::int as verified, count(*)::int as total
+    from mpesa_payments where org_id = ${orgId}`) as Array<Record<string, unknown>>;
+  return { verified: Number(rows[0]?.verified ?? 0), total: Number(rows[0]?.total ?? 0) };
+}
+
 /** Called once registerOrg has landed on-chain, with the orgId it returned. */
 export async function markApplicationRegistered(
   id: string,
@@ -1011,6 +1275,19 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
   return full;
 }
 
+/**
+ * Permanently delete a campaign, scoped to its org. `campaign_engagements` and
+ * `campaign_participants` cascade; `submissions.campaign_id` is set null, so an
+ * advocate's approved work and weight survive — only the campaign lens is removed.
+ * Returns false when nothing matched (wrong org, or already gone).
+ */
+export async function deleteCampaign(orgId: string, id: string): Promise<boolean> {
+  const rows = (await sql`delete from campaigns
+                          where id = ${id} and org_id = ${orgId}
+                          returning id`) as Array<Record<string, unknown>>;
+  return rows.length > 0;
+}
+
 export interface CampaignWithOrg extends Campaign {
   orgName: string;
 }
@@ -1018,7 +1295,7 @@ export interface CampaignWithOrg extends Campaign {
 /** Every live campaign across every registered business — the discovery feed. */
 export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
   const rows = (await sql`
-    select c.*, o.name as org_name,
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
       count(distinct p.address) as participant_count
@@ -1027,7 +1304,7 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
     where c.active and (c.ends_at is null or c.ends_at > now())
-    group by c.id, o.name
+    group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
 }
@@ -1035,7 +1312,7 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
 /** All campaigns on the platform — upcoming and past — for the campaigns timeline. */
 export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
   const rows = (await sql`
-    select c.*, o.name as org_name,
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
       count(distinct p.address) as participant_count
@@ -1043,7 +1320,26 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
-    group by c.id, o.name
+    where c.active
+    group by c.id, o.name, o.display_name
+    order by c.starts_at desc`) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+}
+
+/** Every campaign this advocate has joined, newest first, with the business's display name. */
+export async function listJoinedCampaigns(address: string): Promise<CampaignWithOrg[]> {
+  const rows = (await sql`
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
+      coalesce(array_agg(distinct ce.engagement_type_id)
+        filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
+      count(distinct p.address) as participant_count
+    from campaign_participants me
+    join campaigns c on c.id = me.campaign_id
+    join orgs o on o.id = c.org_id
+    left join campaign_engagements ce on ce.campaign_id = c.id
+    left join campaign_participants p on p.campaign_id = c.id
+    where me.address = ${address.toLowerCase()}
+    group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
 }

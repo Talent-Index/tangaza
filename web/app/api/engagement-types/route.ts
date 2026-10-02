@@ -5,6 +5,8 @@ import {
   upsertEngagementType,
 } from "@/lib/store";
 import { PROOF_KINDS, type ProofKind } from "@/lib/types";
+import { requireApprover } from "@/lib/verify";
+import { ORG_ACTIONS } from "@/lib/org-action";
 
 /**
  * The engagements a business has decided to reward.
@@ -41,22 +43,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { id, orgId, label, blurb, icon, proofKind, chainCategory, weight, active, sortOrder } =
-    body as {
-      id?: string;
-      orgId?: string;
-      label?: string;
-      blurb?: string;
-      icon?: string;
-      proofKind?: string;
-      chainCategory?: number;
-      weight?: number;
-      active?: boolean;
-      sortOrder?: number;
-    };
+  const {
+    id, orgId, label, blurb, icon, proofKind, chainCategory, weight, active, sortOrder,
+    address, ts, signature,
+  } = body as {
+    id?: string;
+    orgId?: string;
+    label?: string;
+    blurb?: string;
+    icon?: string;
+    proofKind?: string;
+    chainCategory?: number;
+    weight?: number;
+    active?: boolean;
+    sortOrder?: number;
+    address?: string;
+    ts?: number;
+    signature?: string;
+  };
 
   if (!orgId) {
     return NextResponse.json({ error: "orgId is required" }, { status: 400 });
+  }
+
+  const auth = await requireApprover({
+    orgId: String(orgId),
+    address: address ?? "",
+    action: ORG_ACTIONS.engagementSave,
+    ts: Number(ts),
+    signature: signature ?? "",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.reason }, { status: 401 });
   }
   if (!label || !label.trim()) {
     return NextResponse.json({ error: "label is required" }, { status: 400 });
@@ -106,11 +124,29 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const orgId = req.nextUrl.searchParams.get("orgId");
-  const id = req.nextUrl.searchParams.get("id");
+  const params = req.nextUrl.searchParams;
+  const orgId = params.get("orgId");
+  const id = params.get("id");
   if (!orgId || !id) {
     return NextResponse.json({ error: "orgId and id are required" }, { status: 400 });
   }
+
+  const body = (await req.json().catch(() => ({}))) as {
+    address?: string;
+    ts?: number;
+    signature?: string;
+  };
+  const auth = await requireApprover({
+    orgId,
+    address: body.address ?? "",
+    action: ORG_ACTIONS.engagementRetire,
+    ts: Number(body.ts),
+    signature: body.signature ?? "",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.reason }, { status: 401 });
+  }
+
   await deactivateEngagementType(orgId, id);
   return NextResponse.json({ ok: true });
 }

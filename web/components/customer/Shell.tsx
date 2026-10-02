@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActiveAccount } from "thirdweb/react";
 import { ThemeToggle } from "@/components/theme";
-import { BrandMark } from "@/components/ui";
 import { initialsFrom } from "@/lib/identity";
 import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
 
@@ -15,14 +14,26 @@ const NAV = [
   { href: "/rewards", label: "Rewards", icon: "★" },
 ];
 
+// The desktop bar also carries account settings; on phones that lives behind the avatar.
+const DESKTOP_NAV = [...NAV, { href: "/profile", label: "Settings", icon: "⚙" }];
+
 function navActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+/** Dark disc with a teal dot — the advocate-side mark. */
+function LogoMark() {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#111412]" aria-hidden>
+      <span className="size-2.5 rounded-full bg-teal-400" />
+    </span>
+  );
+}
+
 /**
- * Advocate shell. Phone-first on small screens (bottom nav, narrow column); on
- * desktop it opens up to a wider canvas with a top nav so the layout stops looking
- * like a phone preview in the middle of the monitor.
+ * Advocate shell. Phone-first on small screens (bottom nav); on desktop a full-width
+ * header carries the navigation so the layout stops looking like a phone preview in
+ * the middle of the monitor.
  */
 export function CustomerShell({ children }: { children: React.ReactNode }) {
   const account = useActiveAccount();
@@ -37,29 +48,27 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   // it half-hidden behind the nav pill — "nothing to click". On md+ the nav is in
   // the header, so the large bottom pad goes away.
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-x-clip px-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-5 md:max-w-5xl md:px-8 md:pb-12 lg:max-w-6xl lg:px-10">
-      <header className="mb-5 flex min-w-0 items-center justify-between gap-2 sm:mb-6 sm:gap-3 md:mb-8">
-        <div className="flex min-w-0 items-center gap-3 sm:gap-6 lg:gap-8">
-          <Link href="/" className="min-w-0 shrink">
-            <BrandMark className="text-base sm:text-lg" />
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <header className="border-b border-ink-700 bg-ink-850 pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
+            <LogoMark />
+            <span className="truncate text-base font-bold tracking-tight">ubu-tangaza</span>
           </Link>
 
           {account ? (
-            <nav
-              aria-label="Primary"
-              className="hidden items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1 md:flex"
-            >
-              {NAV.map((item) => {
+            <nav aria-label="Primary" className="hidden items-center gap-7 md:flex">
+              {DESKTOP_NAV.map((item) => {
                 const active = navActive(pathname, item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    className={`border-b-2 py-1 text-[13px] font-semibold transition ${
                       active
-                        ? "bg-crimson-500/15 text-crimson-300"
-                        : "text-mist-500 hover:text-mist-300"
+                        ? "border-crimson-500 text-crimson-500"
+                        : "border-transparent text-mist-400 hover:text-mist-100"
                     }`}
                   >
                     {item.label}
@@ -68,24 +77,26 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
           ) : null}
-        </div>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-          <ThemeToggle className="shrink-0" />
-          {account ? (
-            <Link
-              href="/profile"
-              aria-label={`Profile and settings for ${profileLabel}`}
-              title={profileLabel}
-              className="grid size-9 shrink-0 place-items-center rounded-full border border-ink-600 bg-gradient-to-br from-ink-700 to-ink-850 text-xs font-bold uppercase tracking-wide text-mist-100 shadow-sm transition hover:border-crimson-500/50 hover:from-crimson-500/20 hover:to-ink-850"
-            >
-              {initials}
-            </Link>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle className="shrink-0" />
+            {account ? (
+              <Link
+                href="/profile"
+                aria-label={`Profile and settings for ${profileLabel}`}
+                title={profileLabel}
+                className="grid size-9 shrink-0 place-items-center rounded-full border border-ink-600 bg-ink-850 text-xs font-bold uppercase tracking-wide text-mist-100 transition hover:border-crimson-500/60"
+              >
+                {initials}
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
 
-      <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
+      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 overflow-x-clip px-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:pb-12 md:pt-10 lg:px-10">
+        {children}
+      </main>
 
       {account ? (
         <nav
@@ -102,7 +113,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                   aria-current={active ? "page" : undefined}
                   className={`flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
                     active
-                      ? "bg-crimson-500/15 text-crimson-300"
+                      ? "bg-crimson-500/15 text-crimson-500"
                       : "text-mist-500 hover:text-mist-300"
                   }`}
                 >

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useActiveAccount, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
+import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
 import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
@@ -17,6 +18,7 @@ import type { OrgAccess } from "@/lib/reads";
 const NAV = [
   { href: "/org/overview", label: "Overview" },
   { href: "/org/campaigns", label: "Campaigns" },
+  { href: "/org/pilot", label: "Referral pilot" },
   { href: "/org", label: "Approvals" },
   { href: "/org/liability", label: "Liability" },
   { href: "/org/clients", label: "Clients" },
@@ -29,44 +31,53 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col overflow-x-clip px-4 py-6 sm:px-6 sm:py-8">
-      <header className="mb-6 flex flex-col gap-4 sm:mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/org/overview" className="flex min-w-0 items-center gap-2">
-            <BrandMark className="text-base sm:text-lg" />
-            <span className="hidden text-sm text-mist-500 sm:inline">Business</span>
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <header className="border-b border-ink-700 bg-ink-850">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 pt-3 sm:px-6 lg:flex-nowrap lg:py-3">
+          <Link href="/org/overview" className="flex min-w-0 items-center gap-3">
+            <LogoMark />
+            <span className="text-lg font-bold tracking-tight">ubu-tangaza</span>
+            <span className="hidden text-sm font-semibold uppercase tracking-[0.22em] text-crimson-500 sm:inline">
+              Business
+            </span>
           </Link>
 
-          <OrgProfileMenu />
-        </div>
+          {account ? (
+            <nav
+              aria-label="Business sections"
+              className="order-3 -mx-4 w-full overflow-x-auto px-4 [scrollbar-width:none] lg:order-none lg:mx-0 lg:w-auto lg:px-0 [&::-webkit-scrollbar]:hidden"
+            >
+              <div className="flex w-max items-center gap-5 lg:w-auto">
+                {NAV.map((item) => {
+                  const active =
+                    item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`shrink-0 border-b-2 py-3 text-[13px] font-medium transition ${
+                        active
+                          ? "border-crimson-500 text-crimson-500"
+                          : "border-transparent text-mist-300 hover:text-mist-100"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+          ) : null}
 
-        {account ? (
-          <nav className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
-            <div className="flex w-max min-w-full items-center gap-1 rounded-full border border-ink-700 bg-ink-850/80 p-1 sm:w-auto sm:min-w-0 sm:flex-wrap">
-              {NAV.map((item) => {
-                const active =
-                  item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${
-                      active
-                        ? "bg-crimson-500/15 text-crimson-300"
-                        : "text-mist-500 hover:text-mist-300"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        ) : null}
+          <div className="flex shrink-0 items-center gap-2 py-1">
+            <ThemeToggle />
+            <OrgProfileMenu />
+          </div>
+        </div>
       </header>
 
-      <main className="min-w-0 flex-1">
+      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         {account ? (
           <WithOrgAccess address={account.address}>{children}</WithOrgAccess>
         ) : isRestoring ? (
@@ -78,11 +89,28 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         )}
       </main>
 
-      <footer className="mt-10 border-t border-ink-800 pt-5 text-xs leading-relaxed text-mist-500 sm:mt-12">
-        Avalanche Fuji · every approval and every redemption below is a real on-chain
-        transaction.
+      <footer className="bg-[#111412] text-gray-300">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <LogoMark />
+            <span className="text-lg font-bold tracking-tight text-white">ubu-tangaza</span>
+          </div>
+          <p className="max-w-md text-sm leading-relaxed text-gray-400">
+            A lightweight record of approved reward activity may be kept on Avalanche for
+            transparency. Your business and advocates do not need to manage crypto wallets.
+          </p>
+        </div>
       </footer>
     </div>
+  );
+}
+
+/** Dark rounded square with a teal dot — the business-side mark. */
+function LogoMark() {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#111412]" aria-hidden>
+      <span className="size-3 rounded-full bg-teal-400" />
+    </span>
   );
 }
 
@@ -90,7 +118,7 @@ function OrgSignedOut() {
   return (
     <div className="relative grid place-items-center py-10 sm:py-16">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(30_122_239/0.12),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(194_85_31/0.12),transparent_70%)]"
         aria-hidden
       />
       <div className="relative w-full max-w-md">
@@ -99,7 +127,7 @@ function OrgSignedOut() {
             <BrandMark className="text-sm sm:text-base" />
           </div>
           <Link
-            href="/"
+            href="/auth"
             className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
           >
             Advocate portal →
@@ -127,13 +155,44 @@ function OrgSignedOut() {
 
 /* ------------------------------------------------------------------ access */
 
-const OrgAccessContext = createContext<OrgAccess>({
+/** OrgAccess plus the business's editable display name, already folded into `orgName`. */
+export type OrgAccessView = OrgAccess & { refreshOrgName: () => void };
+
+const OrgAccessContext = createContext<OrgAccessView>({
   orgId: ORG_ID,
   orgName: "",
   isApprover: false,
   approver: "",
   kind: "visitor",
+  refreshOrgName: () => {},
 });
+
+/**
+ * The business's editable display name (orgs.display_name). The on-chain name is
+ * immutable, so this is the one a business can change — and every org page must show
+ * the same one, or renaming on Overview contradicts Account & settings.
+ */
+function useOrgDisplayName(orgId: bigint | undefined) {
+  const [name, setName] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
+  const refresh = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => {
+    if (orgId === undefined) return;
+    let cancelled = false;
+    fetch(`/api/org?orgId=${orgId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { displayName?: string | null } | null) => {
+        if (!cancelled) setName(j?.displayName?.trim() || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, nonce]);
+
+  return { name, refresh };
+}
 
 /**
  * Resolves what the connected account may do — from the chain, not an env var.
@@ -153,6 +212,9 @@ function WithOrgAccess({
 }) {
   const access = useOrgAccess(address);
   const mine = useMyApplications(address);
+  const display = useOrgDisplayName(
+    access.data?.kind === "approver" ? access.data.orgId : undefined
+  );
 
   if (access.loading && !access.data) {
     return (
@@ -182,17 +244,38 @@ function WithOrgAccess({
     return <NoBusinessYet address={address} applications={mine.data ?? []} />;
   }
 
+  /*
+   * Resolution failed (typically the public RPC rate-limiting the org walk) and we
+   * have nothing cached. This used to fall through to the default org's dashboard,
+   * which showed whoever was signed in the pilot business's campaigns and queue.
+   * Privacy beats convenience: say we couldn't verify them, and let them retry.
+   */
+  if (!access.data) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-24 text-center">
+        <p className="text-sm font-semibold text-mist-100">Couldn&rsquo;t verify your business</p>
+        <p className="text-sm text-mist-500">
+          {access.error ?? "The network didn't answer in time."} Nothing is shown until we can
+          confirm which business this account approves for.
+        </p>
+        <button
+          type="button"
+          onClick={access.refresh}
+          className="inline-flex min-h-10 items-center rounded-full bg-crimson-500 px-5 text-sm font-semibold text-white transition hover:bg-crimson-400"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <OrgAccessContext.Provider
-      value={
-        access.data ?? {
-          orgId: ORG_ID,
-          orgName: "",
-          isApprover: false,
-          approver: "",
-          kind: "visitor",
-        }
-      }
+      value={{
+        ...access.data,
+        orgName: display.name ?? access.data.orgName,
+        refreshOrgName: display.refresh,
+      }}
     >
       {children}
     </OrgAccessContext.Provider>

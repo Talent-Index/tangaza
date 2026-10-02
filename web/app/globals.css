@@ -5,31 +5,35 @@
    Customer surface stays jargon-free: no "wallet", no "gas". Money in KES.
    Dark is the default; html.light remaps the same ink/mist/crimson tokens. */
 @theme {
-  --color-ink-950: #050b18;
-  --color-ink-900: #070f1f;
-  --color-ink-850: #0a1428;
-  --color-ink-800: #0d1a32;
-  --color-ink-700: #152445;
-  --color-ink-600: #1e3258;
-  --color-ink-500: #2a4570;
+  /* Warm editorial system: near-black + paper, rust-orange accent, hairline
+     borders. Dark is the default; html.light remaps the same token names to
+     the paper variant, so every screen re-skins without a class rename. */
+  --color-ink-950: #0b0b09;
+  --color-ink-900: #111110;
+  --color-ink-850: #17170f;
+  --color-ink-800: #1c1c15;
+  --color-ink-700: #2b2b22;
+  --color-ink-600: #3c3c30;
+  --color-ink-500: #57564a;
 
-  --color-mist-500: #7a8ba8;
-  --color-mist-400: #9aabc4;
-  --color-mist-300: #c5d0e0;
-  --color-mist-100: #f0f4fa;
+  --color-mist-500: #8c8a7c;
+  --color-mist-400: #a9a798;
+  --color-mist-300: #d2d0c3;
+  --color-mist-100: #f5f4ee;
 
-  /* Accent blue (kept as crimson-* class names so existing screens re-skin cleanly) */
-  --color-crimson-600: #1565c0;
-  --color-crimson-500: #1e7aef;
-  --color-crimson-400: #3d93ff;
-  --color-crimson-300: #7eb6ff;
+  /* Accent: rust orange (kept as crimson-* class names so existing screens re-skin cleanly) */
+  --color-crimson-600: #9c3e18;
+  --color-crimson-500: #c2551f;
+  --color-crimson-400: #d97a3f;
+  --color-crimson-300: #e8a374;
 
-  --color-jade-500: #17b877;
-  --color-jade-400: #34d399;
-  --color-amber-glow: #f0a835;
+  --color-jade-500: #1f9d63;
+  --color-jade-400: #3fc686;
+  --color-amber-glow: #d9a441;
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --radius-card: 0.75rem;
 }
@@ -44,26 +48,26 @@ html {
 html.light {
   color-scheme: light;
 
-  --color-ink-950: #eef2f8;
-  --color-ink-900: #f5f7fb;
+  --color-ink-950: #f3f1e9;
+  --color-ink-900: #f8f6f0;
   --color-ink-850: #ffffff;
-  --color-ink-800: #e8eef7;
-  --color-ink-700: #d4deec;
-  --color-ink-600: #b7c5d9;
-  --color-ink-500: #8fa0b8;
+  --color-ink-800: #ece8dc;
+  --color-ink-700: #ddd8c8;
+  --color-ink-600: #c7c1ac;
+  --color-ink-500: #a39c85;
 
-  --color-mist-500: #5a6b84;
-  --color-mist-400: #3d4f68;
-  --color-mist-300: #1a2b45;
-  --color-mist-100: #0a1428;
+  --color-mist-500: #6b6858;
+  --color-mist-400: #55523f;
+  --color-mist-300: #2c2a1f;
+  --color-mist-100: #15140d;
 
-  --color-crimson-600: #0d4f9e;
-  --color-crimson-500: #1565c0;
-  --color-crimson-400: #1e7aef;
-  --color-crimson-300: #0d4f9e;
+  --color-crimson-600: #7c3113;
+  --color-crimson-500: #a8451c;
+  --color-crimson-400: #c2551f;
+  --color-crimson-300: #d97a3f;
 
-  --color-jade-500: #0f9a62;
-  --color-jade-400: #129a66;
+  --color-jade-500: #157a4c;
+  --color-jade-400: #1a9159;
 }
 
 body {

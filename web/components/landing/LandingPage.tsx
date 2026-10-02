@@ -2,58 +2,166 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BrandMark, Button } from "@/components/ui";
-import { MILESTONE_ACTIVITIES } from "@/lib/chain";
+import { ThemeToggle, useTheme } from "@/components/theme";
+import { addressUrl } from "@/lib/chain";
+import { CONTRACT_ADDRESS } from "@/lib/client";
 
 const NAV = [
-  { href: "#about", label: "About" },
   { href: "#how", label: "How it works" },
-  { href: "#why", label: "Why us" },
+  { href: "#use-cases", label: "Use cases" },
+  { href: "#business", label: "For businesses" },
+  { href: "#contact", label: "Contact" },
 ];
 
-const CARDS = [
+const LIGHT = {
+  "--bg-a": "#f3f0e8",
+  "--bg-b": "#fbfaf7",
+  "--card": "#ffffff",
+  "--soft": "#f3f0e8",
+  "--border": "#e7e2d6",
+  "--text": "#111412",
+  "--muted": "#5b605c",
+} as React.CSSProperties;
+
+const DARK = {
+  "--bg-a": "#0f1418",
+  "--bg-b": "#0b0e11",
+  "--card": "#151b21",
+  "--soft": "#151b21",
+  "--border": "#232b33",
+  "--text": "#f2f4f3",
+  "--muted": "#9aa3a0",
+} as React.CSSProperties;
+
+const REALITY = [
   {
-    title: "Referrals that count",
-    body: "Walk someone in, share your link, or host an event. The business approves what is real — and only then does it count toward your reward.",
-    visual: "refer",
-    offset: "lg:mt-0",
+    icon: "💬",
+    title: "The referral is invisible",
+    body: "A salon client brings a friend, or a café regular shares your new menu in a group chat. The conversation is real, but it is hard to trace.",
   },
   {
-    title: "Posts with proof",
-    body: "Shout-outs on X, Reels, WhatsApp status — submit the link or screenshot. Weighted by what the business values most.",
-    visual: "post",
-    offset: "lg:mt-24",
+    icon: "👤",
+    title: "You cannot credit the right advocate",
+    body: "When a new customer makes a purchase, you may not know which supporter actually brought them to your business.",
+  },
+  {
+    icon: "🛡",
+    title: "Rewards feel difficult to control",
+    body: "A boutique customer refers someone through WhatsApp — but how do you check the claim, reward fairly, and keep the campaign within budget?",
   },
 ];
 
+const PATH = [
+  {
+    step: "01",
+    title: "Create your campaign",
+    body: "Choose the customer action you want to encourage, the milestones, and the reward budget.",
+  },
+  {
+    step: "02",
+    title: "Supporters spread the word",
+    body: "Customers and advocates share, refer, visit, or post — based on the campaign you set.",
+  },
+  {
+    step: "03",
+    title: "Proof is submitted",
+    body: "Valid activity is submitted for review, giving your business a practical record of what happened.",
+  },
+  {
+    step: "04",
+    title: "You approve, they earn",
+    body: "Approve the proof you trust and issue the agreed reward only for verified results.",
+  },
+];
+
+const USE_CASES = [
+  {
+    tag: "Café or restaurant",
+    title: "Bring a friend to lunch",
+    body: "Encourage regulars to introduce someone new. Reward a verified first visit with a discount or a voucher for the next meal.",
+    img: "/images/landing/usecase-cafe.webp",
+    alt: "Two friends sharing a meal at a restaurant",
+    pos: "50% 45%",
+  },
+  {
+    tag: "Salon or barbershop",
+    title: "Reward a trusted recommendation",
+    body: "Ask happy clients to refer a friend for a service. After the new client's visit is verified, issue a simple perk or service discount.",
+    img: "/images/landing/usecase-salon.webp",
+    alt: "A hairdresser styling a client's hair in a salon",
+    pos: "50% 16%",
+  },
+  {
+    tag: "Boutique or retail shop",
+    title: "Turn WhatsApp shares into visits",
+    body: "Run a campaign around a collection drop or seasonal offer. Recognise supporters when a referred customer comes in and completes a purchase.",
+    img: "/images/landing/usecase-boutique.webp",
+    alt: "Two women looking at clothes in a boutique",
+    pos: "50% 35%",
+  },
+];
+
+const BUILT = [
+  {
+    icon: "✦",
+    title: "Simple setup",
+    body: "Set the action, milestone, reward, and campaign budget around the outcome that matters to you.",
+  },
+  {
+    icon: "✓",
+    title: "Verified activity",
+    body: "Review submitted proof before issuing a reward. M-Pesa Till connectivity can help verify referred sales where it is available.",
+  },
+  {
+    icon: "▤",
+    title: "Controlled rewards",
+    body: "Use a defined campaign budget and choose practical rewards like discounts, vouchers, cash or M-Pesa perks, airtime, or merchandise.",
+  },
+  {
+    icon: "☺",
+    title: "Easy for participants",
+    body: "Participants can get involved without a crypto wallet, seed phrase, or gas fees — so the focus stays on the campaign.",
+  },
+];
+
+/**
+ * Colors come from CSS variables set on the root, so one set of static class names
+ * serves both themes; the dark sections and the teal bands stay the same in both.
+ */
 export function LandingPage() {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+
   return (
-    <div className="min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
-      <LandingNav />
-      <Hero />
-      <LiveCampaigns />
-      <Solutions />
-      <WhyUs />
-      <footer className="border-t border-ink-700/80 px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <BrandMark />
-          <p className="max-w-md text-sm leading-relaxed text-mist-500">
-            Proof-of-advocacy rewards on Avalanche. Budgets are capped once and can never
-            be raised.
-          </p>
-          <Link
-            href="/register"
-            className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200"
-          >
-            I run a business →
-          </Link>
-        </div>
-      </footer>
+    <div
+      style={dark ? DARK : LIGHT}
+      className="min-h-dvh bg-[var(--bg-b)] text-[var(--text)] transition-colors"
+    >
+      <Header dark={dark} />
+      <Hero dark={dark} />
+      <Reality />
+      <Path />
+      <UseCases />
+      <Built />
+      <Trust />
+      <FinalCta />
+      <Footer />
     </div>
   );
 }
 
-function LandingNav() {
+function Logo({ light = false }: { light?: boolean }) {
+  return (
+    <Link href="/" className="flex items-center gap-2.5">
+      <span className="grid size-8 place-items-center rounded-full bg-teal-500 text-sm font-bold text-white">
+        U
+      </span>
+      <span className={`text-lg font-bold tracking-tight ${light ? "text-white" : ""}`}>Ubu-Tangaza</span>
+    </Link>
+  );
+}
+
+function Header({ dark }: { dark: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -63,52 +171,36 @@ function LandingNav() {
     };
   }, [open]);
 
-  function close() {
-    setOpen(false);
-  }
+  const cta = dark
+    ? "bg-white text-gray-900 hover:bg-gray-200"
+    : "bg-gray-900 text-white hover:bg-black";
 
   return (
-    <header
-      className={`absolute inset-x-0 top-0 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 ${
-        open ? "z-50" : "z-30"
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-        <Link
-          href="/"
-          className="min-w-0 shrink rounded-md bg-ink-950/90 px-2.5 py-2 backdrop-blur sm:px-3"
-          aria-label="Ubu-Tangaza home"
-          onClick={close}
-        >
-          <BrandMark className="text-base sm:text-lg" />
-        </Link>
+    <header className="bg-[var(--bg-a)]">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <Logo />
 
-        <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-ink-900/70 px-2 py-1.5 backdrop-blur lg:flex">
+        <nav className="hidden items-center gap-8 text-sm font-medium text-[var(--muted)] lg:flex">
           {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mist-300 transition hover:text-white"
-            >
+            <a key={item.href} href={item.href} className="transition hover:text-[var(--text)]">
               {item.label}
             </a>
           ))}
-          <span className="mx-1 h-4 w-px bg-white/25" aria-hidden />
+        </nav>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle />
           <Link
             href="/auth"
-            className="rounded-full bg-crimson-500 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-crimson-400"
+            className="hidden text-sm font-medium text-[var(--muted)] transition hover:text-[var(--text)] sm:inline"
           >
             Sign in
           </Link>
-        </nav>
-
-        <div className="flex items-center gap-2 lg:hidden">
           <Link
-            href="/auth"
-            className="rounded-full bg-crimson-500 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white"
-            onClick={close}
+            href="/register"
+            className={`hidden rounded-full px-5 py-2 text-sm font-semibold transition sm:inline-block ${cta}`}
           >
-            Sign in
+            Start a campaign
           </Link>
           <button
             type="button"
@@ -116,45 +208,34 @@ function LandingNav() {
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="grid size-10 place-items-center rounded-full border border-white/15 bg-ink-900/80 text-white backdrop-blur"
+            className="grid size-9 place-items-center rounded-md border border-[var(--border)] lg:hidden"
           >
             <span className="flex w-4 flex-col gap-1" aria-hidden>
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "translate-y-1.5 rotate-45" : ""}`}
-              />
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "opacity-0" : ""}`}
-              />
-              <span
-                className={`h-0.5 w-full rounded-full bg-white transition ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
-              />
+              <span className={`h-0.5 w-full rounded-full bg-[var(--text)] transition ${open ? "translate-y-1.5 rotate-45" : ""}`} />
+              <span className={`h-0.5 w-full rounded-full bg-[var(--text)] transition ${open ? "opacity-0" : ""}`} />
+              <span className={`h-0.5 w-full rounded-full bg-[var(--text)] transition ${open ? "-translate-y-1.5 -rotate-45" : ""}`} />
             </span>
           </button>
         </div>
       </div>
 
       {open ? (
-        <div
-          id="mobile-nav"
-          className="fixed inset-0 z-40 bg-ink-950/95 px-4 pt-24 backdrop-blur-md lg:hidden"
-        >
-          <nav className="mx-auto flex max-w-sm flex-col gap-2">
+        <div id="mobile-nav" className="border-t border-[var(--border)] px-4 py-4 lg:hidden">
+          <nav className="flex flex-col gap-3 text-sm font-medium">
             {NAV.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={close}
-                className="rounded-full border border-ink-700 bg-ink-900 px-5 py-3.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-mist-100"
-              >
+              <a key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 {item.label}
               </a>
             ))}
+            <Link href="/auth" onClick={() => setOpen(false)} className="text-[var(--muted)]">
+              Sign in
+            </Link>
             <Link
               href="/register"
-              onClick={close}
-              className="mt-4 text-center text-sm text-mist-400 underline underline-offset-4"
+              onClick={() => setOpen(false)}
+              className={`mt-1 rounded-full px-5 py-2.5 text-center font-semibold ${cta}`}
             >
-              I run a business →
+              Start a campaign
             </Link>
           </nav>
         </div>
@@ -163,119 +244,117 @@ function LandingNav() {
   );
 }
 
-function Hero() {
+function Kicker({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <section
-      id="about"
-      className="relative flex min-h-dvh items-end overflow-hidden pb-16 pt-24 sm:items-center sm:pb-24 sm:pt-28"
-    >
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_40%,rgb(30_122_239/0.28),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgb(5_11_24/0.55)_55%,rgb(5_11_24)_92%)]" />
-        <div className="absolute -right-32 top-16 h-[22rem] w-[22rem] rounded-full border border-crimson-500/20 sm:-right-20 sm:top-24 sm:h-[28rem] sm:w-[28rem]" />
-        <div className="absolute -right-16 top-32 h-[14rem] w-[14rem] rounded-full border border-white/5 sm:-right-8 sm:top-40 sm:h-[20rem] sm:w-[20rem]" />
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
-      </div>
+    <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-500 ${className}`}>
+      {children}
+    </p>
+  );
+}
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="max-w-xl animate-fade-up">
-          <h1 className="font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Advocacy, rewarded.
-            <br />
-            Community, paid.
+function Hero({ dark }: { dark: boolean }) {
+  return (
+    <section className="bg-[var(--bg-a)] px-4 pb-20 pt-6 sm:px-6 sm:pb-24 sm:pt-10">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
+        <div>
+          <Kicker>Word of mouth, made visible</Kicker>
+          <h1 className="mt-4 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl">
+            Turn happy customers into measurable referrals.
           </h1>
-
-          <div className="mt-5 flex items-center gap-1.5 sm:mt-6" aria-hidden>
-            <span className="size-2 rounded-full bg-crimson-400" />
-            <span className="h-px w-8 bg-white/35" />
-            <span className="h-px w-8 bg-white/20" />
-            <span className="h-px w-8 bg-white/10" />
-          </div>
-
-          <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-mist-300 sm:mt-6 sm:text-lg">
-            Ubu-Tangaza pays you for real advocacy — referrals, posts, events — from a
-            business budget written once on Avalanche and never raised.
+          <p className="mt-5 max-w-md text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            Ubu-Tangaza helps businesses launch verified referral campaigns, see
+            what brought customers through the door, and reward real results.
           </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-9">
-            <Button href="#how" variant="light" className="min-h-12 px-5 sm:px-7">
-              How it works
-            </Button>
+          <div className="mt-7 flex flex-wrap gap-3">
             <Link
-              href="/auth"
-              aria-label="Go to sign in"
-              className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-ink-950 transition hover:bg-mist-100"
+              href="/register"
+              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-500"
             >
-              <span aria-hidden className="text-lg leading-none">
-                →
-              </span>
+              Start a campaign ↗
             </Link>
+            <a
+              href="#how"
+              className="rounded-full border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-sm font-semibold transition hover:border-teal-500"
+            >
+              See how it works ⊙
+            </a>
           </div>
+          <p className="mt-6 max-w-sm text-xs leading-relaxed text-[var(--muted)]">
+            For cafés, salons, boutiques, retailers, service teams and event businesses.
+          </p>
         </div>
+
+        <HeroVisual dark={dark} />
       </div>
     </section>
   );
 }
 
-function Solutions() {
+function HeroVisual({ dark }: { dark: boolean }) {
   return (
-    <section id="how" className="border-t border-ink-800 bg-ink-950 px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl animate-fade-up">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Connected reward
-            <br />
-            solutions
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-mist-400 sm:mt-5">
-            Whether it is a walk-in referral or a shout-out on X, Ubu-Tangaza coordinates
-            proof, approval, and payout in one loop — so you earn without juggling
-            spreadsheets or seed phrases.
-          </p>
+    <div className="relative mx-auto w-full max-w-md pb-14 lg:max-w-none">
+      <div className="absolute -right-4 bottom-6 h-[78%] w-[80%] rounded-[2rem] bg-teal-500" aria-hidden />
+      <div className="relative aspect-[5/4] overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#3b2a1e] via-[#261c15] to-[#120f0d] shadow-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/landing/hero-campaign.webp"
+          alt="A shop owner checking a referral on her phone in her café"
+          width={1400}
+          height={933}
+          fetchPriority="high"
+          className="absolute inset-0 size-full object-cover"
+          style={{ objectPosition: "35% 40%" }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="absolute inset-x-4 bottom-4 flex items-start gap-3 rounded-xl bg-white p-3.5 text-gray-900 shadow-lg sm:inset-x-6">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-teal-100 text-teal-700">✓</span>
+          <div>
+            <p className="text-sm font-semibold">A referral has been submitted</p>
+            <p className="text-xs text-gray-500">Review the activity, approve what is valid, then issue the reward.</p>
+          </div>
         </div>
+      </div>
 
-        <div className="mt-10 grid gap-10 md:mt-16 md:grid-cols-2 md:gap-12">
-          {CARDS.map((card, i) => (
-            <article
-              key={card.title}
-              className={`animate-fade-up ${card.offset}`}
-              style={{ animationDelay: `${120 + i * 100}ms` }}
+      <div
+        className={`absolute inset-x-6 bottom-0 grid grid-cols-3 rounded-xl p-3 text-center shadow-xl sm:inset-x-10 ${
+          dark ? "bg-[#1b232a]" : "bg-white"
+        }`}
+      >
+        {[
+          ["💬", "Recommend"],
+          ["🧾", "Verify visit"],
+          ["🎁", "Reward"],
+        ].map(([icon, label], i) => (
+          <div key={label} className="flex flex-col items-center gap-1">
+            <span
+              className={`grid size-8 place-items-center rounded-full text-sm ${
+                i === 2 ? "bg-teal-500 text-white" : "bg-teal-500/15"
+              }`}
             >
-              <div className="overflow-hidden rounded-sm border border-ink-600/80">
-                <CardVisual kind={card.visual} />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-bold text-white sm:mt-5 sm:text-xl">
-                {card.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-mist-500">{card.body}</p>
-            </article>
-          ))}
-        </div>
+              {icon}
+            </span>
+            <span className="text-[11px] font-semibold">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        <div className="mt-12 grid gap-8 border-t border-ink-800 pt-10 sm:mt-20 sm:grid-cols-3 sm:gap-6 sm:pt-12">
-          {[
-            {
-              step: "01",
-              title: "Submit",
-              body: "File a referral, post, or event with the proof the business asks for.",
-            },
-            {
-              step: "02",
-              title: "Get approved",
-              body: "The business signs approval on-chain. That is what makes it real.",
-            },
-            {
-              step: "03",
-              title: "Claim",
-              body: `Every ${MILESTONE_ACTIVITIES} approved activities unlocks in-house offers, rewards and discounts you can redeem.`,
-            },
-          ].map((item) => (
-            <div key={item.step}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-crimson-400">
-                {item.step}
-              </p>
-              <p className="mt-2 font-display text-lg font-bold text-white">{item.title}</p>
-              <p className="mt-2 text-sm text-mist-500">{item.body}</p>
+function Reality() {
+  return (
+    <section className="bg-[var(--bg-b)] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl">
+        <Kicker>The everyday reality</Kicker>
+        <h2 className="mt-3 max-w-xl text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+          Your customers already recommend you. You just can&rsquo;t see what happens next.
+        </h2>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {REALITY.map((item) => (
+            <div key={item.title} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+              <span className="grid size-9 place-items-center rounded-lg bg-teal-500/15 text-base">{item.icon}</span>
+              <p className="mt-5 font-semibold">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{item.body}</p>
             </div>
           ))}
         </div>
@@ -284,149 +363,206 @@ function Solutions() {
   );
 }
 
-function CardVisual({ kind }: { kind: string }) {
-  if (kind === "post") {
-    return (
-      <div className="relative flex aspect-[16/10] items-end bg-gradient-to-br from-ink-800 via-ink-850 to-ink-950 p-4 sm:p-6">
-        <div className="absolute right-6 top-6 h-16 w-16 rounded-full border border-crimson-400/30 sm:right-8 sm:top-8 sm:h-24 sm:w-24" />
-        <div className="absolute right-12 top-12 h-12 w-12 rounded-full bg-crimson-500/20 blur-xl sm:right-16 sm:top-16 sm:h-16 sm:w-16" />
-        <div className="relative w-full max-w-xs rounded-xl border border-ink-600 bg-ink-900/80 p-4">
-          <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-ink-700 text-xs font-bold">
-              𝕏
-            </span>
-            <div className="h-2 w-24 rounded-full bg-ink-600" />
-          </div>
-          <div className="mt-3 space-y-2">
-            <div className="h-2 w-full rounded-full bg-ink-700" />
-            <div className="h-2 w-[80%] rounded-full bg-ink-700" />
-            <div className="h-2 w-[65%] rounded-full bg-ink-700" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+function Path() {
   return (
-    <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[#0c1c3a] via-ink-850 to-ink-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgb(30_122_239/0.25),transparent_50%)]" />
-      <div className="relative grid w-full max-w-sm grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-8">
-        {["👥", "🎤", "★"].map((icon, i) => (
-          <div
-            key={icon}
-            className="flex aspect-square flex-col items-center justify-center rounded-xl border border-ink-600/80 bg-ink-900/70"
-            style={{ transform: `translateY(${i === 1 ? -8 : 0}px)` }}
-          >
-            <span className="text-lg sm:text-xl" aria-hidden>
-              {icon}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WhyUs() {
-  return (
-    <section id="why" className="border-t border-ink-800 px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
+    <section id="how" className="scroll-mt-4 bg-[#1a1a17] px-4 py-16 text-white sm:px-6 sm:py-20">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
         <div>
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            A budget everyone can audit
+          <Kicker>A clear path from mention to reward</Kicker>
+          <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+            Run word-of-mouth campaigns with proof built in.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-mist-400 sm:mt-5">
-            The emission cap is set once at registration. No function can raise it. Credits
-            only exist because a business approved a real activity — and every claim shrinks
-            outstanding liability on Avalanche Fuji.
-          </p>
-          <ul className="mt-6 space-y-4 sm:mt-8">
-            {[
-              "No seed phrase. No gas fees. Social sign-in only.",
-              "Pilot with Blockchain Centre Kenya — built for Team1 Kenya.",
-              "Real in-house rewards every milestone — offers, discounts, vouchers.",
-            ].map((line) => (
-              <li key={line} className="flex gap-3 text-sm text-mist-300">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-crimson-400" />
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="card p-5 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mist-500">
-            Solvency promise
-          </p>
-          <p className="mt-3 font-display text-xl font-bold leading-snug text-white sm:mt-4 sm:text-2xl">
-            The reward budget can never grow — only shrink as people claim.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-mist-500 sm:mt-4">
-            That rule is enforced by the contract, not by a settings toggle. Advocacy is a
-            community act; the return should be something the community can verify.
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-400">
+            Ubu-Tangaza keeps the campaign simple for your team and clear for the customers
+            who support your business.
           </p>
         </div>
-      </div>
-    </section>
-  );
-}
-
-
-/**
- * What's happening right now, shown to everyone — the door is visible from the
- * street. Opening a campaign asks you to sign in: viewing is the hook, taking part
- * is the account.
- */
-function LiveCampaigns() {
-  const [campaigns, setCampaigns] = useState<
-    Array<{ id: string; slug: string; title: string; blurb?: string; orgName: string; participantCount: number }>
-  >([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/campaigns?all=true")
-      .then((r) => (r.ok ? r.json() : { campaigns: [] }))
-      .then((j: { campaigns: typeof campaigns }) => {
-        if (!cancelled) setCampaigns(j.campaigns ?? []);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (campaigns.length === 0) return null;
-
-  return (
-    <section className="border-t border-ink-700/80 px-4 py-12 sm:px-6 sm:py-16">
-      <div className="mx-auto max-w-6xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-crimson-400">
-          Happening now
-        </p>
-        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-          Live campaigns you can join today.
-        </h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {campaigns.map((c) => (
-            <Link
-              key={c.id}
-              href={`/c/${c.slug}`}
-              className="group rounded-2xl border border-ink-700 bg-ink-850/60 p-5 transition hover:border-crimson-500/50"
-            >
-              <p className="text-xs text-mist-500">{c.orgName}</p>
-              <p className="mt-1 font-semibold text-mist-100 group-hover:text-white">
-                {c.title}
-              </p>
-              {c.blurb ? (
-                <p className="mt-2 line-clamp-2 text-sm text-mist-500">{c.blurb}</p>
-              ) : null}
-              <p className="mt-3 text-xs text-crimson-300">
-                {c.participantCount} taking part · sign in to view →
-              </p>
-            </Link>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {PATH.map((item) => (
+            <div key={item.step} className="rounded-xl border border-white/10 bg-[#24241f] p-5">
+              <p className="text-xs font-semibold text-teal-400">{item.step}</p>
+              <p className="mt-6 font-semibold">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">{item.body}</p>
+            </div>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+function UseCases() {
+  return (
+    <section id="use-cases" className="scroll-mt-4 bg-[var(--bg-a)] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <Kicker>Campaign ideas for everyday business</Kicker>
+            <h2 className="mt-3 max-w-md text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+              Made for the places people already talk about.
+            </h2>
+          </div>
+          <p className="max-w-xs text-sm leading-relaxed text-[var(--muted)]">
+            Start with one clear action, one real reward, and a campaign your team can manage.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
+          {USE_CASES.map((item) => (
+            <article key={item.title} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.img}
+                alt={item.alt}
+                loading="lazy"
+                width={1000}
+                height={600}
+                className="h-56 w-full object-cover"
+                style={{ objectPosition: item.pos }}
+              />
+              <div className="p-6">
+                <Kicker className="!text-[10px]">{item.tag}</Kicker>
+                <p className="mt-2 text-lg font-bold">{item.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{item.body}</p>
+              </div>
+            </article>
+          ))}
+
+          <article className="flex flex-col justify-end rounded-2xl bg-teal-600 p-7 text-white">
+            <span className="grid size-9 place-items-center rounded-lg bg-white/15">🎟️</span>
+            <p className="mt-16 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-100">
+              Event or experience business
+            </p>
+            <p className="mt-2 text-xl font-bold leading-snug">Fill the next experience with people who care.</p>
+            <p className="mt-2 text-sm leading-relaxed text-teal-50">
+              Invite past guests to share an upcoming tasting, show, pop-up, or experience.
+              Offer approved advocates airtime, merchandise, vouchers, or cash perks.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Built() {
+  return (
+    <section id="business" className="scroll-mt-4 bg-[var(--bg-b)] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
+        <div>
+          <Kicker>Built for real local businesses</Kicker>
+          <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+            A campaign you can run without making it complicated.
+          </h2>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--muted)]">
+            Keep your team focused on customers. Ubu-Tangaza helps you set the rules, review
+            activity, and make each reward decision with context.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {BUILT.map((item) => (
+            <div key={item.title} className="rounded-xl border border-[var(--border)] bg-[var(--soft)] p-5">
+              <span className="text-teal-500" aria-hidden>{item.icon}</span>
+              <p className="mt-5 font-semibold">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Trust() {
+  return (
+    <section className="bg-[var(--bg-a)] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl rounded-3xl bg-[#1a1a17] p-8 text-white sm:p-12">
+        <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+          <div>
+            <Kicker>Trust and accountability</Kicker>
+            <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-teal-400 sm:text-3xl">
+              Reward real activity — not guesswork.
+            </h2>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-400">
+              Ubu-Tangaza is designed so activity can be reviewed before rewards are issued.
+              Your campaign spending can be capped and recorded, giving you a clearer view of
+              where each reward is going.
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[#24241f] p-5">
+            <p className="text-sm font-semibold text-teal-400">For transparency</p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              Protected campaign budgets can be recorded on Avalanche Fuji to support a
+              transparent record of campaign activity. This works in the background — your
+              business and participants do not need to manage crypto wallets.
+            </p>
+            <a
+              href={addressUrl(CONTRACT_ADDRESS)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-sm font-semibold text-teal-400 underline underline-offset-4 hover:text-teal-300"
+            >
+              Verify on-chain →
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCta() {
+  return (
+    <section className="bg-teal-600 px-4 py-20 text-center text-white sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-2xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-100">
+          For businesses of every size
+        </p>
+        <h2 className="mt-4 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+          Turn word of mouth into something you can measure.
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-teal-50 sm:text-base">
+          If your business grows through referrals, repeat customers, social sharing, and
+          walk-ins, see whether Ubu-Tangaza fits the way you already work.
+        </p>
+        <Link
+          href="/register"
+          className="mt-7 inline-block rounded-full bg-gray-900 px-7 py-3 text-sm font-semibold text-white transition hover:bg-black"
+        >
+          Start a campaign ↗
+        </Link>
+        <p className="mt-4 text-xs text-teal-100">
+          Start with one clear campaign goal and one reward your customers will value.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer id="contact" className="scroll-mt-4 bg-[#1a1a17] px-4 py-12 text-white sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col justify-between gap-8 md:flex-row md:items-end">
+        <div>
+          <Logo light />
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-400">
+            Trackable word-of-mouth campaigns for local businesses built around proof,
+            accountability, and shared rewards.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 text-sm text-gray-400 md:items-end">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {NAV.map((item) => (
+              <a key={item.href} href={item.href} className="transition hover:text-white">
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <a href="mailto:danielmwihoti@ubutangaza.biz" className="underline underline-offset-4 hover:text-white">
+            danielmwihoti@ubutangaza.biz
+          </a>
+        </div>
+      </div>
+    </footer>
   );
 }
