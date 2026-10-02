@@ -23,6 +23,8 @@ import { pledgeMessage } from "@/lib/pledge";
 export default function RegisterPage() {
   const account = useActiveAccount();
 
+  if (!account) return <SignedOut />;
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col overflow-x-clip px-4 py-8 sm:px-6 sm:py-10">
       <header className="mb-8 flex items-center justify-between gap-3 sm:mb-10">
@@ -35,7 +37,7 @@ export default function RegisterPage() {
       </header>
 
       <main className="flex-1">
-        {account ? <ApplyForm address={account.address} /> : <SignedOut />}
+        <ApplyForm address={account.address} />
       </main>
     </div>
   );
@@ -43,26 +45,68 @@ export default function RegisterPage() {
 
 function SignedOut() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-bold leading-tight tracking-tight">
-          Reward the people who talk about you.
-        </h1>
-        <p className="mt-3 max-w-lg text-mist-400">
-          Put up a budget, say what you&rsquo;ll give back, and let your community earn
-          it. The budget is written once on Avalanche and can never be raised — not by
-          us, not by you. That&rsquo;s the whole promise.
-        </p>
-      </div>
-      <Card>
-        <p className="mb-1 text-center text-sm text-mist-500">
-          Sign in with the account that will approve activities
-        </p>
-        <h2 className="mb-6 text-center font-display text-2xl font-bold uppercase tracking-tight">
-          Register portal.
-        </h2>
-        <SignIn />
-      </Card>
+    <div className="grid min-h-dvh lg:grid-cols-2">
+      <section className="flex flex-col px-6 py-8 sm:px-10 lg:px-14">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="min-w-0">
+            <BrandMark className="text-base sm:text-lg" />
+          </Link>
+          <Link
+            href="/org"
+            className="shrink-0 text-xs text-mist-500 underline-offset-4 hover:text-mist-300 hover:underline"
+          >
+            Already registered? →
+          </Link>
+        </div>
+
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+          <p className="text-sm text-mist-500">Sign in with the account that will approve activities</p>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Sign in</h1>
+          <div className="mt-8">
+            <SignIn />
+          </div>
+          <p className="mt-8 text-center text-sm text-mist-500">
+            Joining as an advocate?{" "}
+            <Link href="/auth" className="text-mist-200 underline underline-offset-4 hover:text-white">
+              Open the advocate portal
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      <aside className="relative hidden p-4 lg:block">
+        <div className="flex h-full flex-col rounded-[2rem] border border-ink-700 bg-ink-850 px-10 py-8">
+          <div className="flex justify-end">
+            <Link
+              href="/org"
+              className="rounded-full border border-ink-600 px-4 py-2 text-sm text-mist-300 transition hover:border-ink-500 hover:text-mist-100"
+            >
+              Already registered?
+            </Link>
+          </div>
+
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <div className="relative h-44 w-64" aria-hidden>
+              <span className="absolute left-1/2 top-2 h-24 w-52 -translate-x-1/2 rounded-2xl border border-ink-600 bg-ink-800" />
+              <span className="absolute left-1/2 top-8 h-24 w-44 -translate-x-1/2 rounded-2xl border border-ink-600 bg-ink-700" />
+              <span className="absolute left-1/2 top-16 h-24 w-36 -translate-x-1/2 rounded-2xl border border-crimson-500/40 bg-ink-850" />
+            </div>
+            <p className="mt-12 text-[11px] font-semibold uppercase tracking-[0.2em] text-crimson-400">
+              Register portal
+            </p>
+            <h2 className="mt-4 max-w-md font-display text-4xl font-bold leading-tight tracking-tight">
+              Reward the people who talk about you.
+            </h2>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-mist-400">
+              Put up a budget, say what you&rsquo;ll give back, and let your community earn
+              it. The budget is written once on Avalanche and can never be raised — not by
+              us, not by you. That&rsquo;s the whole promise.
+            </p>
+          </div>
+
+          <p className="text-center text-xs text-mist-500">No fees — ever</p>
+        </div>
+      </aside>
     </div>
   );
 }
