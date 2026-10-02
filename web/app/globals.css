@@ -38,6 +38,10 @@
   --radius-card: 0.75rem;
 }
 
+/* `light:` lets one piece of markup differ between the dark (default) and light
+   looks — e.g. a hairline square panel in dark, a rounded receipt card in light. */
+@custom-variant light (&:where(.light, .light *));
+
 html {
   color-scheme: dark;
   overflow-x: clip;
@@ -192,4 +196,14 @@ html.light .card {
 ::selection {
   background: var(--color-crimson-500);
   color: white;
+}
+
+/* Light-mode accent for the public site and advocate portal: the design's daylight
+   direction uses crimson actions where the dark look uses rust-orange. Scoped to
+   .skin so the business portal keeps its own accent. */
+html.light .skin {
+  --color-crimson-600: #8f1733;
+  --color-crimson-500: #b01f3d;
+  --color-crimson-400: #c2354f;
+  --color-crimson-300: #a81c38;
 }

@@ -36,7 +36,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 pt-3 sm:px-6 lg:flex-nowrap lg:py-3">
           <Link href="/org/overview" className="flex min-w-0 items-center gap-3">
             <LogoMark />
-            <span className="text-lg font-bold tracking-tight">ubu-tangaza</span>
+            <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
             <span className="hidden text-sm font-semibold uppercase tracking-[0.22em] text-crimson-500 sm:inline">
               Business
             </span>
@@ -93,7 +93,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <LogoMark />
-            <span className="text-lg font-bold tracking-tight text-white">ubu-tangaza</span>
+            <span className="text-lg font-bold tracking-tight text-white">Ubu-Tangaza</span>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-gray-400">
             A lightweight record of approved reward activity may be kept on Avalanche for

@@ -15,19 +15,15 @@ const NAV = [
 ];
 
 // The desktop bar also carries account settings; on phones that lives behind the avatar.
-const DESKTOP_NAV = [...NAV, { href: "/profile", label: "Settings", icon: "⚙" }];
+const DESKTOP_NAV = [
+  NAV[0],
+  NAV[1],
+  NAV[3],
+  { href: "/profile", label: "Settings", icon: "⚙" },
+];
 
 function navActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
-}
-
-/** Dark disc with a teal dot — the advocate-side mark. */
-function LogoMark() {
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#111412]" aria-hidden>
-      <span className="size-2.5 rounded-full bg-teal-400" />
-    </span>
-  );
 }
 
 /**
@@ -48,12 +44,11 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   // it half-hidden behind the nav pill — "nothing to click". On md+ the nav is in
   // the header, so the large bottom pad goes away.
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-clip">
+    <div className="skin flex min-h-dvh flex-col overflow-x-clip">
       <header className="border-b border-ink-700 bg-ink-850 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <LogoMark />
-            <span className="truncate text-base font-bold tracking-tight">ubu-tangaza</span>
+            <span className="truncate text-lg font-bold tracking-tight">Ubu-Tangaza</span>
           </Link>
 
           {account ? (

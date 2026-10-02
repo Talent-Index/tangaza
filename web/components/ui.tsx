@@ -259,8 +259,8 @@ export function ConfigWarning() {
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <span className={`font-display font-bold tracking-tight ${className}`}>
-      <span className="text-mist-100">ubu</span>
-      <span className="text-crimson-400">tangaza</span>
+      <span className="text-mist-100">Ubu-</span>
+      <span className="text-crimson-400">Tangaza</span>
     </span>
   );
 }
