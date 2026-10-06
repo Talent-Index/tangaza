@@ -9,7 +9,7 @@ export const EAT_OFFSET_MIN = 180;
 export const SESSION_MINUTES = 30;
 export const OPEN_HOUR = 9; // first slot starts 09:00 EAT
 export const CLOSE_HOUR = 17; // last slot ends 17:00 EAT
-export const DAYS_AHEAD = 14;
+export const DAYS_AHEAD = 30;
 export const LEAD_MINUTES = 120; // can't book something starting in under 2 hours
 export const CLOSED_WEEKDAYS = [0]; // Sunday
 
@@ -45,6 +45,9 @@ export function slotsForDay(day: string): string[] {
   }
   return out;
 }
+
+/** Today's date in EAT, YYYY-MM-DD. */
+export const todayEat = (now = new Date()) => ymd(eatParts(now));
 
 /** Bookable EAT calendar days starting today, skipping closed weekdays. */
 export function bookableDays(now = new Date()): string[] {
@@ -105,4 +108,43 @@ export function buildIcs(iso: string, summary: string, description: string) {
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
+}
+
+/* ------------------------------------------------------------- month calendar */
+
+export interface MonthView {
+  y: number;
+  m: number;
+}
+
+export const monthOf = (day: string): MonthView => {
+  const [y, m] = day.split("-").map(Number);
+  return { y, m };
+};
+
+export function shiftMonth(v: MonthView, delta: number): MonthView {
+  const t = v.y * 12 + (v.m - 1) + delta;
+  return { y: Math.floor(t / 12), m: (t % 12) + 1 };
+}
+
+export const sameMonth = (a: MonthView, b: MonthView) => a.y === b.y && a.m === b.m;
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+export const monthLabel = (v: MonthView) => `${MONTH_NAMES[v.m - 1]} ${v.y}`;
+
+/** Monday-first weeks of YYYY-MM-DD strings, with null padding either side of the month. */
+export function monthGrid(v: MonthView): Array<Array<string | null>> {
+  const lead = (new Date(Date.UTC(v.y, v.m - 1, 1)).getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(v.y, v.m, 0)).getUTCDate();
+  const cells: Array<string | null> = [
+    ...Array<null>(lead).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => `${v.y}-${pad(v.m)}-${pad(i + 1)}`),
+  ];
+  while (cells.length % 7) cells.push(null);
+  const weeks: Array<Array<string | null>> = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
 }

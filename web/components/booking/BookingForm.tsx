@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
+import { MonthCalendar } from "@/components/booking/MonthCalendar";
 import {
   SESSION_MINUTES,
+  type MonthView,
   bookableDays,
   buildIcs,
-  formatDay,
   formatSlot,
   formatTime,
   isBookableSlot,
+  monthOf,
   slotsForDay,
+  todayEat,
 } from "@/lib/booking";
 
 const MONO = "font-mono text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.2em]";
@@ -24,6 +27,7 @@ export function BookingForm() {
   const [taken, setTaken] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
+  const [view, setView] = useState<MonthView | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", business: "", contact: "", email: "", notes: "", website: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +39,7 @@ export function BookingForm() {
   useEffect(() => {
     const d = bookableDays();
     setDays(d);
-    setDay(d[0] ?? null);
+    setView(d[0] ? monthOf(d[0]) : null);
     refreshTaken();
   }, []);
 
@@ -48,6 +52,31 @@ export function BookingForm() {
       })
       .catch(() => setLoadError("Couldn't check which times are free. You can still pick one."));
   }
+
+  // Days that can be booked, and how many times each still has free.
+  const free = useMemo(() => {
+    const now = new Date();
+    const m = new Map<string, number>();
+    for (const d of days) {
+      const n = slotsForDay(d).filter((s) => isBookableSlot(s, now) && !taken.has(s)).length;
+      if (n > 0) m.set(d, n);
+    }
+    return m;
+  }, [days, taken]);
+  const bookable = useMemo(() => new Set(days), [days]);
+
+  // Start on the first day that has something free, and move off a day that fills up.
+  useEffect(() => {
+    if (days.length === 0) return;
+    if (!day || !free.has(day)) {
+      const first = days.find((d) => free.has(d));
+      if (first) {
+        setDay(first);
+        setView(monthOf(first));
+        setSlot(null);
+      }
+    }
+  }, [days, free, day]);
 
   const slots = useMemo(() => {
     if (!day) return [];
@@ -91,32 +120,24 @@ export function BookingForm() {
     <form onSubmit={submit} className="min-w-0 space-y-8">
       <fieldset className="min-w-0">
         <legend className={`${MONO} mb-3 text-mist-400`}>1 · Pick a day</legend>
-        <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
-          {days.map((d) => {
-            const f = formatDay(d);
-            const active = d === day;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => {
-                  setDay(d);
-                  setSlot(null);
-                }}
-                aria-pressed={active}
-                className={`min-w-[4.25rem] shrink-0 snap-start border px-3 py-2.5 text-center transition light:rounded-lg ${
-                  active
-                    ? "border-crimson-500 bg-crimson-500 text-white"
-                    : "border-ink-600 hover:border-mist-400"
-                }`}
-              >
-                <span className="block text-[11px] uppercase tracking-wide opacity-80">{f.weekday}</span>
-                <span className="block text-lg font-bold leading-tight">{f.date}</span>
-                <span className="block text-[11px] opacity-80">{f.month}</span>
-              </button>
-            );
-          })}
-        </div>
+        {view && days.length > 0 ? (
+          <MonthCalendar
+            view={view}
+            onView={setView}
+            minView={monthOf(days[0])}
+            maxView={monthOf(days[days.length - 1])}
+            today={todayEat()}
+            selected={day}
+            free={free}
+            bookable={bookable}
+            onSelect={(d) => {
+              setDay(d);
+              setSlot(null);
+            }}
+          />
+        ) : (
+          <p className="text-sm text-mist-500">Loading the calendar…</p>
+        )}
       </fieldset>
 
       <fieldset className="min-w-0">

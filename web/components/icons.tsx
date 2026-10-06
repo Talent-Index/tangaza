@@ -27,6 +27,8 @@ const PATHS = {
   send: ["M22 2 11 13", "M22 2 15 22l-4-9-9-4Z"],
   check: ["M20 6 9 17l-5-5"],
   plus: ["M5 12h14", "M12 5v14"],
+  "chevron-left": ["m15 18-6-6 6-6"],
+  "chevron-right": ["m9 18 6-6-6-6"],
   clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 6v6l4 2"],
 } as const;
 
