@@ -8,6 +8,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { avalancheFuji } from "viem/chains";
+import { FUJI_RPC_URL } from "./rpc";
 import { TANGAZA_ABI } from "./abi";
 import { CONTRACT_ADDRESS } from "./client";
 
@@ -31,7 +32,7 @@ import { CONTRACT_ADDRESS } from "./client";
  */
 
 const OWNER_KEY = process.env.PLATFORM_OWNER_KEY ?? "";
-const RPC_URL = process.env.FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc";
+const RPC_URL = FUJI_RPC_URL;
 
 const ORG_REGISTERED = parseAbiItem(
   "event OrgRegistered(uint256 indexed orgId, string name, address indexed approver, uint256 emissionCapKES)"

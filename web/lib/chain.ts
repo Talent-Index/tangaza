@@ -1,4 +1,6 @@
+import { defineChain } from "thirdweb";
 import { avalancheFuji } from "thirdweb/chains";
+import { FUJI_RPC_URL } from "./rpc";
 
 /**
  * Ubu-Tangaza runs on Avalanche Fuji for the jam. Kept in one place so the chain is
@@ -16,7 +18,11 @@ if (CHAIN_NAME !== "fuji") {
   );
 }
 
-export const CHAIN = avalancheFuji;
+/**
+ * Fuji, but reading and writing through our own RPC endpoint (lib/rpc.ts) instead of
+ * thirdweb's shared, per-client-id metered one.
+ */
+export const CHAIN = defineChain({ ...avalancheFuji, rpc: FUJI_RPC_URL });
 
 export const EXPLORER = "https://testnet.snowtrace.io";
 

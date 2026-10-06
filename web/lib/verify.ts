@@ -1,6 +1,7 @@
 import "server-only";
 import { createPublicClient, http, parseAbiItem, parseEventLogs } from "viem";
 import { avalancheFuji } from "viem/chains";
+import { FUJI_RPC_URL } from "./rpc";
 import { CONTRACT_ADDRESS } from "./client";
 import { proofHashOf } from "./proof";
 import { orgActionMessage, type OrgAction } from "./org-action";
@@ -26,7 +27,7 @@ import { orgActionMessage, type OrgAction } from "./org-action";
  * id is domain-restricted and a serverless function sends no Origin header, so it
  * would need a secret key this path does not otherwise require.
  */
-const RPC_URL = process.env.FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc";
+const RPC_URL = FUJI_RPC_URL;
 
 const publicClient = createPublicClient({
   chain: avalancheFuji,

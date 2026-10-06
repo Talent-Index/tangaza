@@ -7,6 +7,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { avalancheFuji } from "viem/chains";
+import { FUJI_RPC_URL } from "./rpc";
 import { isDbConfigured, sql } from "./db";
 
 /**
@@ -50,9 +51,9 @@ const account = key
   ? privateKeyToAccount((key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`)
   : null;
 
-const publicClient = createPublicClient({ chain: avalancheFuji, transport: http() });
+const publicClient = createPublicClient({ chain: avalancheFuji, transport: http(FUJI_RPC_URL) });
 const walletClient = account
-  ? createWalletClient({ account, chain: avalancheFuji, transport: http() })
+  ? createWalletClient({ account, chain: avalancheFuji, transport: http(FUJI_RPC_URL) })
   : null;
 
 export type DripResult =

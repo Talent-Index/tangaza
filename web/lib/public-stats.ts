@@ -1,11 +1,12 @@
 import "server-only";
 import { createPublicClient, http } from "viem";
 import { avalancheFuji } from "viem/chains";
+import { FUJI_RPC_URL } from "./rpc";
 import { TANGAZA_ABI } from "./abi";
 import { sql } from "./db";
 import { listAllActiveCampaigns } from "./store";
 
-const RPC_URL = process.env.FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc";
+const RPC_URL = FUJI_RPC_URL;
 const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC_URL) });
 
 export interface ChainTotals {
