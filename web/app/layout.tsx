@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, JetBrains_Mono, Syne } from "next/font/google";
+import { DM_Sans, Fraunces, JetBrains_Mono, Syne } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CHAIN } from "@/lib/chain";
@@ -15,6 +15,12 @@ const body = DM_Sans({
 const display = Syne({
   subsets: ["latin"],
   variable: "--font-syne",
+  display: "swap",
+});
+
+const serif = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -39,7 +45,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${body.variable} ${display.variable} ${mono.variable} ${serif.variable}`} suppressHydrationWarning>
       {/*
        * Signing in blocks on two round trips to two different origins: the in-app
        * wallet's auth API, then an RPC read to work out the advocate's smart-account

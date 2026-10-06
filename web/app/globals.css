@@ -33,6 +33,7 @@
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --radius-card: 0.75rem;

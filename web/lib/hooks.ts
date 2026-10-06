@@ -380,13 +380,13 @@ export function useCampaigns(orgId: bigint = ORG_ID) {
 
 /** One campaign by its shareable slug, plus whether this person has joined. */
 export function useCampaign(slug: string, address?: string) {
-  return useAsync<{ campaign: Campaign; joined: boolean } | null>(
+  return useAsync<{ campaign: CampaignWithOrg; joined: boolean } | null>(
     async () => {
       const qs = address ? `?slug=${slug}&address=${address}` : `?slug=${slug}`;
       const res = await fetch(`/api/campaigns${qs}`, { cache: "no-store" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`Could not load campaign (${res.status})`);
-      return (await res.json()) as { campaign: Campaign; joined: boolean };
+      return (await res.json()) as { campaign: CampaignWithOrg; joined: boolean };
     },
     [slug, address],
     Boolean(slug)

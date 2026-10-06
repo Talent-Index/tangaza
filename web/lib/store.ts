@@ -704,18 +704,19 @@ export async function listCampaigns(orgId: string): Promise<Campaign[]> {
   return rows.map(toCampaign);
 }
 
-export async function getCampaignBySlug(slug: string): Promise<Campaign | undefined> {
+export async function getCampaignBySlug(slug: string): Promise<CampaignWithOrg | undefined> {
   const rows = (await sql`
-    select c.*,
+    select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
       count(distinct p.address) as participant_count
     from campaigns c
+    join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
     where c.slug = ${slug}
-    group by c.id`) as Array<Record<string, unknown>>;
-  return rows[0] ? toCampaign(rows[0]) : undefined;
+    group by c.id, o.name, o.display_name`) as Array<Record<string, unknown>>;
+  return rows[0] ? { ...toCampaign(rows[0]), orgName: rows[0].org_name as string } : undefined;
 }
 
 export interface CampaignActivity {
