@@ -9,14 +9,14 @@ export function SiteHeader() {
   return (
     <header className="border-b border-ink-700">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight">
+        <Link href="/" className="whitespace-nowrap text-lg font-bold tracking-tight">
           Ubu-Tangaza
         </Link>
-        <nav className="flex items-center gap-4 text-[13px] text-mist-400 sm:gap-7">
-          <Link href="/#how" className="transition hover:text-mist-100">
+        <nav className="flex items-center gap-4 whitespace-nowrap text-[13px] text-mist-400 sm:gap-7">
+          <Link href="/#how" className="hidden transition hover:text-mist-100 sm:inline">
             How it works
           </Link>
-          <Link href="/#pilots" className="transition hover:text-mist-100">
+          <Link href="/#pilots" className="hidden transition hover:text-mist-100 sm:inline">
             Pilots
           </Link>
           <Link href="/auth" className="font-semibold text-mist-100 transition hover:text-crimson-500">

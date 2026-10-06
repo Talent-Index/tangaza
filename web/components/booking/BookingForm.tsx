@@ -14,10 +14,10 @@ import {
   slotsForDay,
 } from "@/lib/booking";
 
-const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
+const MONO = "font-mono text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.2em]";
 const PANEL = "border border-ink-700 bg-ink-850 light:rounded-xl light:shadow-sm";
 const FIELD =
-  "w-full border border-ink-600 bg-ink-900 px-3.5 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500 light:rounded-lg light:bg-ink-850";
+  "w-full min-w-0 border border-ink-600 bg-ink-900 px-3.5 py-3 text-base outline-none sm:text-sm placeholder:text-mist-500 focus:border-crimson-500 light:rounded-lg light:bg-ink-850";
 
 export function BookingForm() {
   const [days, setDays] = useState<string[]>([]);
@@ -88,10 +88,10 @@ export function BookingForm() {
   if (done) return <Confirmation slot={done.slot} contact={done.contact} business={form.business} />;
 
   return (
-    <form onSubmit={submit} className="space-y-8">
-      <fieldset>
+    <form onSubmit={submit} className="min-w-0 space-y-8">
+      <fieldset className="min-w-0">
         <legend className={`${MONO} mb-3 text-mist-400`}>1 · Pick a day</legend>
-        <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
+        <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
           {days.map((d) => {
             const f = formatDay(d);
             const active = d === day;
@@ -104,7 +104,7 @@ export function BookingForm() {
                   setSlot(null);
                 }}
                 aria-pressed={active}
-                className={`min-w-[4.25rem] shrink-0 border px-3 py-2.5 text-center transition light:rounded-lg ${
+                className={`min-w-[4.25rem] shrink-0 snap-start border px-3 py-2.5 text-center transition light:rounded-lg ${
                   active
                     ? "border-crimson-500 bg-crimson-500 text-white"
                     : "border-ink-600 hover:border-mist-400"
@@ -119,7 +119,7 @@ export function BookingForm() {
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${MONO} mb-3 text-mist-400`}>2 · Pick a time (East Africa Time)</legend>
         {slots.length === 0 ? (
           <p className="text-sm text-mist-500">No times left on this day — try another.</p>
@@ -152,7 +152,7 @@ export function BookingForm() {
         {loadError ? <p className="mt-2 text-xs text-amber-glow">{loadError}</p> : null}
       </fieldset>
 
-      <fieldset className="space-y-3">
+      <fieldset className="min-w-0 space-y-3">
         <legend className={`${MONO} mb-3 text-mist-400`}>3 · About you</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <input required className={FIELD} placeholder="Your name" value={form.name} maxLength={120}
@@ -182,7 +182,7 @@ export function BookingForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 bg-crimson-500 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 light:rounded-lg"
+          className="inline-flex w-full items-center justify-center gap-2 bg-crimson-500 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto light:rounded-lg"
         >
           <Icon name="calendar" /> {submitting ? "Booking…" : "Book my session"}
         </button>
