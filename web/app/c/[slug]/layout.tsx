@@ -14,7 +14,11 @@ export async function generateMetadata({
   try {
     const c = await getCampaignBySlug(slug);
     if (!c) return {};
-    const title = `${c.title} · ${c.orgName}`;
+    // Many campaigns are named after the business itself; don't say it twice.
+    const title =
+      c.title.trim().toLowerCase() === c.orgName.trim().toLowerCase()
+        ? c.title
+        : `${c.title} · ${c.orgName}`;
     const description =
       c.blurb?.trim() ||
       `Take part in ${c.title} from ${c.orgName}, share your activity, and get rewarded once the business approves it.`;
