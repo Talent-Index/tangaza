@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
 import { BudgetMeter } from "@/components/org/Meter";
+import { GoalProgress } from "@/components/goal/GoalProgress";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -21,7 +22,9 @@ import {
 import { CREDIT_VALUE_KES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { advocateName, kes, kesLabel, shortAddress, timeAgo } from "@/lib/format";
-import { useAdvocateLabels, useOrg, useOrgLedger } from "@/lib/hooks";
+import { isCampaignLive } from "@/lib/campaigns";
+import { useAdvocateLabels, useCampaigns, useOrg, useOrgLedger, type Campaign } from "@/lib/hooks";
+import { goalMeta } from "@/lib/types";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /* ------------------------------------------------------------------ screen 7 */
@@ -140,6 +143,7 @@ function Overview() {
   const org = useOrg(orgId);
   const ledger = useOrgLedger(orgId);
   const labels = useAdvocateLabels(orgId);
+  const campaigns = useCampaigns(orgId);
 
   // Real name if they ever submitted through the app; pseudonym otherwise.
   const nameOf = (address: string) =>
@@ -201,10 +205,13 @@ function Overview() {
             onSaved={refreshOrgName}
           />
         </div>
-        <h1 className="mt-4 max-w-3xl text-3xl font-black leading-[1.1] tracking-tight sm:text-4xl">
+
+        <GoalCard campaigns={campaigns.data} loading={campaigns.loading} />
+
+        <h1 className="mt-10 max-w-3xl text-2xl font-black leading-[1.1] tracking-tight sm:text-3xl">
           A clear view of activity, rewards, and what you may owe.
         </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-mist-400 sm:text-lg">
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-mist-400 sm:text-base">
           Track approved activity, committed rewards, outstanding liability, and cost per
           activity in one practical workspace.
         </p>
@@ -362,6 +369,81 @@ function Overview() {
           )}
         </Panel>
       </section>
+    </div>
+  );
+}
+
+/**
+ * The first thing on the page: what the business is trying to achieve and how far along
+ * it is. Progress is approved actions under the campaign — not sales or revenue.
+ */
+function GoalCard({ campaigns, loading }: { campaigns: Campaign[] | null; loading: boolean }) {
+  const shell = "mt-6 min-w-0 rounded-2xl border p-5 sm:p-6";
+  const label =
+    "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-crimson-500";
+
+  if (!campaigns) {
+    return (
+      <div className={`${shell} border-ink-700 bg-ink-850`}>
+        <p className={label}>Your goal</p>
+        <div className="mt-4 grid place-items-center py-2">
+          {loading ? <Spinner /> : <p className="text-sm text-mist-500">Goals are unavailable right now.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  const live = campaigns.filter(isCampaignLive);
+  const withGoal = live.filter((c) => c.goalTarget);
+  const current = withGoal[0];
+
+  if (!current) {
+    const plain = live[0];
+    return (
+      <div className={`${shell} border-ink-700 bg-ink-850`}>
+        <p className={label}>Your goal</p>
+        <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">Set your first goal</h2>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-mist-400">
+          {plain
+            ? `“${plain.title}” is running without a goal. Add one — launch a product, fill an event, grow a community — and watch approved actions add up toward it.`
+            : "Tell us what you want to achieve — launch a product, fill an event, grow a community, get more bookings — and we’ll track the approved actions that get you there."}
+        </p>
+        <div className="mt-5">
+          <Button href="/org/campaigns" className="w-full sm:w-auto">
+            {plain ? "Add a goal" : "Set your first goal"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const more = withGoal.length - 1;
+  const waiting = withGoal.reduce((n, c) => n + c.pendingCount, 0);
+  return (
+    <div className={`${shell} border-crimson-500/30 bg-crimson-500/5`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className={label}>Your goal</p>
+        {current.goalType ? (
+          <span className="text-xs text-mist-500">{goalMeta(current.goalType)?.label}</span>
+        ) : null}
+      </div>
+      <h2 className="mt-3 break-words text-xl font-bold tracking-tight sm:text-2xl">{current.title}</h2>
+      <GoalProgress campaign={current} showPending className="mt-4 max-w-xl" />
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Button href="/org/campaigns" className="w-full sm:w-auto">
+          View campaign
+        </Button>
+        {waiting > 0 ? (
+          <Button href="/org" variant="ghost" className="w-full sm:w-auto">
+            Approve {waiting} waiting
+          </Button>
+        ) : null}
+        {more > 0 ? (
+          <span className="text-xs text-mist-500">
+            +{more} more campaign{more === 1 ? "" : "s"} with a goal
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

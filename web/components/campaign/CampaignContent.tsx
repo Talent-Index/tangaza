@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { CampaignShareCard } from "@/components/customer/CampaignShareCard";
 import { SignIn } from "@/components/customer/SignIn";
+import { GoalProgress } from "@/components/goal/GoalProgress";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { ErrorNote } from "@/components/ui";
 import { addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
+import { goalSentence } from "@/lib/campaigns";
 import { shortAddress } from "@/lib/format";
 import type { CampaignWithOrg } from "@/lib/hooks";
 import { PROOF_KINDS, formatReward, type EngagementType } from "@/lib/types";
@@ -113,6 +115,34 @@ export function CampaignContent({
           {c.blurb?.trim() ||
             `Take part in ${c.title}, share what you did, and the business reviews it. Approved activity counts toward your rewards.`}
         </p>
+
+        {goalSentence(c, c.orgName) ? (
+          <div className={`${PANEL} mt-6 max-w-xl p-4 sm:p-5`}>
+            <p className={`${MONO} text-crimson-500`}>The goal</p>
+            <p className="mt-2 break-words text-lg font-semibold leading-snug">
+              {goalSentence(c, c.orgName)}
+            </p>
+            <GoalProgress campaign={c} className="mt-3" />
+          </div>
+        ) : null}
+
+        {c.offerName ? (
+          <p className="mt-4 max-w-xl break-words text-sm text-mist-400">
+            {c.goalTarget ? "What it\u2019s about: " : "About: "}
+            {c.offerUrl && /^https?:\/\//i.test(c.offerUrl) ? (
+              <a
+                href={c.offerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-mist-100 underline underline-offset-4 hover:text-crimson-500"
+              >
+                {c.offerName} <Icon name="external-link" className="size-3" />
+              </a>
+            ) : (
+              <span className="font-semibold text-mist-100">{c.offerName}</span>
+            )}
+          </p>
+        ) : null}
 
         {c.coverUrl ? (
           <div className="mt-8 overflow-hidden border border-ink-700 bg-ink-900 light:rounded-xl">

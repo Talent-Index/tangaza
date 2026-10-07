@@ -209,3 +209,101 @@ export interface PendingActivity {
   submitTx?: string;
   rejectionReason?: string;
 }
+
+/* ------------------------------------------------------------ campaign goals */
+
+/**
+ * What a business wants to ACHIEVE with a campaign. Client-safe (no server imports).
+ *
+ * Progress toward any goal is the number of APPROVED actions under the campaign —
+ * never revenue or sales, which Tangaza does not see. `unit` is only the default name
+ * for what is being counted; the business can rename it.
+ */
+export const GOAL_TYPES = [
+  {
+    id: "launch",
+    label: "Launch a product",
+    short: "Launch",
+    icon: "send",
+    unit: "sign-ups",
+    blurb: "Get people to try or sign up for something new",
+    offerHint: "What are you launching?",
+    // chainCategory of the engagement types worth pre-selecting (0 referral, 1 post, 2 event)
+    categories: [1, 0],
+  },
+  {
+    id: "event",
+    label: "Fill an event",
+    short: "Event",
+    icon: "calendar",
+    unit: "RSVPs",
+    blurb: "Fill seats, tickets or a guest list",
+    offerHint: "Which event?",
+    categories: [0, 2, 1],
+  },
+  {
+    id: "community",
+    label: "Grow a community",
+    short: "Community",
+    icon: "user-check",
+    unit: "new members",
+    blurb: "Bring in members, followers or regulars",
+    offerHint: "Which community or group?",
+    categories: [0, 1],
+  },
+  {
+    id: "bookings",
+    label: "Get more bookings",
+    short: "Bookings",
+    icon: "clock",
+    unit: "bookings",
+    blurb: "Send people to book an appointment or a table",
+    offerHint: "What can people book?",
+    categories: [0],
+  },
+  {
+    id: "awareness",
+    label: "Build awareness",
+    short: "Awareness",
+    icon: "chat",
+    unit: "posts",
+    blurb: "Get more people talking about the business",
+    offerHint: "What should people talk about?",
+    categories: [1],
+  },
+  {
+    id: "other",
+    label: "Something else",
+    short: "Other",
+    icon: "clipboard",
+    unit: "approved actions",
+    blurb: "A different goal, counted in approved actions",
+    offerHint: "What are you pushing?",
+    categories: [] as number[],
+  },
+] as const;
+
+export type GoalType = (typeof GOAL_TYPES)[number]["id"];
+
+export const isGoalType = (v: unknown): v is GoalType =>
+  typeof v === "string" && GOAL_TYPES.some((g) => g.id === v);
+
+export const goalMeta = (id: GoalType | undefined) => GOAL_TYPES.find((g) => g.id === id);
+
+/** What is counted when the business hasn't named it. */
+export const DEFAULT_GOAL_LABEL = "approved actions";
+
+/** Where a campaign's audience is, stage by stage — see store.getCampaignFunnel. */
+export interface CampaignFunnel {
+  /** People who generated a personal share link (the business counts as one). */
+  shares: number;
+  /** Total clicks on those links. */
+  clicks: number;
+  /** People who joined the campaign. */
+  joined: number;
+  /** Every submission made under the campaign, whatever its status. */
+  submitted: number;
+  approved: number;
+  rejected: number;
+  pending: number;
+}

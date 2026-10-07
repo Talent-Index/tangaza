@@ -27,7 +27,13 @@ import {
   type OrgAccess,
   type OrgState,
 } from "./reads";
-import type { EngagementType, PendingActivity, PendingStatus } from "./types";
+import type {
+  CampaignFunnel,
+  EngagementType,
+  GoalType,
+  PendingActivity,
+  PendingStatus,
+} from "./types";
 
 /**
  * Small async-state helper so every panel gets identical loading/error/refresh.
@@ -318,6 +324,17 @@ export interface Campaign {
   active: boolean;
   engagementTypeIds: string[];
   participantCount: number;
+  /** What the business wants to achieve; all optional so goal-less campaigns work as before. */
+  goalType?: GoalType;
+  goalTarget?: number;
+  /** What is counted ("sign-ups"); absent means "approved actions". */
+  goalLabel?: string;
+  offerName?: string;
+  offerUrl?: string;
+  /** Submissions under the campaign with status approved — what "progress" counts. */
+  approvedCount: number;
+  /** Submissions under the campaign still awaiting approval. */
+  pendingCount: number;
 }
 
 export interface CampaignWithOrg extends Campaign {
@@ -375,6 +392,35 @@ export function useCampaigns(orgId: bigint = ORG_ID) {
     },
     [String(orgId)],
     true
+  );
+}
+
+/** Can campaigns store goals yet? null until known; false means the DB lacks the columns. */
+export function useGoalsAvailable() {
+  const r = useAsync<boolean>(
+    async () => {
+      const res = await fetch("/api/campaigns?capabilities=goals", { cache: "no-store" });
+      if (!res.ok) return false;
+      return Boolean(((await res.json()) as { goalsAvailable?: boolean }).goalsAvailable);
+    },
+    [],
+    true
+  );
+  return r.data ?? null;
+}
+
+/** Share → join → submit → approve counts for one campaign (business side, read-only). */
+export function useCampaignFunnel(campaignId: string | undefined, orgId: bigint = ORG_ID) {
+  return useAsync<CampaignFunnel | null>(
+    async () => {
+      const res = await fetch(`/api/campaigns?funnel=${campaignId}&orgId=${orgId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Could not load the funnel (${res.status})`);
+      return ((await res.json()) as { funnel: CampaignFunnel }).funnel;
+    },
+    [campaignId, String(orgId)],
+    Boolean(campaignId)
   );
 }
 
