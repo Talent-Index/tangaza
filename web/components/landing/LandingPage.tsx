@@ -22,7 +22,9 @@ interface Stats {
     slug: string;
     title: string;
     orgName: string;
+    blurb?: string;
     coverUrl?: string;
+    rewards: string[];
     participants: number;
     approved: number;
   }>;
@@ -291,60 +293,79 @@ function Pilots({ stats }: { stats: Stats | null }) {
           </p>
         ) : (
           <>
-            {/* Dark: rows */}
-            <ul className="mt-8 max-w-2xl divide-y divide-ink-700 border border-ink-700 bg-ink-850 light:hidden">
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {pilots.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    href={`/c/${p.slug}`}
-                    className="flex items-center justify-between gap-4 px-4 py-3.5 text-sm transition hover:bg-ink-800"
-                  >
-                    <span className="min-w-0 truncate">
-                      {p.orgName} · {p.title}
-                    </span>
-                    <span className="shrink-0 font-mono text-xs text-mist-400">
-                      {p.approved > 0 ? `${p.approved} approved` : "open"}
-                    </span>
-                  </Link>
+                <li key={p.id} className="flex">
+                  <PilotCard pilot={p} />
                 </li>
               ))}
             </ul>
-
-            {/* Light: cards */}
-            <div className="mt-8 hidden gap-4 light:grid sm:grid-cols-2 lg:grid-cols-3">
-              {pilots.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/c/${p.slug}`}
-                  className="overflow-hidden rounded-xl border border-ink-700 bg-ink-850 shadow-sm transition hover:border-crimson-500"
-                >
-                  {p.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.coverUrl} alt="" loading="lazy" className="h-32 w-full object-cover" />
-                  ) : (
-                    <div
-                      className="h-32 w-full bg-ink-800"
-                      style={{
-                        backgroundImage:
-                          "repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--color-ink-600) 40%, transparent) 10px 12px)",
-                      }}
-                      aria-hidden
-                    />
-                  )}
-                  <div className="p-4">
-                    <p className="font-semibold">{p.orgName}</p>
-                    <p className="mt-0.5 text-sm text-mist-400">{p.title}</p>
-                    <p className="mt-2 font-mono text-xs text-mist-500">
-                      {p.approved > 0 ? `${p.approved} approved` : "open"}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
           </>
         )}
       </div>
     </section>
+  );
+}
+
+/** One campaign. Every card has the same parts in the same places, cover or no cover. */
+function PilotCard({ pilot: p }: { pilot: Stats["pilots"][number] }) {
+  const shown = p.rewards.slice(0, 2);
+  const more = p.rewards.length - shown.length;
+  return (
+    <Link
+      href={`/c/${p.slug}`}
+      className={`${PANEL} group flex w-full flex-col overflow-hidden transition hover:border-crimson-500`}
+    >
+      <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-ink-800">
+        {p.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={p.coverUrl}
+            alt=""
+            loading="lazy"
+            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div
+            className="size-full"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--color-ink-600) 40%, transparent) 10px 12px)",
+            }}
+            aria-hidden
+          />
+        )}
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 bg-ink-950/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-jade-400 light:rounded-full">
+          <span className="size-1.5 rounded-full bg-jade-400" aria-hidden /> Live
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <p className={`${MONO} truncate text-mist-500`}>{p.orgName}</p>
+        <h3 className="mt-1.5 line-clamp-2 break-words text-lg font-bold leading-snug">{p.title}</h3>
+        {p.blurb ? (
+          <p className="mt-1.5 line-clamp-2 break-words text-sm leading-snug text-mist-400">{p.blurb}</p>
+        ) : null}
+
+        <div className="mt-auto pt-4">
+          <div className="border-t border-dashed border-ink-600 pt-3">
+            <p className={`${MONO} text-crimson-500`}>You get</p>
+            {shown.length > 0 ? (
+              <p className="mt-1.5 line-clamp-2 break-words text-sm font-semibold">
+                {shown.join(" · ")}
+                {more > 0 ? <span className="font-normal text-mist-500"> · +{more} more</span> : null}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-sm text-mist-500">Rewards from {p.orgName}</p>
+            )}
+          </div>
+          <p className="mt-3 font-mono text-xs text-mist-500">
+            {p.approved > 0 ? `${p.approved} approved` : "Open to join"}
+            {p.participants > 0 ? ` · ${p.participants} taking part` : ""}
+          </p>
+        </div>
+      </div>
+    </Link>
   );
 }
 
