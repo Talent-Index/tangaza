@@ -13,6 +13,17 @@ export const DAYS_AHEAD = 30;
 export const LEAD_MINUTES = 120; // can't book something starting in under 2 hours
 export const CLOSED_WEEKDAYS = [0]; // Sunday
 
+/** What a business can say it wants to achieve. Shared by the form chips and the API. */
+export const GOALS = [
+  "Launch a product",
+  "Fill an event",
+  "Grow a community",
+  "Get more bookings",
+  "Build awareness",
+  "Something else",
+] as const;
+export type Goal = (typeof GOALS)[number];
+
 const MIN = 60_000;
 
 /** The EAT wall-clock parts of an instant. */

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   DAYS_AHEAD,
+  GOALS,
   bookableDays,
   formatSlot,
   isBookableSlot,
@@ -40,6 +41,8 @@ const body = z.object({
     .regex(/^[\d\s+().-]+$/, "Phone can only include digits and + ( ) . -"),
   email: z.union([z.string().trim().email("Enter a valid email").max(160), z.literal("")]).optional(),
   notes: z.string().trim().max(600).optional(),
+  // One of the form's chips, or a short free string from another client.
+  goal: z.union([z.enum(GOALS), z.string().trim().max(60)]).optional(),
   // Honeypot: real people never see or fill this.
   website: z.string().max(0, "Invalid request").optional(),
 });
@@ -83,6 +86,7 @@ export async function POST(req: NextRequest) {
       contact: b.contact,
       email: b.email || undefined,
       notes: b.notes || undefined,
+      goal: b.goal || undefined,
     });
     if (!id) {
       return NextResponse.json(
