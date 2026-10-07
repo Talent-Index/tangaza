@@ -30,9 +30,14 @@ export default function AdminPage() {
           <BrandMark />
           <span className="text-sm text-mist-500">Platform</span>
         </Link>
-        <Link href="/org" className="text-xs text-mist-500 hover:text-mist-300">
-          Business portal →
-        </Link>
+        <nav className="flex items-center gap-4 text-xs text-mist-500">
+          <Link href="/admin/outreach" className="hover:text-mist-300">
+            Outreach
+          </Link>
+          <Link href="/org" className="hover:text-mist-300">
+            Business portal →
+          </Link>
+        </nav>
       </header>
 
       <main className="flex-1">
