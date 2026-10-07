@@ -43,7 +43,7 @@ function Settings() {
           <span className="text-mist-300">activities</span> you want people to do, then{" "}
           <span className="text-mist-300">2)</span> set the{" "}
           <span className="text-mist-300">goals</span> — a total, or a specific activity a
-          number of times (e.g. 5 referrals) — and what each earns: cash or an incentive
+          number of times (e.g. 5 actions) — and what each earns: cash or an incentive
           like merch, a voucher or a discount. Campaigns live under{" "}
           <a href="/org/campaigns" className="text-crimson-400 hover:text-crimson-300">
             Campaigns

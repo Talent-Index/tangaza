@@ -126,8 +126,10 @@ function useNextRewards(address: string, mine: Array<{ orgId: bigint; name: stri
 function Home({ address }: { address: string }) {
   const displayName = useDisplayName(address);
   const communities = useMyCommunities(address);
-  const pending = usePendingActivities({ advocate: address, status: "pending" });
-  const approved = usePendingActivities({ advocate: address, status: "approved" });
+  // No status filter: one poll returns every submission, newest first, in all three states.
+  const activity = usePendingActivities({ advocate: address });
+
+  const [showAll, setShowAll] = useState(false);
 
   const mine = useMemo(() => communities.data ?? [], [communities.data]);
   const rewards = useNextRewards(address, mine);
@@ -143,22 +145,25 @@ function Home({ address }: { address: string }) {
   }
 
   const first = firstNameFrom(displayName);
-  const pendingItems = pending.data ?? [];
-  const approvedItems = approved.data ?? [];
+  const all = activity.data ?? [];
+  const pendingItems = all.filter((a) => a.status === "pending");
   const approvedTotal = mine.reduce((sum, c) => sum + c.approved, 0);
   const next = rewards[0];
   const submitHref = mine.length === 1 ? `/submit?org=${mine[0].orgId}` : "/submit";
 
   const orgNames = new Map(mine.map((c) => [String(c.orgId), c.name] as const));
+  // Waiting ones first — they are the ones with something left to happen — then the
+  // decided ones, newest first (the API already returns newest first).
   const rows = [
-    ...group(pendingItems, "pending", orgNames),
-    ...group(approvedItems, "approved", orgNames).slice(0, 5),
+    ...all.filter((a) => a.status === "pending"),
+    ...all.filter((a) => a.status !== "pending"),
   ];
-  const loadingRows = (pending.loading && !pending.data) || (approved.loading && !approved.data);
+  const visibleRows = showAll ? rows : rows.slice(0, VISIBLE_ACTIVITY);
+  const loadingRows = activity.loading && !activity.data;
 
   const sub = next
-    ? `You are ${next.remaining} approval${next.remaining === 1 ? "" : "s"} from ${next.name}.`
-    : "Submit proof, then check back once the business approves.";
+    ? `You are ${next.remaining} approved action${next.remaining === 1 ? "" : "s"} from ${next.name}.`
+    : "Submit proof, then check back here to see whether the business approved it.";
 
   return (
     <div className="animate-rise mx-auto max-w-3xl space-y-8">
@@ -191,7 +196,7 @@ function Home({ address }: { address: string }) {
               </p>
               <p className="mt-0.5 truncate text-sm text-mist-400">{next.org}</p>
               <p className="mt-1.5 text-xs text-mist-500">
-                {next.remaining} more approval{next.remaining === 1 ? "" : "s"} to go
+                {next.remaining} more approved action{next.remaining === 1 ? "" : "s"} to go
               </p>
             </div>
           </div>
@@ -215,11 +220,17 @@ function Home({ address }: { address: string }) {
         <Tile label="Approved" value={approvedTotal} />
       </div>
 
-      <section>
-        <h2 className="mb-3 text-lg font-bold light:hidden">Awaiting approval</h2>
+      <section aria-labelledby="your-activity">
+        <h2 id="your-activity" className="mb-3 text-lg font-bold">
+          Your activity
+        </h2>
         {loadingRows ? (
           <div className={`${PANEL} grid place-items-center py-10`}>
             <Spinner />
+          </div>
+        ) : activity.error && !activity.data ? (
+          <div className={`${PANEL} p-5 text-sm text-mist-400`}>
+            Couldn&rsquo;t load your activity right now. It will retry on its own.
           </div>
         ) : rows.length === 0 ? (
           <div className={`${PANEL} p-6`}>
@@ -238,25 +249,20 @@ function Home({ address }: { address: string }) {
           </div>
         ) : (
           <>
-            {/* Dark: hairline rows */}
-            <ul className="divide-y divide-ink-700 border border-ink-700 bg-ink-850 light:hidden">
-              {rows.map((g) => (
-                <GroupRow key={g.key} g={g} variant="row" />
+            <ul className="space-y-3">
+              {visibleRows.map((it) => (
+                <ActivityCard key={it.id} it={it} org={orgNames.get(it.orgId)} />
               ))}
             </ul>
-            {/* Light: a receipt with a dashed total */}
-            <div className={`${PANEL} hidden p-5 font-mono text-sm light:block`}>
-              <ul className="space-y-2.5">
-                {rows.map((g) => (
-                  <GroupRow key={g.key} g={g} variant="receipt" />
-                ))}
-              </ul>
-              <div className="my-3 border-t border-dashed border-ink-600" />
-              <div className="flex justify-between">
-                <span>Approved total</span>
-                <span className="tabular">{approvedTotal}</span>
-              </div>
-            </div>
+            {rows.length > VISIBLE_ACTIVITY ? (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-mist-300 underline underline-offset-4 hover:text-mist-100"
+              >
+                {showAll ? "Show fewer" : `Show all ${rows.length}`}
+              </button>
+            ) : null}
           </>
         )}
       </section>
@@ -306,80 +312,101 @@ function Ring({ done, total }: { done: number; total: number }) {
   );
 }
 
-/* ----------------------------------------------------------- merged activity rows */
+/* ------------------------------------------------------------ activity tracking */
 
-interface Group {
-  key: string;
-  label: string;
-  org?: string;
-  status: "pending" | "approved";
-  items: PendingActivity[];
-}
+/** Past this many, the rest sit behind "Show all" so a long history doesn't bury the page. */
+const VISIBLE_ACTIVITY = 6;
 
-/** One row per (business, kind of activity, status) — "Bring a friend ×2", not two rows. */
-function group(
-  items: PendingActivity[],
-  status: Group["status"],
-  orgNames: Map<string, string>
-): Group[] {
-  const map = new Map<string, Group>();
-  for (const it of items) {
-    const key = `${status}|${it.orgId}|${it.typeLabel}`;
-    const g = map.get(key) ?? { key, label: it.typeLabel, org: orgNames.get(it.orgId), status, items: [] };
-    g.items.push(it);
-    map.set(key, g);
-  }
-  return [...map.values()];
-}
-
-function GroupRow({ g, variant }: { g: Group; variant: "row" | "receipt" }) {
-  const tone = g.status === "pending" ? "text-amber-glow" : "text-jade-400";
-
-  if (variant === "receipt") {
-    return (
-      <li className="flex justify-between gap-4">
-        <span className="min-w-0 truncate">
-          {g.label}
-          {g.items.length > 1 ? ` x${g.items.length}` : ""}
-        </span>
-        <span className={tone}>{g.status}</span>
-      </li>
-    );
-  }
+/**
+ * One submission and where it stands: Submitted, then either Approved (with the on-chain
+ * record when there is one) or Not approved with the business's own reason.
+ */
+function ActivityCard({ it, org }: { it: PendingActivity; org?: string }) {
+  const approved = it.status === "approved";
+  const rejected = it.status === "rejected";
+  const decidedAt = it.decidedAt ? new Date(it.decidedAt).getTime() : 0;
 
   return (
-    <li>
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 text-sm [&::-webkit-details-marker]:hidden">
-          <span className="min-w-0 truncate">
-            {g.label}
-            {g.items.length > 1 ? <span className="text-mist-400"> ×{g.items.length}</span> : null}
-            {g.org ? <span className="text-mist-500"> · {g.org}</span> : null}
-          </span>
-          <span className={`shrink-0 font-mono text-xs ${tone}`}>{g.status}</span>
-        </summary>
-        <ul className="space-y-3 border-t border-ink-700 bg-ink-900 px-4 py-4 text-xs text-mist-400">
-          {g.items.map((it) => (
-            <li key={it.id} className="space-y-1.5">
-              <p>
-                Sent {timeAgo(new Date(it.submittedAt).getTime())}
-                {it.note ? ` · ${it.note}` : ""}
-              </p>
-              {/^https?:\/\//i.test(it.proofUrl) ? (
-                <a
-                  href={it.proofUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block truncate text-crimson-400 underline underline-offset-4"
-                >
-                  {it.proofUrl}
-                </a>
-              ) : null}
-              {it.submitTx ? <TxReceipt hash={it.submitTx} label="Your submission, recorded on Avalanche" /> : null}
-            </li>
-          ))}
-        </ul>
-      </details>
+    <li className={`${PANEL} min-w-0 p-4`}>
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ink-700 text-lg" aria-hidden>
+          {it.typeIcon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">
+            {it.typeLabel}
+            {it.weight > 1 ? <span className="text-mist-400"> · +{it.weight}</span> : null}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-mist-500">
+            {org ? `${org} · ` : ""}Sent {timeAgo(new Date(it.submittedAt).getTime())}
+          </p>
+        </div>
+      </div>
+
+      <ol
+        aria-label="Progress"
+        className="mt-3 flex items-center gap-2 text-xs font-medium"
+      >
+        <li className="flex items-center gap-1.5 text-mist-200">
+          <span className="size-2 rounded-full bg-jade-400" aria-hidden /> Submitted
+        </li>
+        <li aria-hidden className="h-px w-8 bg-ink-600" />
+        <li
+          className={`flex items-center gap-1.5 ${
+            approved ? "text-jade-400" : rejected ? "text-crimson-300" : "text-mist-500"
+          }`}
+          aria-current={approved || rejected ? "step" : undefined}
+        >
+          <span
+            className={`size-2 rounded-full ${
+              approved ? "bg-jade-400" : rejected ? "bg-crimson-500" : "border border-ink-500"
+            }`}
+            aria-hidden
+          />
+          {rejected ? "Not approved" : "Approved"}
+        </li>
+      </ol>
+
+      {approved ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-jade-400">
+            Approved{decidedAt ? ` ${timeAgo(decidedAt)}` : ""}.
+          </p>
+          {it.txHash ? <TxReceipt hash={it.txHash} label="Approved on Avalanche" /> : null}
+        </div>
+      ) : rejected ? (
+        <div className="mt-3 space-y-2">
+          <p className="break-words rounded-lg border border-crimson-500/30 bg-crimson-500/10 px-3 py-2 text-sm text-crimson-300">
+            Not approved: {it.rejectionReason?.trim() || "no reason was given"}
+          </p>
+          <p className="text-xs text-mist-500">
+            You can send it again with clearer proof — your other actions still count.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-amber-glow">
+          Waiting for {org ?? "the business"} to review.
+        </p>
+      )}
+
+      {it.note || /^https?:\/\//i.test(it.proofUrl) || it.submitTx ? (
+        <div className="mt-3 space-y-1.5 border-t border-ink-700 pt-3 text-xs text-mist-400">
+          {it.note ? <p className="break-words">&ldquo;{it.note}&rdquo;</p> : null}
+          {/^https?:\/\//i.test(it.proofUrl) ? (
+            <a
+              href={it.proofUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block truncate text-crimson-400 underline underline-offset-4"
+            >
+              {it.proofUrl}
+            </a>
+          ) : null}
+          {it.submitTx ? (
+            <TxReceipt hash={it.submitTx} label="Your submission, recorded on Avalanche" />
+          ) : null}
+        </div>
+      ) : null}
     </li>
   );
 }
