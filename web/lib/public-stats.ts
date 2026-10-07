@@ -4,7 +4,8 @@ import { avalancheFuji } from "viem/chains";
 import { FUJI_RPC_URL } from "./rpc";
 import { TANGAZA_ABI } from "./abi";
 import { sql } from "./db";
-import { listAllActiveCampaigns } from "./store";
+import { listAllActiveCampaigns, listRewardTiers } from "./store";
+import { formatReward } from "./types";
 
 const RPC_URL = FUJI_RPC_URL;
 const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC_URL) });
@@ -22,7 +23,10 @@ export interface Pilot {
   slug: string;
   title: string;
   orgName: string;
+  blurb?: string;
   coverUrl?: string;
+  /** What taking part earns, one line per level the business offers, cheapest first. */
+  rewards: string[];
   participants: number;
   approved: number;
 }
@@ -89,12 +93,29 @@ async function readPilots(): Promise<Pilot[]> {
   const approved = new Map(
     (counts as Array<{ campaign_id: string; n: number }>).map((r) => [r.campaign_id, Number(r.n)])
   );
+  // Rewards belong to the business, so read each ladder once however many campaigns it runs.
+  const orgIds = [...new Set(campaigns.map((c) => c.orgId))];
+  const ladders = new Map(
+    await Promise.all(
+      orgIds.map(async (id) => {
+        const tiers = await listRewardTiers(id).catch(() => []);
+        const lines = tiers.map((t) =>
+          t.amount != null || t.rewardKind
+            ? formatReward({ amount: t.amount, currency: t.currency, rewardKind: t.rewardKind })
+            : t.perk || t.name
+        );
+        return [id, lines] as const;
+      })
+    )
+  );
   return campaigns.map((c) => ({
     id: c.id,
     slug: c.slug,
     title: c.title,
     orgName: c.orgName,
+    blurb: c.blurb,
     coverUrl: c.coverUrl,
+    rewards: ladders.get(c.orgId) ?? [],
     participants: c.participantCount,
     approved: approved.get(c.id) ?? 0,
   }));
