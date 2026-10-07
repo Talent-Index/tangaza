@@ -4,11 +4,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { OrgShell, useIsApprover, useOrgAccessContext } from "@/components/org/Shell";
-import { CoverImageField } from "@/components/org/CoverImageField";
+import {
+  CampaignWizard,
+  EMPTY_DRAFT,
+  draftFromCampaign,
+  normalizeOfferUrl,
+  parseTarget,
+  type CampaignDraft,
+} from "@/components/goal/CampaignWizard";
+import { CampaignFunnel } from "@/components/goal/CampaignFunnel";
+import { GoalProgress } from "@/components/goal/GoalProgress";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
-import { useCampaigns, useEngagementTypes, type Campaign } from "@/lib/hooks";
+import { useCampaigns, useEngagementTypes, useGoalsAvailable, type Campaign } from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
+import { goalMeta } from "@/lib/types";
 import { txUrl } from "@/lib/chain";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
@@ -20,23 +30,6 @@ export default function OrgCampaignsPage() {
   );
 }
 
-interface CampaignDraft {
-  id?: string;
-  title: string;
-  blurb: string;
-  coverUrl: string;
-  endsAt: string;
-  engagementTypeIds: string[];
-}
-
-const EMPTY_DRAFT: CampaignDraft = {
-  title: "",
-  blurb: "",
-  coverUrl: "",
-  endsAt: "",
-  engagementTypeIds: [],
-};
-
 function CampaignsWorkspace() {
   const isApprover = useIsApprover();
   const account = useActiveAccount();
@@ -45,10 +38,14 @@ function CampaignsWorkspace() {
   const engagements = useEngagementTypes(orgId);
   const list = campaigns.data ?? [];
   const types = engagements.data ?? [];
+  const goalsAvailable = useGoalsAvailable();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Set once a NEW campaign has been saved: the wizard turns into the share screen.
+  const [launched, setLaunched] = useState<Campaign | null>(null);
   const [draft, setDraft] = useState<CampaignDraft>(EMPTY_DRAFT);
+  const [wizardKey, setWizardKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
@@ -68,25 +65,21 @@ function CampaignsWorkspace() {
     setCreating(true);
     setSelectedId(null);
     setDraft(EMPTY_DRAFT);
+    setLaunched(null);
+    setWizardKey((k) => k + 1);
     setError(null);
   }
 
   function openEdit(c: Campaign) {
     setCreating(false);
     setSelectedId(c.id);
-    setDraft({
-      id: c.id,
-      title: c.title,
-      blurb: c.blurb ?? "",
-      coverUrl: c.coverUrl ?? "",
-      endsAt: c.endsAt ? c.endsAt.slice(0, 10) : "",
-      engagementTypeIds: c.engagementTypeIds,
-    });
+    setDraft(draftFromCampaign(c));
+    setLaunched(null);
+    setWizardKey((k) => k + 1);
     setError(null);
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
+  async function save() {
     setError(null);
     setSaving(true);
     try {
@@ -105,6 +98,17 @@ function CampaignsWorkspace() {
           // Editing must not silently reopen a closed campaign; only a new one starts active.
           active: draft.id ? selected?.active ?? true : true,
           engagementTypeIds: draft.engagementTypeIds,
+          // Goal fields only when the database can hold them; null clears, so a business
+          // that skips or removes the goal really ends up with none.
+          ...(goalsAvailable === true
+            ? {
+                goalType: draft.goalType ?? null,
+                goalTarget: draft.goalType ? parseTarget(draft.goalTarget) : null,
+                goalLabel: draft.goalType ? draft.goalLabel.trim() || null : null,
+                offerName: draft.offerName.trim() || null,
+                offerUrl: normalizeOfferUrl(draft.offerUrl) || null,
+              }
+            : {}),
           ...auth,
         }),
       });
@@ -114,8 +118,12 @@ function CampaignsWorkspace() {
       campaigns.refresh();
       if (json.campaign) {
         setSelectedId(json.campaign.id);
-        setCreating(false);
-        setDraft(EMPTY_DRAFT);
+        if (draft.id) {
+          setCreating(false);
+          setDraft(EMPTY_DRAFT);
+        } else {
+          setLaunched(json.campaign);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not save";
@@ -176,20 +184,13 @@ function CampaignsWorkspace() {
       success("Campaign deleted");
       setSelectedId(null);
       setCreating(false);
+      setLaunched(null);
       setDraft(EMPTY_DRAFT);
       campaigns.refresh();
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not delete");
     }
   }
-
-  const toggleType = (id: string) =>
-    setDraft((d) => ({
-      ...d,
-      engagementTypeIds: d.engagementTypeIds.includes(id)
-        ? d.engagementTypeIds.filter((x) => x !== id)
-        : [...d.engagementTypeIds, id],
-    }));
 
   const showForm = creating || (selected && draft.id === selected.id);
   const hasCampaigns = list.length > 0;
@@ -236,7 +237,7 @@ function CampaignsWorkspace() {
           ) : list.length === 0 ? (
             <Card className="py-10 text-center">
               <p className="text-sm text-mist-500">
-                No campaigns yet — fill in the form on the right to launch your first push.
+                No campaigns yet — start with a goal and launch your first push.
               </p>
             </Card>
           ) : (
@@ -251,6 +252,7 @@ function CampaignsWorkspace() {
                       type="button"
                       onClick={() => {
                         setCreating(false);
+                        setLaunched(null);
                         setSelectedId(c.id);
                         setDraft(EMPTY_DRAFT);
                       }}
@@ -299,8 +301,19 @@ function CampaignsWorkspace() {
                         {c.blurb ? (
                           <p className="mt-0.5 line-clamp-2 text-xs text-mist-500">{c.blurb}</p>
                         ) : null}
+                        <GoalProgress campaign={c} showPending className="mt-2.5" />
+                        {c.goalType ? (
+                          <p className="mt-1 text-[11px] text-mist-600">
+                            {goalMeta(c.goalType)?.label}
+                          </p>
+                        ) : null}
                       </div>
                     </button>
+                    {active ? (
+                      <div className="mt-2 rounded-xl border border-ink-700 bg-ink-900/40 p-3 sm:p-4">
+                        <CampaignFunnel campaignId={c.id} orgId={orgId} />
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -310,80 +323,28 @@ function CampaignsWorkspace() {
 
         <section className="min-w-0">
           {showForm ? (
-            <Card className="space-y-4">
-              <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
-                {draft.id ? "Edit campaign" : "New campaign"}
-              </p>
-              <form onSubmit={save} className="space-y-4">
-                <CoverImageField
-                  value={draft.coverUrl}
-                  onChange={(url) => setDraft({ ...draft, coverUrl: url })}
-                />
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <input
-                    required
-                    value={draft.title}
-                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                    placeholder="Launch week"
-                    className="sm:col-span-2 rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-                  />
-                  <input
-                    type="date"
-                    value={draft.endsAt}
-                    onChange={(e) => setDraft({ ...draft, endsAt: e.target.value })}
-                    className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-crimson-500"
-                    aria-label="Ends on"
-                  />
-                </div>
-                <textarea
-                  rows={3}
-                  value={draft.blurb}
-                  onChange={(e) => setDraft({ ...draft, blurb: e.target.value })}
-                  placeholder="What's the push, and how should people participate?"
-                  className="w-full resize-none rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
-                />
-                {types.length > 0 ? (
-                  <div>
-                    <p className="mb-2 text-xs text-mist-500">
-                      What counts (none selected = everything counts):
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {types.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => toggleType(t.id)}
-                          className={`rounded-full border px-3 py-1 text-xs transition ${
-                            draft.engagementTypeIds.includes(t.id)
-                              ? "border-crimson-500 bg-crimson-500/15 text-crimson-300"
-                              : "border-ink-600 text-mist-400 hover:border-ink-500"
-                          }`}
-                        >
-                          {t.icon} {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {error ? <ErrorNote>{error}</ErrorNote> : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit" disabled={saving || !draft.title.trim()}>
-                    {saving ? "Saving…" : draft.id ? "Save changes" : "Create campaign"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setCreating(false);
-                      setDraft(EMPTY_DRAFT);
-                      setError(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </Card>
+            <CampaignWizard
+              key={wizardKey}
+              draft={draft}
+              setDraft={setDraft}
+              types={types}
+              goalsAvailable={goalsAvailable}
+              saving={saving}
+              error={error}
+              launched={launched}
+              onSubmit={save}
+              onCancel={() => {
+                setCreating(false);
+                setLaunched(null);
+                setDraft(EMPTY_DRAFT);
+                setError(null);
+              }}
+              onDone={() => {
+                setCreating(false);
+                setLaunched(null);
+                setDraft(EMPTY_DRAFT);
+              }}
+            />
           ) : selected ? (
             <CampaignDetailPanel
               campaign={selected}
@@ -493,8 +454,32 @@ function CampaignDetailPanel({
                 : ""}
             </span>
           </div>
-          <h2 className="mt-2 text-xl font-bold leading-snug md:text-2xl">{c.title}</h2>
+          <h2 className="mt-2 break-words text-xl font-bold leading-snug md:text-2xl">{c.title}</h2>
+          {c.goalTarget ? (
+            <p className="mt-1 text-sm font-medium text-mist-200">
+              Goal: {goalMeta(c.goalType)?.label ?? "Reach"} ·{" "}
+              {c.goalTarget?.toLocaleString("en-GB")} {c.goalLabel?.trim() || "approved actions"}
+            </p>
+          ) : null}
+          {c.offerName ? (
+            <p className="mt-1 break-words text-sm text-mist-400">
+              Pushing:{" "}
+              {c.offerUrl ? (
+                <a
+                  href={c.offerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-crimson-300 underline underline-offset-4"
+                >
+                  {c.offerName} ↗
+                </a>
+              ) : (
+                c.offerName
+              )}
+            </p>
+          ) : null}
           {c.blurb ? <p className="mt-2 text-sm text-mist-400">{c.blurb}</p> : null}
+          <GoalProgress campaign={c} showPending className="mt-3" />
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -584,10 +569,17 @@ function CampaignDetailPanel({
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Card className="bg-ink-900/40 py-4">
             <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Taking part</p>
             <p className="mt-1 text-2xl font-bold tabular-nums">{c.participantCount}</p>
+          </Card>
+          <Card className="bg-ink-900/40 py-4">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Approved</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{c.approvedCount}</p>
+            <p className="mt-0.5 text-[11px] text-mist-500">
+              {c.pendingCount > 0 ? `${c.pendingCount} awaiting approval` : "Nothing waiting"}
+            </p>
           </Card>
           <Card className="bg-ink-900/40 py-4">
             <p className="text-[11px] uppercase tracking-[0.14em] text-mist-500">Public link</p>

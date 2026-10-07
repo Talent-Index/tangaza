@@ -2,12 +2,15 @@ import "server-only";
 import { sql } from "./db";
 import type {
   AdvocateXLink,
+  CampaignFunnel,
   EngagementType,
+  GoalType,
   PendingActivity,
   PendingStatus,
   ProofKind,
   XLinkStatus,
 } from "./types";
+import { isGoalType } from "./types";
 
 /**
  * The off-chain half of Ubu-Tangaza: engagement types a business defines for itself,
@@ -668,12 +671,19 @@ export interface Campaign {
   active: boolean;
   engagementTypeIds: string[];
   participantCount: number;
+  /** What the business wants to achieve. All optional — a campaign without one works as before. */
+  goalType?: GoalType;
+  /** How many approved actions it is aiming for. */
+  goalTarget?: number;
+  /** What is counted, e.g. "sign-ups". Absent means "approved actions". */
+  goalLabel?: string;
+  offerName?: string;
+  offerUrl?: string;
+  /** Submissions under this campaign the business has approved — the only thing "progress" means. */
+  approvedCount: number;
+  /** Submissions still waiting on the business. */
+  pendingCount: number;
 }
-
-const CAMPAIGN_SELECT = `
-  c.*,
-  coalesce(array_agg(distinct ce.engagement_type_id) filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-  count(distinct p.address) as participant_count`;
 
 const toCampaign = (r: Record<string, unknown>): Campaign => ({
   id: r.id as string,
@@ -687,17 +697,83 @@ const toCampaign = (r: Record<string, unknown>): Campaign => ({
   active: Boolean(r.active),
   engagementTypeIds: (r.engagement_type_ids as string[]) ?? [],
   participantCount: Number(r.participant_count ?? 0),
+  // goal_* are absent from c.* until the goals migration (db/017) has been applied.
+  goalType: isGoalType(r.goal_type) ? r.goal_type : undefined,
+  goalTarget: r.goal_target != null ? Number(r.goal_target) : undefined,
+  goalLabel: (r.goal_label as string) || undefined,
+  offerName: (r.offer_name as string) || undefined,
+  offerUrl: (r.offer_url as string) || undefined,
+  approvedCount: Number(r.approved_count ?? 0),
+  pendingCount: Number(r.pending_count ?? 0),
 });
 
+/**
+ * Goal columns on `campaigns` (db/017_campaign_goals.sql). Migrations here are applied
+ * by hand on production, so the first campaign read/write checks for them and adds them
+ * if missing. If even that fails (no DDL rights) we run in "no goal columns" mode:
+ * reads ignore them, writes omit them, and the API reports goalsAvailable: false.
+ * `true` is cached for the life of the process; `false` is retried after a minute.
+ */
+const GOAL_COLUMN_COUNT = 5;
+let goalsReady: Promise<boolean> | null = null;
+let goalsCheckedFalseAt = 0;
+
+export function goalColumnsAvailable(): Promise<boolean> {
+  if (goalsReady && goalsCheckedFalseAt && Date.now() - goalsCheckedFalseAt > 60_000) {
+    goalsReady = null;
+    goalsCheckedFalseAt = 0;
+  }
+  goalsReady ??= (async () => {
+    try {
+      const have = (await sql`
+        select column_name from information_schema.columns
+        where table_schema = current_schema() and table_name = 'campaigns'
+          and column_name in ('goal_type', 'goal_target', 'goal_label', 'offer_name', 'offer_url')`) as Array<{ column_name: string }>;
+      if (have.length < GOAL_COLUMN_COUNT) {
+        await sql`
+          alter table campaigns
+            add column if not exists goal_type   text,
+            add column if not exists goal_target integer,
+            add column if not exists goal_label  text,
+            add column if not exists offer_name  text,
+            add column if not exists offer_url   text`;
+      }
+      return true;
+    } catch (err) {
+      console.warn("[campaigns] goal columns unavailable, running without goals:", err);
+      goalsCheckedFalseAt = Date.now();
+      return false;
+    }
+  })();
+  return goalsReady;
+}
+
+/*
+ * Approved/pending counts per campaign are aggregated in a derived table and joined 1:1
+ * (max() in the outer select just picks that single row) — joining submissions straight
+ * in beside the participant/engagement joins would fan the counts out.
+ */
+
 export async function listCampaigns(orgId: string): Promise<Campaign[]> {
+  await goalColumnsAvailable(); // make sure the editor can offer goals; reads work either way
   const rows = (await sql`
     select c.*,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-      count(distinct p.address) as participant_count
+      count(distinct p.address) as participant_count,
+      coalesce(max(sc.approved_n), 0) as approved_count,
+      coalesce(max(sc.pending_n), 0) as pending_count
     from campaigns c
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    left join (
+      select campaign_id,
+        count(*) filter (where status = 'approved') as approved_n,
+        count(*) filter (where status = 'pending') as pending_n
+      from submissions
+      where campaign_id is not null and status in ('approved', 'pending') and org_id = ${orgId}
+      group by campaign_id
+    ) sc on sc.campaign_id = c.id
     where c.org_id = ${orgId}
     group by c.id
     order by c.active desc, c.starts_at desc`) as Array<Record<string, unknown>>;
@@ -709,11 +785,21 @@ export async function getCampaignBySlug(slug: string): Promise<CampaignWithOrg |
     select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-      count(distinct p.address) as participant_count
+      count(distinct p.address) as participant_count,
+      coalesce(max(sc.approved_n), 0) as approved_count,
+      coalesce(max(sc.pending_n), 0) as pending_count
     from campaigns c
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    left join (
+      select campaign_id,
+        count(*) filter (where status = 'approved') as approved_n,
+        count(*) filter (where status = 'pending') as pending_n
+      from submissions
+      where campaign_id is not null and status in ('approved', 'pending') and campaign_id = (select id from campaigns where slug = ${slug})
+      group by campaign_id
+    ) sc on sc.campaign_id = c.id
     where c.slug = ${slug}
     group by c.id, o.name, o.display_name`) as Array<Record<string, unknown>>;
   return rows[0] ? { ...toCampaign(rows[0]), orgName: rows[0].org_name as string } : undefined;
@@ -1218,6 +1304,15 @@ export interface UpsertCampaignInput {
   endsAt?: string | null;
   active?: boolean;
   engagementTypeIds?: string[];
+  /**
+   * Goal fields: `undefined` leaves the stored value alone (closing/reopening a campaign
+   * sends none), `null` clears it. Ignored when the goal columns are unavailable.
+   */
+  goalType?: GoalType | null;
+  goalTarget?: number | null;
+  goalLabel?: string | null;
+  offerName?: string | null;
+  offerUrl?: string | null;
 }
 
 const slugify = (s: string) =>
@@ -1261,6 +1356,19 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
     row = created[0];
   }
 
+  const goalFields = [input.goalType, input.goalTarget, input.goalLabel, input.offerName, input.offerUrl];
+  if (goalFields.some((v) => v !== undefined) && (await goalColumnsAvailable())) {
+    const g = input;
+    await sql`
+      update campaigns set
+        goal_type   = case when ${g.goalType !== undefined}::boolean then ${g.goalType ?? null}::text else goal_type end,
+        goal_target = case when ${g.goalTarget !== undefined}::boolean then ${g.goalTarget ?? null}::integer else goal_target end,
+        goal_label  = case when ${g.goalLabel !== undefined}::boolean then ${g.goalLabel ?? null}::text else goal_label end,
+        offer_name  = case when ${g.offerName !== undefined}::boolean then ${g.offerName ?? null}::text else offer_name end,
+        offer_url   = case when ${g.offerUrl !== undefined}::boolean then ${g.offerUrl ?? null}::text else offer_url end
+      where id = ${row.id as string} and org_id = ${input.orgId}`;
+  }
+
   if (input.engagementTypeIds) {
     await sql`delete from campaign_engagements where campaign_id = ${row.id as string}`;
     for (const etId of input.engagementTypeIds) {
@@ -1289,6 +1397,41 @@ export async function deleteCampaign(orgId: string, id: string): Promise<boolean
   return rows.length > 0;
 }
 
+/**
+ * Where a campaign's audience is, stage by stage. `shares` counts people who made a
+ * personal link (campaign_shares rows), `clicks` their total clicks. Redemption is not
+ * here on purpose: a reward being claimed lives on-chain, not in this table, and a number
+ * we can't derive honestly is better left out. Scoped to the org so an id alone can't
+ * read another business's numbers.
+ */
+export async function getCampaignFunnel(
+  orgId: string,
+  campaignId: string
+): Promise<CampaignFunnel | undefined> {
+  const rows = (await sql`
+    select
+      (select count(*) from campaign_shares where campaign_id = c.id) as shares,
+      (select coalesce(sum(click_count), 0) from campaign_shares where campaign_id = c.id) as clicks,
+      (select count(*) from campaign_participants where campaign_id = c.id) as joined,
+      (select count(*) from submissions where campaign_id = c.id) as submitted,
+      (select count(*) from submissions where campaign_id = c.id and status = 'approved') as approved,
+      (select count(*) from submissions where campaign_id = c.id and status = 'rejected') as rejected,
+      (select count(*) from submissions where campaign_id = c.id and status = 'pending') as pending
+    from campaigns c
+    where c.id = ${campaignId} and c.org_id = ${orgId}`) as Array<Record<string, unknown>>;
+  const r = rows[0];
+  if (!r) return undefined;
+  return {
+    shares: Number(r.shares),
+    clicks: Number(r.clicks),
+    joined: Number(r.joined),
+    submitted: Number(r.submitted),
+    approved: Number(r.approved),
+    rejected: Number(r.rejected),
+    pending: Number(r.pending),
+  };
+}
+
 export interface CampaignWithOrg extends Campaign {
   orgName: string;
 }
@@ -1299,11 +1442,21 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-      count(distinct p.address) as participant_count
+      count(distinct p.address) as participant_count,
+      coalesce(max(sc.approved_n), 0) as approved_count,
+      coalesce(max(sc.pending_n), 0) as pending_count
     from campaigns c
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    left join (
+      select campaign_id,
+        count(*) filter (where status = 'approved') as approved_n,
+        count(*) filter (where status = 'pending') as pending_n
+      from submissions
+      where campaign_id is not null and status in ('approved', 'pending')
+      group by campaign_id
+    ) sc on sc.campaign_id = c.id
     where c.active and (c.ends_at is null or c.ends_at > now())
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
@@ -1316,11 +1469,21 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
     select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-      count(distinct p.address) as participant_count
+      count(distinct p.address) as participant_count,
+      coalesce(max(sc.approved_n), 0) as approved_count,
+      coalesce(max(sc.pending_n), 0) as pending_count
     from campaigns c
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    left join (
+      select campaign_id,
+        count(*) filter (where status = 'approved') as approved_n,
+        count(*) filter (where status = 'pending') as pending_n
+      from submissions
+      where campaign_id is not null and status in ('approved', 'pending')
+      group by campaign_id
+    ) sc on sc.campaign_id = c.id
     where c.active
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
@@ -1333,12 +1496,22 @@ export async function listJoinedCampaigns(address: string): Promise<CampaignWith
     select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
       coalesce(array_agg(distinct ce.engagement_type_id)
         filter (where ce.engagement_type_id is not null), '{}') as engagement_type_ids,
-      count(distinct p.address) as participant_count
+      count(distinct p.address) as participant_count,
+      coalesce(max(sc.approved_n), 0) as approved_count,
+      coalesce(max(sc.pending_n), 0) as pending_count
     from campaign_participants me
     join campaigns c on c.id = me.campaign_id
     join orgs o on o.id = c.org_id
     left join campaign_engagements ce on ce.campaign_id = c.id
     left join campaign_participants p on p.campaign_id = c.id
+    left join (
+      select campaign_id,
+        count(*) filter (where status = 'approved') as approved_n,
+        count(*) filter (where status = 'pending') as pending_n
+      from submissions
+      where campaign_id is not null and status in ('approved', 'pending')
+      group by campaign_id
+    ) sc on sc.campaign_id = c.id
     where me.address = ${address.toLowerCase()}
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;

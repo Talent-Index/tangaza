@@ -8,7 +8,7 @@ import { CONTACT } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "Book a setup session | Ubu-Tangaza",
   description:
-    "Pick a time and we'll set up your first referral campaign together — the action, the reward and the budget cap.",
+    "Tell us your goal and pick a time. We'll build your first campaign around it together: the action, the reward and the budget cap.",
 };
 
 const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
@@ -22,17 +22,17 @@ export default function BookPage() {
           <div>
             <p className={`${MONO} text-crimson-500`}>Book a setup session</p>
             <h1 className="mt-5 text-3xl font-black leading-[1.1] tracking-tight sm:text-5xl">
-              Let&rsquo;s set up your first campaign.
+              Tell us your goal. We&rsquo;ll build the campaign around it.
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-mist-400">
-              A {SESSION_MINUTES}-minute call. We pick the action, the reward and the budget
-              cap together, then you only tap approve. Your first campaign is free.
+              A {SESSION_MINUTES}-minute call. We turn your goal into a campaign, with the action,
+              the reward and the budget cap, then you only tap approve. Your first campaign is free.
             </p>
             <ul className="mt-8 space-y-3 text-sm text-mist-400">
               {[
-                "What you sell, and who your regulars are",
-                "One action you'd like customers to do for you",
-                "A reward you're happy to give for it",
+                "What you want to achieve, and by when",
+                "What you're pushing — a product, event or offer",
+                "How you'd like people to help, and a reward you're happy to give",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-3">
                   <Icon name="clipboard" className="mt-0.5 size-4 shrink-0 text-crimson-500" /> {line}

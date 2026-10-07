@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { goalSentence } from "@/lib/campaigns";
 import { getCampaignBySlug } from "@/lib/store";
 
 /**
@@ -19,8 +20,10 @@ export async function generateMetadata({
       c.title.trim().toLowerCase() === c.orgName.trim().toLowerCase()
         ? c.title
         : `${c.title} · ${c.orgName}`;
+    const goal = goalSentence(c, c.orgName);
     const description =
       c.blurb?.trim() ||
+      (goal ? `${goal}. Take part, share what you did, and get rewarded once the business approves it.` : "") ||
       `Take part in ${c.title} from ${c.orgName}, share your activity, and get rewarded once the business approves it.`;
     return {
       title: `${title} | Ubu-Tangaza`,

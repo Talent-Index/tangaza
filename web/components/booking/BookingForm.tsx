@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { MonthCalendar } from "@/components/booking/MonthCalendar";
 import {
+  GOALS,
   SESSION_MINUTES,
   type MonthView,
   bookableDays,
@@ -30,6 +31,7 @@ export function BookingForm() {
   const [view, setView] = useState<MonthView | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", business: "", contact: "", email: "", notes: "", website: "" });
+  const [goal, setGoal] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ slot: string; contact: string } | null>(null);
@@ -96,7 +98,7 @@ export function BookingForm() {
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot, ...form }),
+        body: JSON.stringify({ slot, ...form, ...(goal ? { goal } : {}) }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -173,8 +175,32 @@ export function BookingForm() {
         {loadError ? <p className="mt-2 text-xs text-amber-glow">{loadError}</p> : null}
       </fieldset>
 
+      <fieldset className="min-w-0">
+        <legend className={`${MONO} mb-3 text-mist-400`}>3 · Your goal (optional)</legend>
+        <div className="flex flex-wrap gap-2">
+          {GOALS.map((g) => {
+            const active = g === goal;
+            return (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGoal(active ? null : g)}
+                aria-pressed={active}
+                className={`border px-3.5 py-2.5 text-sm transition light:rounded-lg ${
+                  active
+                    ? "border-crimson-500 bg-crimson-500 text-white"
+                    : "border-ink-600 hover:border-mist-400"
+                }`}
+              >
+                {g}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <fieldset className="min-w-0 space-y-3">
-        <legend className={`${MONO} mb-3 text-mist-400`}>3 · About you</legend>
+        <legend className={`${MONO} mb-3 text-mist-400`}>4 · About you</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <input required className={FIELD} placeholder="Your name" value={form.name} maxLength={120}
             onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" />
@@ -186,7 +212,7 @@ export function BookingForm() {
             onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" />
         </div>
         <textarea className={`${FIELD} resize-none`} rows={3} maxLength={600}
-          placeholder="What do you sell, and what would you like customers to do for you? (optional)"
+          placeholder="What do you want to achieve, and what are you pushing? (optional)"
           value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         {/* Honeypot: invisible to people, tempting to bots. */}
         <input tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0"

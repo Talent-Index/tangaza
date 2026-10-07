@@ -70,3 +70,67 @@ export function isCampaignLive(c: Campaign): boolean {
   const end = c.endsAt ? new Date(c.endsAt).getTime() : null;
   return c.active && start <= now && (end === null || end > now);
 }
+
+/* ------------------------------------------------------------------- goals */
+
+export interface GoalProgressInfo {
+  /** A numeric target is set. Without one there is nothing to measure a percentage against. */
+  hasGoal: boolean;
+  target: number;
+  done: number;
+  pending: number;
+  /** 0-100, clamped. */
+  pct: number;
+  reached: boolean;
+  /** What is counted, e.g. "sign-ups". */
+  unit: string;
+  /** Whole days until ends_at; 0 means it ends today; null = no deadline; negative = ended. */
+  daysLeft: number | null;
+}
+
+/**
+ * Progress is the number of APPROVED actions under the campaign. It is not revenue and
+ * not sales — Tangaza never sees those — so the unit is whatever the business said it is
+ * counting, defaulting to "approved actions".
+ */
+export function goalProgress(
+  c: Pick<Campaign, "goalTarget" | "goalLabel" | "approvedCount" | "pendingCount" | "endsAt">
+): GoalProgressInfo {
+  const target = c.goalTarget && c.goalTarget > 0 ? c.goalTarget : 0;
+  const done = c.approvedCount ?? 0;
+  const pct = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0;
+  let daysLeft: number | null = null;
+  if (c.endsAt) {
+    const ms = new Date(c.endsAt).getTime() - Date.now();
+    daysLeft = ms <= 0 ? -1 : Math.floor(ms / 86_400_000);
+  }
+  return {
+    hasGoal: target > 0,
+    target,
+    done,
+    pending: c.pendingCount ?? 0,
+    pct,
+    reached: target > 0 && done >= target,
+    unit: c.goalLabel?.trim() || "approved actions",
+    daysLeft,
+  };
+}
+
+/** "18 days left", "Ends today", "Ended" — or null when there is no deadline. */
+export function daysLeftLabel(daysLeft: number | null): string | null {
+  if (daysLeft === null) return null;
+  if (daysLeft < 0) return "Ended";
+  if (daysLeft === 0) return "Ends today";
+  return `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`;
+}
+
+/** "Help <org> reach 100 sign-ups" — the public sentence for a campaign with a goal. */
+export function goalSentence(
+  c: Pick<Campaign, "goalTarget" | "goalLabel">,
+  orgName: string
+): string | null {
+  if (!c.goalTarget || c.goalTarget < 1) return null;
+  return `Help ${orgName} reach ${c.goalTarget.toLocaleString("en-GB")} ${
+    c.goalLabel?.trim() || "approved actions"
+  }`;
+}

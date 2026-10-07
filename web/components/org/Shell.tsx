@@ -2,9 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useActiveAccount, useIsAutoConnecting } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
+import { OrgMobileTabs } from "@/components/org/MobileTabs";
+import {
+  CountBadge,
+  NavIcon,
+  PRIMARY_NAV,
+  REWARDS_NAV,
+  TOOLS_NAV,
+  isOrgNavActive,
+} from "@/components/org/nav";
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
 import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
@@ -12,28 +21,31 @@ import { BrandMark, Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 import { kesLabel, shortAddress } from "@/lib/format";
-import { useMyApplications, useOrgAccess, type ApplicationSummary } from "@/lib/hooks";
+import {
+  useMyApplications,
+  useOrgAccess,
+  usePendingActivities,
+  type ApplicationSummary,
+} from "@/lib/hooks";
 import type { OrgAccess } from "@/lib/reads";
-
-const NAV = [
-  { href: "/org/overview", label: "Overview" },
-  { href: "/org/campaigns", label: "Campaigns" },
-  { href: "/org/pilot", label: "Referral pilot" },
-  { href: "/org", label: "Approvals" },
-  { href: "/org/liability", label: "Liability" },
-  { href: "/org/clients", label: "Clients" },
-  { href: "/org/settings", label: "Rewards setup" },
-];
 
 export function OrgShell({ children }: { children: React.ReactNode }) {
   const account = useActiveAccount();
   const isRestoring = useIsAutoConnecting();
-  const pathname = usePathname();
+  // Fed by the one queue poll that lives under WithOrgAccess, so the badge and the
+  // Approvals page read the same list instead of polling twice.
+  const [pendingCount, setPendingCount] = useState(0);
 
+  // On phones the fixed bottom tab bar sits over the end of the page, so the page
+  // reserves its height (h-14 plus the home-indicator inset) below the footer.
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-clip">
+    <div
+      className={`flex min-h-dvh flex-col overflow-x-clip ${
+        account ? "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : ""
+      }`}
+    >
       <header className="border-b border-ink-700 bg-ink-850">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 pt-3 sm:px-6 lg:flex-nowrap lg:py-3">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2 sm:px-6 md:pb-0 md:pt-3 lg:flex-nowrap lg:py-3">
           <Link href="/org/overview" className="flex min-w-0 items-center gap-3">
             <LogoMark />
             <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
@@ -42,33 +54,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          {account ? (
-            <nav
-              aria-label="Business sections"
-              className="order-3 -mx-4 w-full overflow-x-auto px-4 [scrollbar-width:none] lg:order-none lg:mx-0 lg:w-auto lg:px-0 [&::-webkit-scrollbar]:hidden"
-            >
-              <div className="flex w-max items-center gap-5 lg:w-auto">
-                {NAV.map((item) => {
-                  const active =
-                    item.href === "/org" ? pathname === "/org" : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={`shrink-0 border-b-2 py-3 text-[13px] font-medium transition ${
-                        active
-                          ? "border-crimson-500 text-crimson-500"
-                          : "border-transparent text-mist-300 hover:text-mist-100"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </nav>
-          ) : null}
+          {account ? <DesktopNav pending={pendingCount} /> : null}
 
           <div className="flex shrink-0 items-center gap-2 py-1">
             <ThemeToggle />
@@ -79,7 +65,9 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
 
       <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         {account ? (
-          <WithOrgAccess address={account.address}>{children}</WithOrgAccess>
+          <WithOrgAccess address={account.address} onPendingCount={setPendingCount}>
+            {children}
+          </WithOrgAccess>
         ) : isRestoring ? (
           <div className="grid place-items-center py-24">
             <Spinner className="size-6" />
@@ -101,7 +89,121 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
           </p>
         </div>
       </footer>
+
+      {account ? <OrgMobileTabs pending={pendingCount} /> : null}
     </div>
+  );
+}
+
+/**
+ * Desktop navigation: the five everyday sections as tabs, and a "More" dropdown for the
+ * budget and side tools. Phones get OrgMobileTabs instead, so this is hidden below md.
+ */
+function DesktopNav({ pending }: { pending: number }) {
+  const pathname = usePathname();
+  // Open for one pathname only, so following a link closes the menu without an effect.
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const open = openFor === pathname;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpenFor(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpenFor(null);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const tab = (active: boolean) =>
+    `inline-flex shrink-0 items-center gap-1.5 border-b-2 py-3 text-[13px] font-medium transition ${
+      active
+        ? "border-crimson-500 text-crimson-500"
+        : "border-transparent text-mist-300 hover:text-mist-100"
+    }`;
+  const toolActive = TOOLS_NAV.some((i) => isOrgNavActive(pathname, i.href));
+
+  return (
+    <nav
+      aria-label="Business sections"
+      className="order-3 hidden w-full md:block lg:order-none lg:w-auto"
+    >
+      <div className="flex items-center gap-5">
+        {[...PRIMARY_NAV, REWARDS_NAV].map((item) => {
+          const active = isOrgNavActive(pathname, item.href);
+          const isApprovals = item.href === "/org";
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={tab(active)}
+            >
+              {item.label}
+              {isApprovals ? (
+                <>
+                  <CountBadge count={pending} />
+                  {pending > 0 ? <span className="sr-only">{pending} waiting</span> : null}
+                </>
+              ) : null}
+            </Link>
+          );
+        })}
+
+        <div ref={wrapRef} className="relative">
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => setOpenFor(open ? null : pathname)}
+            aria-expanded={open}
+            aria-controls="org-more-menu"
+            className={tab(toolActive)}
+          >
+            More
+            <svg viewBox="0 0 12 12" className={`size-3 transition ${open ? "rotate-180" : ""}`} aria-hidden>
+              <path d="m2.5 4.5 3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {open ? (
+            <div
+              id="org-more-menu"
+              className="absolute right-0 top-full z-30 mt-1 w-56 rounded-xl border border-ink-700 bg-ink-850 p-2 shadow-xl"
+            >
+              <p className="px-2 pb-1 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+                Budget &amp; tools
+              </p>
+              {TOOLS_NAV.map((item) => {
+                const active = isOrgNavActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm font-medium transition ${
+                      active ? "text-crimson-500" : "text-mist-200 hover:bg-ink-800 hover:text-mist-100"
+                    }`}
+                  >
+                    <NavIcon name={item.icon} className="size-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </nav>
   );
 }
 
@@ -205,9 +307,11 @@ function useOrgDisplayName(orgId: bigint | undefined) {
  */
 function WithOrgAccess({
   address,
+  onPendingCount,
   children,
 }: {
   address: string;
+  onPendingCount: (n: number) => void;
   children: React.ReactNode;
 }) {
   const access = useOrgAccess(address);
@@ -277,7 +381,9 @@ function WithOrgAccess({
         refreshOrgName: display.refresh,
       }}
     >
-      {children}
+      <PendingQueueProvider orgId={access.data.orgId} onCount={onPendingCount}>
+        {children}
+      </PendingQueueProvider>
     </OrgAccessContext.Provider>
   );
 }
@@ -358,6 +464,44 @@ function NoBusinessYet({
       </div>
     </div>
   );
+}
+
+/* ----------------------------------------------------------- pending queue */
+
+type PendingQueue = ReturnType<typeof usePendingActivities>;
+
+const PendingQueueContext = createContext<PendingQueue | null>(null);
+
+/**
+ * The one poll of this business's pending submissions. The nav badge counts it and the
+ * Approvals page renders it, so a decision made on the page updates the badge on the
+ * same refresh rather than waiting for a second loop to come round.
+ */
+function PendingQueueProvider({
+  orgId,
+  onCount,
+  children,
+}: {
+  orgId: bigint;
+  onCount: (n: number) => void;
+  children: React.ReactNode;
+}) {
+  const queue = usePendingActivities({ orgId: String(orgId), status: "pending" });
+  const count = queue.data?.length ?? 0;
+
+  useEffect(() => {
+    onCount(count);
+  }, [count, onCount]);
+  useEffect(() => () => onCount(0), [onCount]);
+
+  return <PendingQueueContext.Provider value={queue}>{children}</PendingQueueContext.Provider>;
+}
+
+/** This business's pending submissions — the same data the nav badge counts. */
+export function useOrgPendingQueue(): PendingQueue {
+  const queue = useContext(PendingQueueContext);
+  if (!queue) throw new Error("useOrgPendingQueue must be used inside OrgShell");
+  return queue;
 }
 
 /** The org this session is scoped to, and whether it may approve. */

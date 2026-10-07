@@ -29,6 +29,26 @@ function ensureTable(): Promise<void> {
   return ready;
 }
 
+/**
+ * The optional goal column arrived after the table did (db/018_booking_goal.sql). Same
+ * lazy approach, but kept separate so a failed ALTER (e.g. the app's role can't alter
+ * tables) never stops a booking: createBooking falls back to putting the goal in notes.
+ */
+let goalReady: Promise<void> | null = null;
+function ensureGoalColumn(): Promise<void> {
+  goalReady ??= (async () => {
+    await ensureTable();
+    const have = (await sql`
+      select 1 as one from information_schema.columns
+      where table_schema = current_schema() and table_name = 'bookings' and column_name = 'goal'`) as unknown[];
+    if (have.length === 0) await sql`alter table bookings add column if not exists goal text`;
+  })().catch((err) => {
+    goalReady = null; // let the next request retry
+    throw err;
+  });
+  return goalReady;
+}
+
 /** Slot starts already taken in a window. Times only — no personal details. */
 export async function listTakenSlots(fromIso: string, toIso: string): Promise<string[]> {
   await ensureTable();
@@ -56,15 +76,36 @@ export interface NewBooking {
   contact: string;
   email?: string;
   notes?: string;
+  goal?: string;
 }
 
 /** Returns the new id, or null if someone else took the slot first. */
 export async function createBooking(b: NewBooking): Promise<string | null> {
   await ensureTable();
-  const rows = (await sql`
-    insert into bookings (slot_start, name, business, contact, email, notes)
-    values (${b.slotStart}, ${b.name}, ${b.business}, ${b.contact}, ${b.email ?? null}, ${b.notes ?? null})
-    on conflict (slot_start) do nothing
-    returning id`) as Array<{ id: string }>;
+  let hasGoalColumn = false;
+  if (b.goal) {
+    try {
+      await ensureGoalColumn();
+      hasGoalColumn = true;
+    } catch (err) {
+      console.error("[bookings] goal column unavailable, keeping the goal in notes", err);
+    }
+  }
+
+  // Without the column the goal still reaches us, as a prefix on the notes.
+  const goal = hasGoalColumn ? (b.goal ?? null) : null;
+  const notes = !hasGoalColumn && b.goal ? `Goal: ${b.goal}${b.notes ? `\n${b.notes}` : ""}` : (b.notes ?? null);
+
+  const rows = (hasGoalColumn
+    ? await sql`
+        insert into bookings (slot_start, name, business, contact, email, notes, goal)
+        values (${b.slotStart}, ${b.name}, ${b.business}, ${b.contact}, ${b.email ?? null}, ${notes}, ${goal})
+        on conflict (slot_start) do nothing
+        returning id`
+    : await sql`
+        insert into bookings (slot_start, name, business, contact, email, notes)
+        values (${b.slotStart}, ${b.name}, ${b.business}, ${b.contact}, ${b.email ?? null}, ${notes})
+        on conflict (slot_start) do nothing
+        returning id`) as Array<{ id: string }>;
   return rows[0]?.id ?? null;
 }

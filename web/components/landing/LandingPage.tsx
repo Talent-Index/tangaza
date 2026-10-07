@@ -106,71 +106,74 @@ function LiveLine({ stats }: { stats: Stats | null }) {
 
 function Hero({ stats }: { stats: Stats | null }) {
   const pilot = stats?.pilots[0];
+  // The loop the product runs on. Where a live number exists it sits under the body.
+  const parts: Array<{ icon: IconName; title: string; body: string; live?: [string, string] }> = [
+    { icon: "clipboard", title: "Set the goal", body: "A launch, an event, a community, more bookings." },
+    {
+      icon: "send",
+      title: "Create the campaign",
+      body: "The action, the reward and a budget cap.",
+      live: pilot ? ["Live now", pilot.orgName] : undefined,
+    },
+    {
+      icon: "sliders",
+      title: "Track progress",
+      body: "Proof arrives; you see where you stand.",
+      live: ["Awaiting you", num(stats?.awaiting)],
+    },
+    {
+      icon: "check",
+      title: "Approve & reward",
+      body: "You tap approve. They get what you promised.",
+      live: ["Approved", num(stats?.chain?.approved)],
+    },
+  ];
   return (
     <section className="px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
       <div className="mx-auto max-w-6xl">
-        <p className={`${MONO} text-crimson-500`}>Word of mouth, made visible</p>
+        <p className={`${MONO} text-crimson-500`}>Goals, not guesswork</p>
         <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.08] tracking-tight sm:text-6xl">
-          Reward the customers who bring you customers.
+          Tell us what you want to achieve. Your community helps you get there.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-mist-400 sm:text-lg">
-          Every referral is approved by you and recorded on Avalanche.
+          Launching a product, filling an event, growing a community: your people share, you approve
+          each action, and they&rsquo;re rewarded.
         </p>
         <div className="mt-8">
           <Actions />
         </div>
         <p className="mt-5 text-xs text-mist-500">
-          For cafés, salons, boutiques, gyms and event businesses.
+          For cafés, salons, boutiques, gyms, community hubs and events.
         </p>
 
-        {/* Dark: the product itself, with live numbers. */}
-        <div className="mt-12 max-w-3xl border border-ink-700 bg-ink-900 light:hidden">
-          <p className="border-b border-ink-700 px-4 py-2.5 font-mono text-xs text-mist-500">
-            app.ubutangaza.biz
-          </p>
-          <div className="grid grid-cols-3 gap-3 p-4">
-            <Tile label="Awaiting" value={num(stats?.awaiting)} />
-            <Tile label="Approved" value={num(stats?.chain?.approved)} />
-            <Tile label="Rewarded (KES)" value={num(stats?.chain?.issuedKes)} accent />
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-ink-700 px-4 py-3 text-sm">
-            <span className="truncate">
-              {pilot ? `${pilot.orgName} · ${pilot.title}` : "Your first campaign"}
-            </span>
-            <span className="shrink-0 font-mono text-xs text-amber-glow">
-              {pilot ? "live" : "open"}
-            </span>
-          </div>
-        </div>
-
-        {/* Light: the same numbers as a receipt. */}
-        <div className="mt-12 hidden max-w-md light:block">
-          <Receipt
-            rows={[
-              ["Awaiting approval", num(stats?.awaiting)],
-              ["Approved", num(stats?.chain?.approved)],
-              ["Rewards issued", `KES ${num(stats?.chain?.issuedKes)}`],
-            ]}
-            totalLabel="Rewards claimed"
-            total={`KES ${num(stats?.chain?.redeemedKes)}`}
-            footer={`contract ${shortAddr(stats?.contract ?? "")} · Avalanche Fuji`}
-          />
-        </div>
+        <ol className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {parts.map((p, i) => (
+            <li key={p.title} className={`${PANEL} flex min-w-0 flex-col p-5`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="grid size-9 place-items-center bg-crimson-500/10 text-crimson-500 light:rounded-full">
+                  <Icon name={p.icon} className="size-4.5" />
+                </span>
+                <span className="font-mono text-xs text-mist-500">{String(i + 1).padStart(2, "0")}</span>
+              </div>
+              <p className="mt-4 font-bold">{p.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-mist-400">{p.body}</p>
+              {p.live ? (
+                <p className="mt-auto flex items-baseline justify-between gap-3 border-t border-dashed border-ink-600 pt-3 font-mono text-xs text-mist-500">
+                  <span className="shrink-0">{p.live[0]}</span>
+                  <span className={`tabular min-w-0 truncate text-sm ${i === 3 ? "text-jade-400" : "text-mist-100"}`}>
+                    {p.live[1]}
+                  </span>
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ol>
 
         <div className="mt-5">
           <LiveLine stats={stats} />
         </div>
       </div>
     </section>
-  );
-}
-
-function Tile({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="border border-ink-700 bg-ink-850 p-4">
-      <p className="text-xs text-mist-400">{label}</p>
-      <p className={`tabular mt-1 text-2xl font-bold ${accent ? "text-jade-400" : ""}`}>{value}</p>
-    </div>
   );
 }
 
@@ -211,13 +214,21 @@ function Receipt({
 /* ------------------------------------------------------------------ how it works */
 
 const STEPS = [
-  { title: "You set the campaign", body: "Action, reward and budget cap.", short: "Set the campaign" },
-  { title: "Customers share and submit proof", body: "A link, a screenshot, or a receipt photo.", short: "Customers submit proof" },
-  { title: "You tap approve", body: "Recorded on Avalanche.", short: "You tap approve" },
+  { title: "You set the goal", body: "Launch a product, fill an event, grow a community. Pick what you want to achieve.", short: "Set the goal" },
   {
-    title: "They get rewarded, your budget updates",
-    body: "Airtime, a voucher or a discount you honour.",
-    short: "They get rewarded",
+    title: "You create the campaign",
+    body: "The action you want, the reward you'll give and a budget cap. I set it up with you.",
+    short: "Create the campaign",
+  },
+  {
+    title: "You track progress",
+    body: "Customers share and submit proof: a link, a screenshot or a photo. You see each one, and the count of approved actions.",
+    short: "Track progress",
+  },
+  {
+    title: "You approve and they're rewarded",
+    body: "Each approval is recorded on Avalanche. You honour the reward: airtime, a voucher or a discount.",
+    short: "Approve and reward",
   },
 ];
 
@@ -227,7 +238,7 @@ function HowItWorks() {
       <div className="mx-auto max-w-6xl">
         <p className={`${MONO} text-crimson-500`}>How it works</p>
         <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-          Four steps. One tap from you.
+          Four steps, from goal to reward.
         </h2>
 
         {/* Dark: timeline */}
@@ -270,6 +281,9 @@ function Pilots({ stats }: { stats: Stats | null }) {
       <div className="mx-auto max-w-6xl">
         <p className={`${MONO} text-crimson-500`}>Live pilots</p>
         <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Running now</h2>
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist-400 sm:text-base">
+          Live campaigns, including our retail referral pilot, where progress also counts verified purchases.
+        </p>
 
         {pilots.length === 0 ? (
           <p className="mt-8 max-w-md text-sm text-mist-400">
@@ -445,12 +459,20 @@ const FAQ = [
     a: "Your first campaign is free, and I set it up with you. Nothing is charged without you agreeing to it first.",
   },
   {
-    q: "What if referrals are fake?",
+    q: "What if the proof is fake?",
     a: "Nothing is rewarded until you approve it. Customers attach proof — a link, a screenshot or a photo — and you approve or reject each one. Your reward budget is capped, so you can't overspend.",
   },
   {
     q: "Who gives the reward?",
     a: "You do: airtime, a voucher, a discount or a free product. Ubu-Tangaza tracks who earned what and enforces your cap. It never holds or sends your money.",
+  },
+  {
+    q: "Can I run this for a product launch or an event?",
+    a: "Yes. Tell us the goal, say a launch day or an event night, and we build a campaign around it. Your people share it, post about it or bring a friend, and you approve each action. You see how many have been approved as it builds.",
+  },
+  {
+    q: "What if my goal isn't referrals?",
+    a: "That's fine. An action can be sharing, posting, bringing a friend, visiting or leaving a review. Progress counts the actions you approve, not revenue, and we can't promise sales. You decide the reward, and you honour it.",
   },
 ];
 

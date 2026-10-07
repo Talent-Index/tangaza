@@ -5,6 +5,7 @@ import { FUJI_RPC_URL } from "./rpc";
 import { CONTRACT_ADDRESS } from "./client";
 import { proofHashOf } from "./proof";
 import { orgActionMessage, type OrgAction } from "./org-action";
+import { outreachActionMessage, type OutreachAction } from "./outreach-action";
 
 /**
  * Proving that the account named in a request actually sent it.
@@ -181,6 +182,55 @@ export async function requireApprover(p: {
   if (!approver) return { ok: false, reason: "No such business" };
   if (approver !== p.address.toLowerCase()) {
     return { ok: false, reason: "That account is not this business's approver" };
+  }
+  return { ok: true };
+}
+
+const OWNER_ABI = [
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+/**
+ * Authorises a platform-owner action (the outreach console): the caller must sign the
+ * canonical message AND be the contract owner, read from the chain — the same account
+ * /admin already treats as the platform operator.
+ */
+export async function requireOwner(p: {
+  address: string;
+  action: OutreachAction;
+  ts: number;
+  signature: string;
+}): Promise<VerifyResult> {
+  if (!p.address) return { ok: false, reason: "address is required" };
+
+  const signed = await verifySignedText({
+    address: p.address,
+    message: outreachActionMessage({ address: p.address, action: p.action, ts: p.ts }),
+    signature: p.signature,
+    ts: p.ts,
+  });
+  if (!signed.ok) return signed;
+
+  let owner: string;
+  try {
+    owner = (
+      await publicClient.readContract({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: OWNER_ABI,
+        functionName: "owner",
+      })
+    ).toLowerCase();
+  } catch {
+    return { ok: false, reason: "Could not read the contract owner" };
+  }
+  if (owner !== p.address.toLowerCase()) {
+    return { ok: false, reason: "Only the platform owner can use this" };
   }
   return { ok: true };
 }

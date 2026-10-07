@@ -3,6 +3,8 @@ import { isAddress } from "viem";
 import {
   deleteCampaign,
   getCampaignBySlug,
+  getCampaignFunnel,
+  goalColumnsAvailable,
   hasJoinedCampaign,
   joinCampaign,
   listAllActiveCampaigns,
@@ -14,6 +16,28 @@ import {
 } from "@/lib/store";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
+import { isGoalType, type GoalType } from "@/lib/types";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Optional text field: undefined = leave alone, null/"" = clear, else trimmed and length-checked. */
+function optText(v: unknown, max: number, name: string): string | null | undefined | Error {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== "string") return new Error(`${name} must be text`);
+  const t = v.trim();
+  if (t.length > max) return new Error(`${name} must be ${max} characters or fewer`);
+  return t || null;
+}
+
+function validHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Campaigns — a business's shareable push, scoped to a stretch of time and a subset of
@@ -22,6 +46,8 @@ import { ORG_ACTIONS } from "@/lib/org-action";
  *   GET  ?orgId=1        – everything this business is running
  *   GET  ?slug=…         – one campaign, for the shared link
  *   GET  ?slug=…&address – …and whether that person has joined
+ *   GET  ?funnel=<campaignId>&orgId=1 – the campaign's share → join → submit → approve counts
+ *   GET  ?capabilities=goals – { goalsAvailable } (are the goal columns usable?)
  *   POST                 – join
  *
  * Joining scopes what you see; it never changes what you earn. Weight and approval
@@ -45,6 +71,22 @@ export async function GET(req: NextRequest) {
     const joined =
       address && isAddress(address) ? await hasJoinedCampaign(campaign.id, address) : false;
     return NextResponse.json({ campaign, joined });
+  }
+
+  if (params.get("capabilities") === "goals") {
+    return NextResponse.json({ goalsAvailable: await goalColumnsAvailable() });
+  }
+
+  const funnelId = params.get("funnel");
+  if (funnelId) {
+    if (!orgId || !UUID.test(funnelId)) {
+      return NextResponse.json({ error: "funnel needs a campaign id and orgId" }, { status: 400 });
+    }
+    const funnel = await getCampaignFunnel(orgId, funnelId);
+    if (!funnel) {
+      return NextResponse.json({ error: "No such campaign for this org" }, { status: 404 });
+    }
+    return NextResponse.json({ funnel });
   }
 
   const joinedBy = params.get("joinedBy");
@@ -72,7 +114,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "orgId or slug is required" }, { status: 400 });
   }
   const campaigns = await listCampaigns(orgId);
-  return NextResponse.json({ campaigns });
+  return NextResponse.json({ campaigns, goalsAvailable: await goalColumnsAvailable() });
 }
 
 /** Create or update a campaign — the business side. POST stays the advocate's Join. */
@@ -84,7 +126,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { id, orgId, title, blurb, coverUrl, endsAt, active, engagementTypeIds, address, ts, signature } =
+  const {
+    id, orgId, title, blurb, coverUrl, endsAt, active, engagementTypeIds, address, ts, signature,
+    goalType, goalTarget, goalLabel, offerName, offerUrl,
+  } =
     body as {
       id?: string;
       orgId?: string;
@@ -94,6 +139,11 @@ export async function PUT(req: NextRequest) {
       endsAt?: string | null;
       active?: boolean;
       engagementTypeIds?: string[];
+      goalType?: GoalType | null;
+      goalTarget?: number | null;
+      goalLabel?: string | null;
+      offerName?: string | null;
+      offerUrl?: string | null;
       address?: string;
       ts?: number;
       signature?: string;
@@ -104,6 +154,23 @@ export async function PUT(req: NextRequest) {
   }
   if (!title?.trim()) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
+  }
+
+  // Goal fields: undefined leaves the stored value alone, null clears it.
+  if (goalType != null && !isGoalType(goalType)) {
+    return NextResponse.json({ error: "goalType is not a known goal" }, { status: 400 });
+  }
+  if (goalTarget != null && (!Number.isInteger(goalTarget) || goalTarget < 1 || goalTarget > 1_000_000)) {
+    return NextResponse.json({ error: "goalTarget must be a whole number from 1 to 1,000,000" }, { status: 400 });
+  }
+  const label = optText(goalLabel, 30, "goalLabel");
+  const offer = optText(offerName, 80, "offerName");
+  const url = optText(offerUrl, 300, "offerUrl");
+  for (const v of [label, offer, url]) {
+    if (v instanceof Error) return NextResponse.json({ error: v.message }, { status: 400 });
+  }
+  if (typeof url === "string" && !validHttpUrl(url)) {
+    return NextResponse.json({ error: "offerUrl must be an http(s) link" }, { status: 400 });
   }
 
   const auth = await requireApprover({
@@ -127,8 +194,16 @@ export async function PUT(req: NextRequest) {
       endsAt: endsAt || null,
       active,
       engagementTypeIds,
+      goalType,
+      goalTarget,
+      goalLabel: label as string | null | undefined,
+      offerName: offer as string | null | undefined,
+      offerUrl: url as string | null | undefined,
     });
-    return NextResponse.json({ campaign }, { status: id ? 200 : 201 });
+    return NextResponse.json(
+      { campaign, goalsAvailable: await goalColumnsAvailable() },
+      { status: id ? 200 : 201 }
+    );
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not save campaign" },
