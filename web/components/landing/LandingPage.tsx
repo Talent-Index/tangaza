@@ -276,6 +276,17 @@ function HowItWorks() {
 
 /* ------------------------------------------------------------------------ pilots */
 
+/**
+ * Bold solid card skins the stack cycles through — fixed hexes on purpose, so the
+ * cards read identically in the dark and light skins (only the page behind them flips).
+ */
+const CARD_SKINS = [
+  { bg: "#15150f", fg: "#f5f4ee", sub: "rgba(245,244,238,0.72)", chip: "#f5f4ee", chipFg: "#15150f" },
+  { bg: "#0d5c3d", fg: "#ffffff", sub: "rgba(255,255,255,0.78)", chip: "#ffffff", chipFg: "#0d5c3d" },
+  { bg: "#1f9d63", fg: "#ffffff", sub: "rgba(255,255,255,0.82)", chip: "#ffffff", chipFg: "#15724a" },
+  { bg: "#d9a441", fg: "#17130a", sub: "rgba(23,19,10,0.72)", chip: "#17130a", chipFg: "#f2e3c4" },
+] as const;
+
 function Pilots({ stats }: { stats: Stats | null }) {
   const pilots = stats?.pilots ?? [];
   return (
@@ -292,78 +303,111 @@ function Pilots({ stats }: { stats: Stats | null }) {
             {stats ? "No campaigns are live this moment." : "Loading live campaigns…"}
           </p>
         ) : (
-          <>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pilots.map((p) => (
-                <li key={p.id} className="flex">
-                  <PilotCard pilot={p} />
-                </li>
-              ))}
-            </ul>
-          </>
+          /* The deck: every card pins just below the top of the viewport and the next
+             one slides up over it, so browsing campaigns is one scroll through
+             identical cards. */
+          <div className="mx-auto mt-10 max-w-2xl">
+            {pilots.map((p, i) => (
+              <div
+                key={p.id}
+                className="sticky pb-6"
+                style={{ top: `calc(4rem + ${i * 1.25}rem)`, zIndex: i + 1 }}
+              >
+                <PilotCard pilot={p} skin={CARD_SKINS[i % CARD_SKINS.length]} />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </section>
   );
 }
 
-/** One campaign. Every card has the same parts in the same places, cover or no cover. */
-function PilotCard({ pilot: p }: { pilot: Stats["pilots"][number] }) {
-  const shown = p.rewards.slice(0, 2);
+/**
+ * One campaign in the deck. Every card has the same parts in the same order —
+ * cover (or mark), business, title, blurb, what you get, join — so flipping
+ * through the stack never rearranges anything, only recolors it.
+ */
+function PilotCard({
+  pilot: p,
+  skin,
+}: {
+  pilot: Stats["pilots"][number];
+  skin: (typeof CARD_SKINS)[number];
+}) {
+  const shown = p.rewards.slice(0, 3);
   const more = p.rewards.length - shown.length;
   return (
     <Link
       href={`/c/${p.slug}`}
-      className={`${PANEL} group flex w-full flex-col overflow-hidden transition hover:border-crimson-500`}
+      className="group relative block overflow-hidden rounded-3xl px-6 py-10 text-center shadow-2xl transition duration-300 hover:-translate-y-1 sm:px-12 sm:py-12"
+      style={{ backgroundColor: skin.bg, color: skin.fg }}
     >
-      <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-ink-800">
+      {/* Tone-on-tone weave, like the leaf motif on the reference cards. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage: `repeating-linear-gradient(135deg, transparent 0 14px, ${skin.fg} 14px 15px), repeating-linear-gradient(45deg, transparent 0 14px, ${skin.fg} 14px 15px)`,
+        }}
+        aria-hidden
+      />
+
+      <div className="relative">
         {p.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={p.coverUrl}
             alt=""
             loading="lazy"
-            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            className="mx-auto h-36 w-full max-w-md rounded-2xl object-cover sm:h-44"
           />
         ) : (
-          <div
-            className="size-full"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--color-ink-600) 40%, transparent) 10px 12px)",
-            }}
-            aria-hidden
-          />
+          <span
+            className="mx-auto grid size-14 place-items-center rounded-2xl"
+            style={{ backgroundColor: skin.chip, color: skin.chipFg }}
+          >
+            <Icon name="gift" className="size-6" />
+          </span>
         )}
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 bg-ink-950/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-jade-400 light:rounded-full">
-          <span className="size-1.5 rounded-full bg-jade-400" aria-hidden /> Live
-        </span>
-      </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <p className={`${MONO} truncate text-mist-500`}>{p.orgName}</p>
-        <h3 className="mt-1.5 line-clamp-2 break-words text-lg font-bold leading-snug">{p.title}</h3>
+        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: skin.sub }}>
+          {p.orgName} · Live
+        </p>
+        <h3 className="mx-auto mt-3 max-w-lg break-words text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl">
+          {p.title}
+        </h3>
         {p.blurb ? (
-          <p className="mt-1.5 line-clamp-2 break-words text-sm leading-snug text-mist-400">{p.blurb}</p>
+          <p className="mx-auto mt-4 max-w-md break-words text-sm leading-relaxed sm:text-base" style={{ color: skin.sub }}>
+            {p.blurb}
+          </p>
         ) : null}
 
-        <div className="mt-auto pt-4">
-          <div className="border-t border-dashed border-ink-600 pt-3">
-            <p className={`${MONO} text-crimson-500`}>You get</p>
-            {shown.length > 0 ? (
-              <p className="mt-1.5 line-clamp-2 break-words text-sm font-semibold">
-                {shown.join(" · ")}
-                {more > 0 ? <span className="font-normal text-mist-500"> · +{more} more</span> : null}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-sm text-mist-500">Rewards from {p.orgName}</p>
-            )}
-          </div>
-          <p className="mt-3 font-mono text-xs text-mist-500">
-            {p.approved > 0 ? `${p.approved} approved` : "Open to join"}
-            {p.participants > 0 ? ` · ${p.participants} taking part` : ""}
+        <div className="mx-auto mt-6 max-w-md border-t pt-5" style={{ borderColor: `color-mix(in srgb, ${skin.fg} 25%, transparent)` }}>
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: skin.sub }}>
+            You get
           </p>
+          {shown.length > 0 ? (
+            <p className="mt-2 break-words text-base font-bold sm:text-lg">
+              {shown.join(" · ")}
+              {more > 0 ? <span style={{ color: skin.sub }}> · +{more} more</span> : null}
+            </p>
+          ) : (
+            <p className="mt-2 text-sm" style={{ color: skin.sub }}>
+              Rewards from {p.orgName}
+            </p>
+          )}
         </div>
+
+        <span
+          className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full px-7 text-sm font-bold transition group-hover:opacity-90"
+          style={{ backgroundColor: skin.chip, color: skin.chipFg }}
+        >
+          Join campaign <Icon name="send" className="size-4" />
+        </span>
+        <p className="mt-4 font-mono text-xs" style={{ color: skin.sub }}>
+          {p.approved > 0 ? `${p.approved} approved` : "Open to join"}
+          {p.participants > 0 ? ` · ${p.participants} taking part` : ""}
+        </p>
       </div>
     </Link>
   );
