@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { BrandMark, Card, ErrorNote, Pill, SectionTitle, Spinner } from "@/components/ui";
@@ -87,8 +87,42 @@ interface ReadResponse {
   rows: OutreachRow[];
   notionConfigured: boolean;
   runConfigured: boolean;
+  /** Whether this deployment can run searches itself, and which env vars are missing if not. */
+  inApp: { ready: boolean; missing: string[] };
   notionUrl: string;
   error?: string;
+}
+
+interface StepResult {
+  business: string;
+  ok: boolean;
+  skipped?: boolean;
+  status?: string;
+  email?: string;
+  note?: string;
+  error?: string;
+}
+
+interface PlanResponse {
+  plan: {
+    ticket: string;
+    candidates: { id: string; business: string; location: string; website: string }[];
+    warnings: string[];
+    found: number;
+    deferred: number;
+  };
+}
+
+/** Process one business from a signed plan. No wallet prompt: the ticket is the authority. */
+async function postStep(ticket: string, index: number): Promise<StepResult> {
+  const res = await fetch("/api/admin/outreach", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "step", ticket, index }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { result?: StepResult; error?: string };
+  if (!res.ok || !json.result) throw Object.assign(new Error(json.error ?? `Request failed (${res.status})`), { status: res.status });
+  return json.result;
 }
 
 function Console({ account }: { account: Account }) {
@@ -133,7 +167,12 @@ function Outreach({ account }: { account: Account }) {
 
   return (
     <div className="min-w-0 space-y-8">
-      <RunPanel account={account} runConfigured={data?.runConfigured ?? false} onStarted={load} />
+      <RunPanel
+        account={account}
+        runConfigured={data?.runConfigured ?? false}
+        inApp={data?.inApp ?? { ready: false, missing: [] }}
+        onStarted={load}
+      />
 
       <section className="min-w-0">
         <SectionTitle
@@ -250,7 +289,14 @@ function BusinessCard({ row }: { row: OutreachRow }) {
         ) : null}
       </dl>
 
-      {row.campaigns ? <p className="mt-3 line-clamp-3 text-xs text-mist-500">{row.campaigns}</p> : null}
+      {row.vision ? (
+        <p className="mt-3 line-clamp-3 text-xs text-mist-400">
+          <span className="text-mist-500">Goal: </span>
+          {row.vision}
+        </p>
+      ) : null}
+      {row.campaigns ? <p className="mt-2 line-clamp-3 text-xs text-mist-500">{row.campaigns}</p> : null}
+      {row.draftBody ? <DraftBlock row={row} /> : null}
       {row.lastReply ? <p className="mt-3 text-sm text-mist-300">“{row.lastReply}”</p> : null}
       {row.nextAction ? (
         <p className="mt-3 text-xs">
@@ -266,6 +312,40 @@ function BusinessCard({ row }: { row: OutreachRow }) {
         </a>
       </div>
     </Card>
+  );
+}
+
+function DraftBlock({ row }: { row: OutreachRow }) {
+  const [copied, setCopied] = useState(false);
+  const full = row.draftSubject ? `${row.draftSubject}\n\n${row.draftBody}` : row.draftBody;
+  const mailto = row.email
+    ? `mailto:${row.email}?subject=${encodeURIComponent(row.draftSubject)}&body=${encodeURIComponent(row.draftBody)}`
+    : null;
+  return (
+    <details className="mt-3 rounded-lg border border-ink-700 px-3 py-2">
+      <summary className="cursor-pointer text-xs text-mist-400">Draft message</summary>
+      {row.draftSubject ? <p className="mt-2 text-sm font-semibold">{row.draftSubject}</p> : null}
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm text-mist-300">{row.draftBody}</p>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        {mailto ? (
+          <a href={mailto} className="rounded-lg border border-ink-600 px-3 py-2 hover:border-mist-400">
+            Open in mail
+          </a>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard?.writeText(full).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+          className="rounded-lg border border-ink-600 px-3 py-2 hover:border-mist-400"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </details>
   );
 }
 
@@ -287,13 +367,19 @@ function NotionSetup() {
 function RunPanel({
   account,
   runConfigured,
+  inApp,
   onStarted,
 }: {
   account: Account;
   runConfigured: boolean;
+  inApp: { ready: boolean; missing: string[] };
   onStarted: () => void;
 }) {
-  const [mode, setMode] = useState<"full" | "outreach" | "replies">("full");
+  // An external trigger wins if configured; otherwise the app runs the search itself.
+  const inAppMode = !runConfigured && inApp.ready;
+  const canRun = runConfigured || inApp.ready;
+
+  const [mode, setMode] = useState<"full" | "outreach" | "replies">("outreach");
   const [useSearch, setUseSearch] = useState(true);
   const [queries, setQueries] = useState("coffee shop, salon, boutique, barbershop");
   const [location, setLocation] = useState("Nairobi, Kenya");
@@ -302,28 +388,72 @@ function RunPanel({
   const [maxNew, setMaxNew] = useState(15);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [progress, setProgress] = useState<{ total: number; done: number; current: string } | null>(null);
+  const [results, setResults] = useState<StepResult[]>([]);
+  const stop = useRef(false);
+
+  async function startInApp(searchParams: { queries: string[]; location: string; country: string; perQuery: number }) {
+    setResults([]);
+    setProgress({ total: 0, done: 0, current: "Searching Google Maps…" });
+    const { plan } = await callApi<PlanResponse>(account, OUTREACH_ACTIONS.run, {
+      params: { mode: "outreach", maxNew, search: searchParams },
+    });
+    const warn = plan.warnings.length ? ` ${plan.warnings.join(" ")}` : "";
+    if (plan.candidates.length === 0) {
+      setMsg({
+        ok: plan.warnings.length === 0,
+        text: `Found ${plan.found} businesses, none new to the tracker.${warn}`,
+      });
+      return;
+    }
+
+    const done: StepResult[] = [];
+    for (let i = 0; i < plan.candidates.length; i++) {
+      if (stop.current) break;
+      const c = plan.candidates[i];
+      setProgress({ total: plan.candidates.length, done: i, current: c.business });
+      try {
+        done.push(await postStep(plan.ticket, i));
+      } catch (err) {
+        const e = err as Error & { status?: number };
+        done.push({ business: c.business, ok: false, error: e.message });
+        if (e.status === 401) break; // the run expired; the rest would fail the same way
+      }
+      setResults([...done]);
+    }
+    const added = done.filter((r) => r.ok && !r.skipped).length;
+    const failed = done.filter((r) => !r.ok).length;
+    setMsg({
+      ok: failed === 0,
+      text:
+        `Added ${added} of ${plan.candidates.length} to the tracker${failed ? `, ${failed} failed` : ""}` +
+        `${stop.current ? " (stopped early)" : ""}.` +
+        `${plan.deferred ? ` ${plan.deferred} more found, run again to continue.` : ""}${warn}`,
+    });
+  }
 
   async function start(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setMsg(null);
+    stop.current = false;
     try {
       const list = queries.split(",").map((q) => q.trim()).filter(Boolean);
-      await callApi(account, OUTREACH_ACTIONS.run, {
-        params: {
-          mode,
-          maxNew,
-          ...(useSearch && mode !== "replies"
-            ? { search: { queries: list, location: location.trim(), country: country.trim().toLowerCase(), perQuery } }
-            : {}),
-        },
-      });
-      setMsg({ ok: true, text: "Run started. New businesses appear below as the workflow finishes — refresh in a few minutes." });
+      const searchParams = { queries: list, location: location.trim(), country: country.trim().toLowerCase(), perQuery };
+      if (inAppMode) {
+        await startInApp(searchParams);
+      } else {
+        await callApi(account, OUTREACH_ACTIONS.run, {
+          params: { mode, maxNew, ...(useSearch && mode !== "replies" ? { search: searchParams } : {}) },
+        });
+        setMsg({ ok: true, text: "Run started. New businesses appear below as the workflow finishes — refresh in a few minutes." });
+      }
       onStarted();
     } catch (err) {
       setMsg({ ok: false, text: err instanceof Error ? err.message : "Could not start the run" });
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -331,22 +461,31 @@ function RunPanel({
     <Card>
       <SectionTitle>Start a run</SectionTitle>
       <form onSubmit={start} className="min-w-0 space-y-4">
-        <label className="block text-sm">
-          <span className="mb-1 block text-mist-400">What to do</span>
-          <select className={FIELD} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-            <option value="full">Find new businesses and check replies</option>
-            <option value="outreach">Find new businesses only</option>
-            <option value="replies">Check replies only</option>
-          </select>
-        </label>
+        {!inAppMode ? (
+          <label className="block text-sm">
+            <span className="mb-1 block text-mist-400">What to do</span>
+            <select className={FIELD} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
+              <option value="full">Find new businesses and check replies</option>
+              <option value="outreach">Find new businesses only</option>
+              <option value="replies">Check replies only</option>
+            </select>
+          </label>
+        ) : (
+          <p className="text-sm text-mist-400">
+            Searches Google Maps (SerpApi), researches each business and writes a draft message (Gemini), and adds
+            it to the tracker. Replies are checked from Claude Code, since that needs your Gmail.
+          </p>
+        )}
 
-        {mode !== "replies" ? (
+        {mode !== "replies" || inAppMode ? (
           <>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={useSearch} onChange={(e) => setUseSearch(e.target.checked)} />
-              Search Google Maps for new businesses (SerpApi)
-            </label>
-            {useSearch ? (
+            {!inAppMode ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={useSearch} onChange={(e) => setUseSearch(e.target.checked)} />
+                Search Google Maps for new businesses (SerpApi)
+              </label>
+            ) : null}
+            {useSearch || inAppMode ? (
               <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                 <label className="block min-w-0 text-sm sm:col-span-2">
                   <span className="mb-1 block text-mist-400">Business types (comma separated)</span>
@@ -374,15 +513,46 @@ function RunPanel({
         ) : null}
 
         <p className="text-xs text-mist-500">
-          The workflow writes Gmail drafts and Notion rows. It never sends an email — you review and send each draft yourself.
+          Messages are drafts stored on each row. Nothing is sent — you review each one and send it yourself.
         </p>
 
-        {!runConfigured ? (
+        {!canRun ? (
           <p className="rounded-lg border border-amber-glow/40 px-3 py-2 text-xs text-amber-glow">
-            Run trigger not configured (set OUTREACH_RUN_URL and OUTREACH_RUN_TOKEN on the server). Until then, start runs from
-            Claude Code.
+            {inApp.missing.length
+              ? `Set ${inApp.missing.join(", ")} on the server and redeploy to run from here.`
+              : "Run trigger not configured."}{" "}
+            Until then, start runs from Claude Code.
           </p>
         ) : null}
+
+        {progress ? (
+          <div role="status" className="space-y-2">
+            <p className="text-sm text-mist-300">
+              {progress.total ? `Researching ${progress.done + 1} of ${progress.total}: ${progress.current}` : progress.current}
+            </p>
+            {progress.total ? (
+              <div className="h-1.5 overflow-hidden rounded-full bg-ink-700">
+                <div className="h-full bg-crimson-500 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+              </div>
+            ) : null}
+            <button type="button" onClick={() => (stop.current = true)} className="text-xs text-mist-400 underline underline-offset-2">
+              Stop after this one
+            </button>
+          </div>
+        ) : null}
+
+        {results.length ? (
+          <ul className="space-y-1 text-xs">
+            {results.map((r, i) => (
+              <li key={i} className={`break-words ${r.ok ? "text-mist-400" : "text-crimson-300"}`}>
+                {r.ok ? (r.skipped ? "• " : "✓ ") : "✗ "}
+                {r.business}
+                {r.ok ? (r.skipped ? ` — ${r.note}` : r.email ? ` — ${r.email}` : " — no public email") : ` — ${r.error}`}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         {msg ? (
           msg.ok ? (
             <p className="rounded-lg border border-jade-500/40 bg-jade-500/10 px-3 py-2 text-sm text-jade-400">{msg.text}</p>
@@ -393,10 +563,10 @@ function RunPanel({
 
         <button
           type="submit"
-          disabled={busy || !runConfigured}
+          disabled={busy || !canRun}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-crimson-500 px-6 py-3 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto"
         >
-          {busy ? <Spinner className="size-4" /> : null} {busy ? "Starting…" : "Start run"}
+          {busy ? <Spinner className="size-4" /> : null} {busy ? "Running…" : "Start run"}
         </button>
       </form>
     </Card>
