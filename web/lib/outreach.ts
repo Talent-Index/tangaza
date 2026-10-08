@@ -18,6 +18,15 @@ const RUN_URL = process.env.OUTREACH_RUN_URL?.trim();
 const RUN_TOKEN = process.env.OUTREACH_RUN_TOKEN?.trim();
 
 export const outreachNotionConfigured = Boolean(NOTION_KEY);
+/** The tracker database id, and a ready-made header set — shared with lib/outreach-run.ts. */
+export const OUTREACH_DB_ID = DB_ID;
+export function notionHeaders(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${NOTION_KEY ?? ""}`,
+    "Notion-Version": "2022-06-28",
+    "Content-Type": "application/json",
+  };
+}
 export const outreachRunConfigured = Boolean(RUN_URL && RUN_TOKEN);
 export const OUTREACH_NOTION_URL = `https://www.notion.so/${DB_ID}`;
 
@@ -40,6 +49,10 @@ export interface OutreachRow {
   firstDrafted: string;
   lastChecked: string;
   searchQuery: string;
+  vision: string;
+  channel: string;
+  draftSubject: string;
+  draftBody: string;
 }
 
 type Prop = Record<string, unknown> | undefined;
@@ -76,6 +89,10 @@ function toRow(page: Record<string, unknown>): OutreachRow {
     firstDrafted: date(props["First drafted"]),
     lastChecked: date(props["Last checked"]),
     searchQuery: text(props["Search query"]),
+    vision: text(props["Vision / goal"]),
+    channel: select(props["Channel"]),
+    draftSubject: text(props["Draft subject"]),
+    draftBody: text(props["Draft body"]),
   };
 }
 
