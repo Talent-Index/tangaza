@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { BrandMark, Card, ErrorNote, Pill, SectionTitle, Spinner } from "@/components/ui";
-import { useContractOwner } from "@/lib/hooks";
 import { OUTREACH_ACTIONS, signOutreachAction, type OutreachAction } from "@/lib/outreach-action";
 import type { OutreachRow } from "@/lib/outreach";
 
@@ -93,26 +92,7 @@ interface ReadResponse {
 }
 
 function Console({ account }: { account: Account }) {
-  const owner = useContractOwner();
-  const isOwner = owner.data ? owner.data.toLowerCase() === account.address.toLowerCase() : null;
-
-  if (owner.loading && !owner.data) {
-    return (
-      <div className="grid place-items-center py-24">
-        <Spinner className="size-6" />
-      </div>
-    );
-  }
-  if (isOwner === false) {
-    return (
-      <Card>
-        <p className="text-sm text-mist-400">
-          This console is for the platform owner. You are signed in as{" "}
-          <span className="break-all font-mono text-xs">{account.address}</span>.
-        </p>
-      </Card>
-    );
-  }
+  // Access is decided by the server (OUTREACH_ADMINS or the contract owner), not here.
   return <Outreach account={account} />;
 }
 
@@ -173,7 +153,17 @@ function Outreach({ account }: { account: Account }) {
           Businesses
         </SectionTitle>
 
-        {error ? <ErrorNote>{error}</ErrorNote> : null}
+        {error ? (
+          <div className="space-y-2">
+            <ErrorNote>{error}</ErrorNote>
+            {error.includes("OUTREACH_ADMINS") ? (
+              <p className="text-xs text-mist-500">
+                Signed in as <span className="break-all font-mono">{account.address}</span>. Add this address to
+                OUTREACH_ADMINS on the server, redeploy, then refresh.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {data && !data.notionConfigured ? <NotionSetup /> : null}
         {data?.error ? <ErrorNote>{data.error}</ErrorNote> : null}
 
