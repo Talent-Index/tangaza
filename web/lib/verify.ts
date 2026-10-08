@@ -197,9 +197,22 @@ const OWNER_ABI = [
 ] as const;
 
 /**
- * Authorises a platform-owner action (the outreach console): the caller must sign the
- * canonical message AND be the contract owner, read from the chain — the same account
- * /admin already treats as the platform operator.
+ * Accounts allowed into the outreach console besides the contract owner, from
+ * OUTREACH_ADMINS (comma-separated addresses, server-only). The owner key deploys
+ * contracts and rotates approvers, so it should not have to live in a browser wallet
+ * just to read a tracker — list the account you normally sign in with here instead.
+ */
+function outreachAdmins(): string[] {
+  return (process.env.OUTREACH_ADMINS ?? "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => /^0x[0-9a-f]{40}$/.test(a));
+}
+
+/**
+ * Authorises an outreach-console action: the caller must sign the canonical message AND
+ * be either listed in OUTREACH_ADMINS or be the contract owner, read from the chain —
+ * the same account /admin treats as the platform operator.
  */
 export async function requireOwner(p: {
   address: string;
@@ -217,6 +230,8 @@ export async function requireOwner(p: {
   });
   if (!signed.ok) return signed;
 
+  if (outreachAdmins().includes(p.address.toLowerCase())) return { ok: true };
+
   let owner: string;
   try {
     owner = (
@@ -230,7 +245,10 @@ export async function requireOwner(p: {
     return { ok: false, reason: "Could not read the contract owner" };
   }
   if (owner !== p.address.toLowerCase()) {
-    return { ok: false, reason: "Only the platform owner can use this" };
+    return {
+      ok: false,
+      reason: "This account isn't allowed in the outreach console. Add it to OUTREACH_ADMINS.",
+    };
   }
   return { ok: true };
 }
