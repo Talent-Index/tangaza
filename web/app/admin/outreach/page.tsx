@@ -103,7 +103,10 @@ interface StepResult {
   error?: string;
   retryAfter?: number;
   daily?: boolean;
+  usage?: { inTok: number; outTok: number; searches: number };
 }
+
+const kTok = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 interface PlanResponse {
   plan: {
@@ -418,7 +421,7 @@ function RunPanel({
       const c = plan.candidates[i];
       let result: StepResult | null = null;
 
-      // Gemini rate limits are per minute: wait out what Google asks for, a few times, then stop.
+      // Model rate limits are per minute: wait out what Google asks for, a few times, then stop.
       for (let attempt = 0; attempt < 4 && !result; attempt++) {
         setProgress({ total: plan.candidates.length, done: i, current: c.business });
         let r: StepResult;
@@ -433,16 +436,16 @@ function RunPanel({
         }
         if (r.ok || !r.retryAfter || r.daily || stoppedBy) {
           result = r;
-          if (r.daily) stoppedBy = r.error ?? "Gemini daily quota used up";
+          if (r.daily) stoppedBy = r.error ?? "The model quota is used up.";
           break;
         }
         if (attempt === 3) {
           result = r;
-          stoppedBy = r.error ?? "Gemini rate limit";
+          stoppedBy = r.error ?? "Model rate limit";
           break;
         }
         for (let left = r.retryAfter; left > 0 && !stop.current; left--) {
-          setProgress({ total: plan.candidates.length, done: i, current: `Waiting ${left}s for Gemini's rate limit…` });
+          setProgress({ total: plan.candidates.length, done: i, current: `Waiting ${left}s for the model's rate limit…` });
           await sleep(1000);
         }
         if (stop.current) {
@@ -510,8 +513,8 @@ function RunPanel({
           </label>
         ) : (
           <p className="text-sm text-mist-400">
-            Searches Google Maps (SerpApi), researches each business and writes a draft message (Gemini), and adds
-            it to the tracker. Replies are checked from Claude Code, since that needs your Gmail.
+            Searches Google Maps (SerpApi), researches each business and writes a draft message (Claude or
+            Gemini), and adds it to the tracker. Replies are checked from Claude Code, since that needs your Gmail.
           </p>
         )}
 
@@ -586,6 +589,9 @@ function RunPanel({
                 {r.ok ? (r.skipped ? "• " : "✓ ") : "✗ "}
                 {r.business}
                 {r.ok ? (r.skipped ? ` — ${r.note}` : r.email ? ` — ${r.email}` : " — no public email") : ` — ${r.error}`}
+                {r.usage && (r.usage.inTok || r.usage.outTok)
+                  ? ` (${kTok(r.usage.inTok)} in, ${kTok(r.usage.outTok)} out, ${r.usage.searches} searches)`
+                  : ""}
               </li>
             ))}
           </ul>
