@@ -21,6 +21,8 @@ const SERPAPI_KEY = process.env.SERPAPI_API_KEY?.trim();
 const GEMINI_KEY = process.env.GEMINI_API_KEY?.trim();
 /** "-latest" aliases survive model retirements; pin a specific model with GEMINI_MODEL. */
 const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-flash-latest";
+/** Optional lighter model for the no-tools drafting call; quotas are per model, so this spreads the load. */
+const GEMINI_DRAFT_MODEL = process.env.GEMINI_DRAFT_MODEL?.trim() || GEMINI_MODEL;
 const SENDER = process.env.OUTREACH_SENDER_NAME?.trim() || "Dan";
 const BOOKING_URL = process.env.OUTREACH_BOOKING_URL?.trim() || "https://www.ubutangaza.biz/book";
 
@@ -183,23 +185,65 @@ export function verifyTicket(ticket: string): TicketPayload | null {
 
 type GeminiResponse = { candidates?: { content?: { parts?: { text?: string }[] } }[] };
 
-async function gemini(body: unknown, timeoutMs: number): Promise<string> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+/** A Gemini failure the caller can act on: how long to wait, and whether waiting can help. */
+class GeminiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly retryAfter = 0,
+    readonly daily = false
+  ) {
+    super(message);
+  }
+}
+
+/** Pull Google's own explanation out of a 429 so the console shows the real cause. */
+async function quotaError(res: Response): Promise<GeminiError> {
+  let reason = "";
+  let retryAfter = 20;
+  let daily = false;
+  try {
+    const j = (await res.json()) as {
+      error?: { message?: string; details?: Record<string, unknown>[] };
+    };
+    reason = (j.error?.message ?? "").split("\n")[0].slice(0, 220);
+    for (const d of j.error?.details ?? []) {
+      const delay = typeof d.retryDelay === "string" ? parseFloat(d.retryDelay) : NaN;
+      if (Number.isFinite(delay)) retryAfter = Math.ceil(delay);
+      const violations = (d.violations ?? []) as { quotaId?: string }[];
+      if (violations.some((v) => /PerDay/i.test(v.quotaId ?? ""))) daily = true;
+    }
+  } catch {
+    // keep the defaults
+  }
+  const detail = reason ? ` Google says: ${reason}` : "";
+  return new GeminiError(
+    daily
+      ? `Gemini's daily quota is used up for this key/model.${detail}`
+      : `Gemini rate limit reached.${detail}`,
+    429,
+    Math.min(Math.max(retryAfter, 5), 60),
+    daily
+  );
+}
+
+async function gemini(body: unknown, timeoutMs: number, model = GEMINI_MODEL): Promise<string> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "x-goog-api-key": GEMINI_KEY ?? "", "Content-Type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
     signal: AbortSignal.timeout(timeoutMs),
   });
+  if (res.status === 429) throw await quotaError(res);
   if (!res.ok) {
-    throw new Error(
+    throw new GeminiError(
       res.status === 404
-        ? `Gemini model "${GEMINI_MODEL}" was not found. Set GEMINI_MODEL to a current model id.`
-        : res.status === 429
-          ? "Gemini rate limit reached. Wait a minute and run again."
-          : res.status === 400 || res.status === 403
-            ? "Gemini rejected the request (check GEMINI_API_KEY and that the model supports Search grounding)."
-            : `Gemini returned ${res.status}`
+        ? `Gemini model "${model}" was not found. Set GEMINI_MODEL to a current model id.`
+        : res.status === 400 || res.status === 403
+          ? "Gemini rejected the request (check GEMINI_API_KEY and that the model supports Search grounding)."
+          : `Gemini returned ${res.status}`,
+      res.status
     );
   }
   const json = (await res.json()) as GeminiResponse;
@@ -312,6 +356,10 @@ export interface StepResult {
   email?: string;
   note?: string;
   error?: string;
+  /** Set when waiting could fix it: the console retries after this many seconds. */
+  retryAfter?: number;
+  /** A daily quota will not recover within a run, so the console stops. */
+  daily?: boolean;
 }
 
 export async function processCandidate(c: Candidate): Promise<StepResult> {
@@ -335,7 +383,7 @@ export async function processCandidate(c: Candidate): Promise<StepResult> {
       );
     } catch (err) {
       // A research timeout should not lose the business: fall through with empty notes.
-      if (err instanceof Error && !/timed out|aborted/i.test(err.message)) throw err;
+      if (err instanceof GeminiError || !(err instanceof Error) || !/timed out|aborted/i.test(err.message)) throw err;
     }
 
     const raw = await gemini(
@@ -343,7 +391,8 @@ export async function processCandidate(c: Candidate): Promise<StepResult> {
         contents: [{ role: "user", parts: [{ text: draftPrompt(c, notes || "(research unavailable)") }] }],
         generationConfig: { temperature: 0.4, responseMimeType: "application/json", responseSchema: DRAFT_SCHEMA },
       },
-      25_000
+      25_000,
+      GEMINI_DRAFT_MODEL
     );
     const d = JSON.parse(raw) as Draft;
 
@@ -388,6 +437,9 @@ export async function processCandidate(c: Candidate): Promise<StepResult> {
 
     return { business: c.business, ok: true, status, email, note: nextAction };
   } catch (err) {
+    if (err instanceof GeminiError && err.status === 429) {
+      return { business: c.business, ok: false, error: err.message, retryAfter: err.retryAfter, daily: err.daily };
+    }
     return { business: c.business, ok: false, error: err instanceof Error ? err.message : "Unexpected error" };
   }
 }

@@ -101,6 +101,8 @@ interface StepResult {
   email?: string;
   note?: string;
   error?: string;
+  retryAfter?: number;
+  daily?: boolean;
 }
 
 interface PlanResponse {
@@ -408,18 +410,54 @@ function RunPanel({
     }
 
     const done: StepResult[] = [];
-    for (let i = 0; i < plan.candidates.length; i++) {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let stoppedBy: string | null = null;
+
+    for (let i = 0; i < plan.candidates.length && !stoppedBy; i++) {
       if (stop.current) break;
       const c = plan.candidates[i];
-      setProgress({ total: plan.candidates.length, done: i, current: c.business });
-      try {
-        done.push(await postStep(plan.ticket, i));
-      } catch (err) {
-        const e = err as Error & { status?: number };
-        done.push({ business: c.business, ok: false, error: e.message });
-        if (e.status === 401) break; // the run expired; the rest would fail the same way
+      let result: StepResult | null = null;
+
+      // Gemini rate limits are per minute: wait out what Google asks for, a few times, then stop.
+      for (let attempt = 0; attempt < 4 && !result; attempt++) {
+        setProgress({ total: plan.candidates.length, done: i, current: c.business });
+        let r: StepResult;
+        try {
+          r = await postStep(plan.ticket, i);
+        } catch (err) {
+          const e = err as Error & { status?: number };
+          r = { business: c.business, ok: false, error: e.message };
+          if (e.status === 401 || e.status === 503) {
+            stoppedBy = e.message; // expired or not configured: the rest would fail the same way
+          }
+        }
+        if (r.ok || !r.retryAfter || r.daily || stoppedBy) {
+          result = r;
+          if (r.daily) stoppedBy = r.error ?? "Gemini daily quota used up";
+          break;
+        }
+        if (attempt === 3) {
+          result = r;
+          stoppedBy = r.error ?? "Gemini rate limit";
+          break;
+        }
+        for (let left = r.retryAfter; left > 0 && !stop.current; left--) {
+          setProgress({ total: plan.candidates.length, done: i, current: `Waiting ${left}s for Gemini's rate limit…` });
+          await sleep(1000);
+        }
+        if (stop.current) {
+          result = r;
+          break;
+        }
       }
+      done.push(result ?? { business: c.business, ok: false, error: "Stopped" });
       setResults([...done]);
+      // A short gap between businesses keeps us under per-minute limits on smaller quotas.
+      if (!stoppedBy && i < plan.candidates.length - 1) await sleep(4000);
+    }
+    if (stoppedBy) {
+      setMsg({ ok: false, text: `Stopped: ${stoppedBy} The remaining businesses were not attempted.` });
+      return;
     }
     const added = done.filter((r) => r.ok && !r.skipped).length;
     const failed = done.filter((r) => !r.ok).length;
