@@ -10,15 +10,22 @@ import {
   draftFromCampaign,
   normalizeOfferUrl,
   parseTarget,
+  rewardPayload,
   type CampaignDraft,
 } from "@/components/goal/CampaignWizard";
 import { CampaignFunnel } from "@/components/goal/CampaignFunnel";
 import { GoalProgress } from "@/components/goal/GoalProgress";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
-import { useCampaigns, useEngagementTypes, useGoalsAvailable, type Campaign } from "@/lib/hooks";
+import {
+  useCampaigns,
+  useEngagementTypes,
+  useGoalsAvailable,
+  useRewardsAvailable,
+  type Campaign,
+} from "@/lib/hooks";
 import { isCampaignLive, isCampaignPast } from "@/lib/campaigns";
-import { goalMeta } from "@/lib/types";
+import { describeCampaignReward, describeRewardRule, goalMeta } from "@/lib/types";
 import { txUrl } from "@/lib/chain";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
@@ -39,6 +46,7 @@ function CampaignsWorkspace() {
   const list = campaigns.data ?? [];
   const types = engagements.data ?? [];
   const goalsAvailable = useGoalsAvailable();
+  const rewardsAvailable = useRewardsAvailable();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -109,6 +117,7 @@ function CampaignsWorkspace() {
                 offerUrl: normalizeOfferUrl(draft.offerUrl) || null,
               }
             : {}),
+          ...(rewardsAvailable === true ? rewardPayload(draft) : {}),
           ...auth,
         }),
       });
@@ -291,6 +300,11 @@ function CampaignsWorkspace() {
                               Upcoming
                             </span>
                           )}
+                          {c.kind === "referral" ? (
+                            <span className="rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-mist-300">
+                              Referral
+                            </span>
+                          ) : null}
                           <span className="text-[11px] text-mist-500">
                             {c.participantCount} joined
                           </span>
@@ -329,6 +343,7 @@ function CampaignsWorkspace() {
               setDraft={setDraft}
               types={types}
               goalsAvailable={goalsAvailable}
+              rewardsAvailable={rewardsAvailable}
               saving={saving}
               error={error}
               launched={launched}
@@ -476,6 +491,13 @@ function CampaignDetailPanel({
               ) : (
                 c.offerName
               )}
+            </p>
+          ) : null}
+          {c.rewardKind ? (
+            <p className="mt-1 break-words text-sm text-mist-400">
+              Reward:{" "}
+              <span className="text-mist-200">{describeCampaignReward(c)}</span>{" "}
+              {describeRewardRule(c.rewardThreshold, c.rewardRepeats)}
             </p>
           ) : null}
           {c.blurb ? <p className="mt-2 text-sm text-mist-400">{c.blurb}</p> : null}

@@ -8,6 +8,7 @@ import {
   type ApplicationStatus,
 } from "@/lib/store";
 import { pledgeMessage } from "@/lib/pledge";
+import { isLocationType } from "@/lib/types";
 import { canAutoRegister, registerOrgOnChain } from "@/lib/registrar";
 import { verifySignedText } from "@/lib/verify";
 
@@ -26,6 +27,20 @@ import { verifySignedText } from "@/lib/verify";
 
 export const dynamic = "force-dynamic";
 
+/** These GETs are unauthenticated: a phone number is for the platform, not the page. */
+function withoutPhone<T extends { contactPhone?: string }>(a: T): Omit<T, "contactPhone"> {
+  const { contactPhone: _phone, ...rest } = a;
+  return rest;
+}
+
+/** "@mama_njeri " → "mama_njeri"; a pasted profile link is kept as typed. Blank → undefined. */
+function handle(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.trim();
+  if (!t) return undefined;
+  return (/^https?:\/\//i.test(t) ? t : t.replace(/^@+/, "")).slice(0, 120);
+}
+
 export async function GET(req: NextRequest) {
   // ?approver= scopes the answer to one wallet's own pledges, which is what the business
   // portal asks for. Without it this is the platform's queue.
@@ -35,13 +50,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "approver must be an address" }, { status: 400 });
     }
     return NextResponse.json({
-      applications: await listApplicationsForApprover(approver),
+      applications: (await listApplicationsForApprover(approver)).map(withoutPhone),
     });
   }
 
   const status = req.nextUrl.searchParams.get("status") as ApplicationStatus | null;
   const applications = await listApplications(status ?? undefined);
-  return NextResponse.json({ applications });
+  return NextResponse.json({ applications: applications.map(withoutPhone) });
 }
 
 export async function POST(req: NextRequest) {
@@ -52,10 +67,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { name, contactEmail, approverAddress, emissionCapKes, pledge, ts, signature } =
+  const {
+    name, contactEmail, contactPhone, locationType, address,
+    socialX, socialTiktok, socialInstagram,
+    approverAddress, emissionCapKes, pledge, ts, signature,
+  } =
     body as {
       name?: string;
       contactEmail?: string;
+      contactPhone?: string;
+      locationType?: string;
+      address?: string;
+      socialX?: string;
+      socialTiktok?: string;
+      socialInstagram?: string;
       approverAddress?: string;
       emissionCapKes?: number;
       pledge?: string;
@@ -65,6 +90,22 @@ export async function POST(req: NextRequest) {
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Business name is required" }, { status: 400 });
+  }
+  if (!isLocationType(locationType)) {
+    return NextResponse.json(
+      { error: "Say whether the business is online, physical or both" },
+      { status: 400 }
+    );
+  }
+  if (!address?.trim()) {
+    return NextResponse.json(
+      { error: locationType === "online" ? "Add your website or shop link" : "Add your address" },
+      { status: 400 }
+    );
+  }
+  const phone = contactPhone?.replace(/[^\d+]/g, "") ?? "";
+  if (!/^\+?\d{9,15}$/.test(phone)) {
+    return NextResponse.json({ error: "Add a phone number we can reach you on" }, { status: 400 });
   }
   if (!approverAddress || !isAddress(approverAddress)) {
     return NextResponse.json(
@@ -102,7 +143,13 @@ export async function POST(req: NextRequest) {
 
   const application = await createApplication({
     name: name.trim().slice(0, 120),
-    contactEmail: contactEmail?.trim().slice(0, 160),
+    contactEmail: contactEmail?.trim().slice(0, 160) || undefined,
+    contactPhone: phone,
+    locationType,
+    address: address.trim().slice(0, 300),
+    socialX: handle(socialX),
+    socialTiktok: handle(socialTiktok),
+    socialInstagram: handle(socialInstagram),
     approverAddress,
     emissionCapKes: Math.floor(emissionCapKes as number),
     pledge: pledge.trim().slice(0, 2000),

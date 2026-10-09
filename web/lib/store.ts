@@ -10,7 +10,7 @@ import type {
   ProofKind,
   XLinkStatus,
 } from "./types";
-import { isGoalType } from "./types";
+import { actionsToNextReward, isGoalType, isLocationType, rewardsEarned, type LocationType } from "./types";
 
 /**
  * The off-chain half of Ubu-Tangaza: engagement types a business defines for itself,
@@ -683,7 +683,20 @@ export interface Campaign {
   approvedCount: number;
   /** Submissions still waiting on the business. */
   pendingCount: number;
+  /** "campaign" (the default) or "referral" — a referral is created from the Referrals page. */
+  kind: CampaignKind;
+  /** What one person earns: its form, amount and currency. All optional. */
+  rewardKind?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  rewardNote?: string;
+  /** Approved actions one person needs under this campaign to earn the reward. */
+  rewardThreshold?: number;
+  /** Earn again every `rewardThreshold` approved actions, rather than once. */
+  rewardRepeats: boolean;
 }
+
+export type CampaignKind = "campaign" | "referral";
 
 const toCampaign = (r: Record<string, unknown>): Campaign => ({
   id: r.id as string,
@@ -705,6 +718,14 @@ const toCampaign = (r: Record<string, unknown>): Campaign => ({
   offerUrl: (r.offer_url as string) || undefined,
   approvedCount: Number(r.approved_count ?? 0),
   pendingCount: Number(r.pending_count ?? 0),
+  // kind/reward_* are absent from c.* until db/019 has been applied.
+  kind: r.kind === "referral" ? "referral" : "campaign",
+  rewardKind: (r.reward_kind as string) || undefined,
+  rewardAmount: r.reward_amount != null ? Number(r.reward_amount) : undefined,
+  rewardCurrency: (r.reward_currency as string) || undefined,
+  rewardNote: (r.reward_note as string) || undefined,
+  rewardThreshold: r.reward_threshold != null ? Number(r.reward_threshold) : undefined,
+  rewardRepeats: Boolean(r.reward_repeats),
 });
 
 /**
@@ -748,6 +769,73 @@ export function goalColumnsAvailable(): Promise<boolean> {
   return goalsReady;
 }
 
+/**
+ * Business profile, campaign rewards, referrals and the rewards-given ledger
+ * (db/019_business_profile_and_campaign_rewards.sql), applied lazily like the goal
+ * columns above. `false` means the database refused the DDL: registration then stores
+ * only what it always did, and campaigns run without rewards.
+ */
+let draftReady: Promise<boolean> | null = null;
+let draftCheckedFalseAt = 0;
+
+export function rewardColumnsAvailable(): Promise<boolean> {
+  if (draftReady && draftCheckedFalseAt && Date.now() - draftCheckedFalseAt > 60_000) {
+    draftReady = null;
+    draftCheckedFalseAt = 0;
+  }
+  draftReady ??= (async () => {
+    try {
+      const have = (await sql`
+        select 1 from information_schema.tables
+        where table_schema = current_schema() and table_name = 'campaign_rewards'`) as unknown[];
+      if (have.length === 0) {
+        await sql`
+          alter table org_applications
+            add column if not exists location_type    text,
+            add column if not exists address          text,
+            add column if not exists social_x         text,
+            add column if not exists social_tiktok    text,
+            add column if not exists social_instagram text`;
+        await sql`
+          alter table orgs
+            add column if not exists contact_email    text,
+            add column if not exists contact_phone    text,
+            add column if not exists location_type    text,
+            add column if not exists address          text,
+            add column if not exists social_x         text,
+            add column if not exists social_tiktok    text,
+            add column if not exists social_instagram text`;
+        await sql`
+          alter table campaigns
+            add column if not exists kind             text not null default 'campaign',
+            add column if not exists reward_kind      text,
+            add column if not exists reward_amount    numeric,
+            add column if not exists reward_currency  text,
+            add column if not exists reward_note      text,
+            add column if not exists reward_threshold integer,
+            add column if not exists reward_repeats   boolean not null default false`;
+        await sql`
+          create table if not exists campaign_rewards (
+            campaign_id   uuid    not null references campaigns(id) on delete cascade,
+            org_id        bigint  not null references orgs(id) on delete cascade,
+            advocate      text    not null,
+            given_count   integer not null default 0 check (given_count >= 0),
+            last_given_at timestamptz,
+            last_given_by text,
+            primary key (campaign_id, advocate)
+          )`;
+        await sql`create index if not exists campaign_rewards_org_idx on campaign_rewards (org_id)`;
+      }
+      return true;
+    } catch (err) {
+      console.warn("[campaigns] reward columns unavailable, running without rewards:", err);
+      draftCheckedFalseAt = Date.now();
+      return false;
+    }
+  })();
+  return draftReady;
+}
+
 /*
  * Approved/pending counts per campaign are aggregated in a derived table and joined 1:1
  * (max() in the outer select just picks that single row) — joining submissions straight
@@ -756,6 +844,7 @@ export function goalColumnsAvailable(): Promise<boolean> {
 
 export async function listCampaigns(orgId: string): Promise<Campaign[]> {
   await goalColumnsAvailable(); // make sure the editor can offer goals; reads work either way
+  await rewardColumnsAvailable();
   const rows = (await sql`
     select c.*,
       coalesce(array_agg(distinct ce.engagement_type_id)
@@ -1024,10 +1113,30 @@ export async function listStandings(
 
 export type ApplicationStatus = "draft" | "signed" | "registered" | "rejected";
 
-export interface OrgApplication {
+export interface BusinessContact {
+  contactEmail?: string;
+  contactPhone?: string;
+  locationType?: LocationType;
+  /** A street address for a physical business, a web link for an online one. */
+  address?: string;
+  socialX?: string;
+  socialTiktok?: string;
+  socialInstagram?: string;
+}
+
+const toContact = (r: Record<string, unknown> | undefined): BusinessContact => ({
+  contactEmail: (r?.contact_email as string) || undefined,
+  contactPhone: (r?.contact_phone as string) || undefined,
+  locationType: isLocationType(r?.location_type) ? r.location_type : undefined,
+  address: (r?.address as string) || undefined,
+  socialX: (r?.social_x as string) || undefined,
+  socialTiktok: (r?.social_tiktok as string) || undefined,
+  socialInstagram: (r?.social_instagram as string) || undefined,
+});
+
+export interface OrgApplication extends BusinessContact {
   id: string;
   name: string;
-  contactEmail?: string;
   approverAddress: string;
   emissionCapKes: number;
   pledge: string;
@@ -1040,9 +1149,9 @@ export interface OrgApplication {
 }
 
 const toApplication = (r: Record<string, unknown>): OrgApplication => ({
+  ...toContact(r),
   id: r.id as string,
   name: r.name as string,
-  contactEmail: (r.contact_email as string) ?? undefined,
   approverAddress: r.approver_address as string,
   emissionCapKes: Number(r.emission_cap_kes),
   pledge: r.pledge as string,
@@ -1061,25 +1170,38 @@ const toApplication = (r: Record<string, unknown>): OrgApplication => ({
  * issue reward liabilities, and registerOrg is onlyOwner for that reason. The platform
  * makes the on-chain call; this is the queue it works from.
  */
-export async function createApplication(input: {
+export async function createApplication(input: BusinessContact & {
   name: string;
-  contactEmail?: string;
   approverAddress: string;
   emissionCapKes: number;
   pledge: string;
   signature: string;
   signedMessage: string;
 }): Promise<OrgApplication> {
-  const rows = await sql`
+  const rows = (await sql`
     insert into org_applications
-      (name, contact_email, approver_address, emission_cap_kes, pledge,
+      (name, contact_email, contact_phone, approver_address, emission_cap_kes, pledge,
        signature, signed_message, signed_at, status)
     values
-      (${input.name}, ${input.contactEmail ?? null}, ${input.approverAddress.toLowerCase()},
+      (${input.name}, ${input.contactEmail ?? null}, ${input.contactPhone ?? null},
+       ${input.approverAddress.toLowerCase()},
        ${input.emissionCapKes}, ${input.pledge}, ${input.signature},
        ${input.signedMessage}, now(), 'signed')
-    returning *`;
-  return toApplication((rows as Array<Record<string, unknown>>)[0]);
+    returning *`) as Array<Record<string, unknown>>;
+
+  // The rest of the contact details live in columns db/019 adds. Without them the
+  // application still files; only those details are dropped.
+  if (await rewardColumnsAvailable()) {
+    const updated = (await sql`
+      update org_applications set
+        location_type = ${input.locationType ?? null}, address = ${input.address ?? null},
+        social_x = ${input.socialX ?? null}, social_tiktok = ${input.socialTiktok ?? null},
+        social_instagram = ${input.socialInstagram ?? null}
+      where id = ${rows[0].id as string}
+      returning *`) as Array<Record<string, unknown>>;
+    return toApplication(updated[0]);
+  }
+  return toApplication(rows[0]);
 }
 
 export async function listApplications(
@@ -1113,6 +1235,30 @@ export async function getApplication(id: string): Promise<OrgApplication | undef
     Record<string, unknown>
   >;
   return rows[0] ? toApplication(rows[0]) : undefined;
+}
+
+/**
+ * How to reach a business. Prefers what is on the orgs row; falls back to the newest
+ * application registered as this org, which covers businesses registered by the admin
+ * script rather than through markApplicationRegistered.
+ */
+export async function getOrgContact(orgId: string): Promise<BusinessContact> {
+  if (!(await rewardColumnsAvailable())) return {};
+  const rows = (await sql`
+    select coalesce(o.contact_email, a.contact_email)       as contact_email,
+           coalesce(o.contact_phone, a.contact_phone)       as contact_phone,
+           coalesce(o.location_type, a.location_type)       as location_type,
+           coalesce(o.address, a.address)                   as address,
+           coalesce(o.social_x, a.social_x)                 as social_x,
+           coalesce(o.social_tiktok, a.social_tiktok)       as social_tiktok,
+           coalesce(o.social_instagram, a.social_instagram) as social_instagram
+    from (select ${orgId}::bigint as id) k
+    left join orgs o on o.id = k.id
+    left join lateral (
+      select * from org_applications
+      where org_id = k.id order by created_at desc limit 1
+    ) a on true`) as Array<Record<string, unknown>>;
+  return toContact(rows[0]);
 }
 
 /** The editable display name a business set, if any. Null falls back to the on-chain name. */
@@ -1285,6 +1431,15 @@ export async function markApplicationRegistered(
   await sql`insert into orgs (id, name, approver)
             select ${orgId}, name, approver_address from org_applications where id = ${id}
             on conflict (id) do nothing`;
+  if (await rewardColumnsAvailable()) {
+    await sql`update orgs o set
+                contact_email = a.contact_email, contact_phone = a.contact_phone,
+                location_type = a.location_type, address = a.address,
+                social_x = a.social_x, social_tiktok = a.social_tiktok,
+                social_instagram = a.social_instagram
+              from org_applications a
+              where a.id = ${id} and o.id = ${orgId}`;
+  }
   const rows = await sql`
     update org_applications
        set status = 'registered', org_id = ${orgId}, registered_tx = ${txHash},
@@ -1313,6 +1468,15 @@ export interface UpsertCampaignInput {
   goalLabel?: string | null;
   offerName?: string | null;
   offerUrl?: string | null;
+  /** Set on creation only; a campaign never turns into a referral or back. */
+  kind?: CampaignKind;
+  /** Reward fields follow the goal fields' rule: undefined = leave alone, null = clear. */
+  rewardKind?: string | null;
+  rewardAmount?: number | null;
+  rewardCurrency?: string | null;
+  rewardNote?: string | null;
+  rewardThreshold?: number | null;
+  rewardRepeats?: boolean;
 }
 
 const slugify = (s: string) =>
@@ -1366,6 +1530,25 @@ export async function upsertCampaign(input: UpsertCampaignInput): Promise<Campai
         goal_label  = case when ${g.goalLabel !== undefined}::boolean then ${g.goalLabel ?? null}::text else goal_label end,
         offer_name  = case when ${g.offerName !== undefined}::boolean then ${g.offerName ?? null}::text else offer_name end,
         offer_url   = case when ${g.offerUrl !== undefined}::boolean then ${g.offerUrl ?? null}::text else offer_url end
+      where id = ${row.id as string} and org_id = ${input.orgId}`;
+  }
+
+  const rewardFields = [
+    input.rewardKind, input.rewardAmount, input.rewardCurrency, input.rewardNote,
+    input.rewardThreshold, input.rewardRepeats,
+  ];
+  const wantsRewards = rewardFields.some((v) => v !== undefined) || input.kind === "referral";
+  if (wantsRewards && (await rewardColumnsAvailable())) {
+    const g = input;
+    await sql`
+      update campaigns set
+        kind             = case when ${!input.id && g.kind === "referral"}::boolean then 'referral' else kind end,
+        reward_kind      = case when ${g.rewardKind !== undefined}::boolean then ${g.rewardKind ?? null}::text else reward_kind end,
+        reward_amount    = case when ${g.rewardAmount !== undefined}::boolean then ${g.rewardAmount ?? null}::numeric else reward_amount end,
+        reward_currency  = case when ${g.rewardCurrency !== undefined}::boolean then ${g.rewardCurrency ?? null}::text else reward_currency end,
+        reward_note      = case when ${g.rewardNote !== undefined}::boolean then ${g.rewardNote ?? null}::text else reward_note end,
+        reward_threshold = case when ${g.rewardThreshold !== undefined}::boolean then ${g.rewardThreshold ?? null}::integer else reward_threshold end,
+        reward_repeats   = case when ${g.rewardRepeats !== undefined}::boolean then ${g.rewardRepeats ?? false}::boolean else reward_repeats end
       where id = ${row.id as string} and org_id = ${input.orgId}`;
   }
 
@@ -1615,4 +1798,221 @@ export async function getOrgCampaignOverview(orgId: string): Promise<OrgCampaign
     })),
     totalUniqueParticipants: unique.size,
   };
+}
+
+/* ------------------------------------------------------ rewards owed and given */
+
+export interface RewardDue {
+  advocate: string;
+  displayName?: string;
+  /** Approved actions under the campaign — what earning is measured against. */
+  approved: number;
+  pending: number;
+  /** Rewards this person has earned under the campaign's rule. */
+  earned: number;
+  /** Rewards the business has marked as handed over. */
+  given: number;
+  /** earned - given, never below zero. */
+  owed: number;
+  /** Approved actions still needed for the next reward; undefined when no more can be earned. */
+  toNext?: number;
+  lastGivenAt?: string;
+}
+
+export interface CampaignRewardLedger {
+  campaign: Campaign;
+  /** Everyone who has done anything under the campaign, most owed first. */
+  people: RewardDue[];
+  earned: number;
+  given: number;
+  owed: number;
+}
+
+/**
+ * Per campaign: who has earned its reward, what has been handed over, and what is
+ * still owed. Earned is derived from approved submissions under the campaign and the
+ * campaign's reward rule (rewardsEarned in lib/types.ts), so it can never drift from
+ * the approvals queue. Only `given` is stored.
+ */
+export async function getRewardLedger(orgId: string): Promise<CampaignRewardLedger[]> {
+  const campaigns = await listCampaigns(orgId);
+  const ready = await rewardColumnsAvailable();
+
+  const rows = (await (ready
+    ? sql`
+      select s.campaign_id, s.advocate,
+        count(*) filter (where s.status = 'approved')::int as approved,
+        count(*) filter (where s.status = 'pending')::int  as pending,
+        coalesce(max(a.display_name), max(s.advocate_label)) as display_name,
+        coalesce(max(cr.given_count), 0)::int as given,
+        max(cr.last_given_at) as last_given_at
+      from submissions s
+      left join advocates a on a.org_id = s.org_id and a.address = s.advocate
+      left join campaign_rewards cr on cr.campaign_id = s.campaign_id and cr.advocate = s.advocate
+      where s.org_id = ${orgId} and s.campaign_id is not null
+      group by s.campaign_id, s.advocate`
+    : sql`
+      select s.campaign_id, s.advocate,
+        count(*) filter (where s.status = 'approved')::int as approved,
+        count(*) filter (where s.status = 'pending')::int  as pending,
+        coalesce(max(a.display_name), max(s.advocate_label)) as display_name,
+        0 as given, null as last_given_at
+      from submissions s
+      left join advocates a on a.org_id = s.org_id and a.address = s.advocate
+      where s.org_id = ${orgId} and s.campaign_id is not null
+      group by s.campaign_id, s.advocate`)) as Array<Record<string, unknown>>;
+
+  const byCampaign = new Map<string, Array<Record<string, unknown>>>();
+  for (const r of rows) {
+    const list = byCampaign.get(r.campaign_id as string) ?? [];
+    list.push(r);
+    byCampaign.set(r.campaign_id as string, list);
+  }
+
+  return campaigns.map((c) => {
+    const people: RewardDue[] = (byCampaign.get(c.id) ?? []).map((r) => {
+      const approved = Number(r.approved);
+      const given = Number(r.given);
+      const earned = c.rewardKind ? rewardsEarned(approved, c.rewardThreshold, c.rewardRepeats) : 0;
+      return {
+        advocate: r.advocate as string,
+        displayName: (r.display_name as string) ?? undefined,
+        approved,
+        pending: Number(r.pending),
+        earned,
+        given,
+        owed: Math.max(0, earned - given),
+        toNext: c.rewardKind ? actionsToNextReward(approved, c.rewardThreshold, c.rewardRepeats) : undefined,
+        lastGivenAt: r.last_given_at ? new Date(r.last_given_at as string).toISOString() : undefined,
+      };
+    });
+    people.sort((a, b) => b.owed - a.owed || b.approved - a.approved || b.pending - a.pending);
+    const sum = (k: "earned" | "given" | "owed") => people.reduce((n, p) => n + p[k], 0);
+    return { campaign: c, people, earned: sum("earned"), given: sum("given"), owed: sum("owed") };
+  });
+}
+
+/**
+ * Record that the business handed `delta` rewards to a person (negative to undo a
+ * mistake). Clamped to [0, earned], so a double-click can't record more than was earned.
+ * Returns the new given count, or undefined when the campaign isn't this org's.
+ */
+export async function recordRewardGiven(input: {
+  orgId: string;
+  campaignId: string;
+  advocate: string;
+  delta: number;
+  by: string;
+}): Promise<{ given: number; earned: number } | undefined> {
+  if (!(await rewardColumnsAvailable())) throw new Error("Rewards aren't available on this setup yet");
+  const advocate = input.advocate.toLowerCase();
+  const rows = (await sql`
+    select c.reward_kind, c.reward_threshold, c.reward_repeats,
+      (select count(*) from submissions s
+        where s.campaign_id = c.id and s.advocate = ${advocate} and s.status = 'approved')::int as approved
+    from campaigns c where c.id = ${input.campaignId} and c.org_id = ${input.orgId}`) as Array<
+    Record<string, unknown>
+  >;
+  const c = rows[0];
+  if (!c) return undefined;
+  const earned = c.reward_kind
+    ? rewardsEarned(
+        Number(c.approved),
+        c.reward_threshold == null ? undefined : Number(c.reward_threshold),
+        Boolean(c.reward_repeats)
+      )
+    : 0;
+
+  const saved = (await sql`
+    insert into campaign_rewards (campaign_id, org_id, advocate, given_count, last_given_at, last_given_by)
+    values (${input.campaignId}, ${input.orgId}, ${advocate},
+            greatest(0, least(${earned}::int, ${input.delta}::int)), now(), ${input.by.toLowerCase()})
+    on conflict (campaign_id, advocate) do update set
+      given_count = greatest(0, least(${earned}::int, campaign_rewards.given_count + ${input.delta}::int)),
+      last_given_at = now(), last_given_by = excluded.last_given_by
+    returning given_count`) as Array<Record<string, unknown>>;
+  return { given: Number(saved[0].given_count), earned };
+}
+
+/* --------------------------------------------------------------- referrals */
+
+/**
+ * The engagement a referral counts: the org's active referral-category types, or a
+ * "Brought a friend" type created on the spot so a business never has to set one up
+ * before it can create a referral.
+ */
+export async function ensureReferralEngagementIds(orgId: string): Promise<string[]> {
+  const existing = (await sql`
+    select id from engagement_types
+    where org_id = ${orgId} and active and chain_category = 0`) as Array<{ id: string }>;
+  if (existing.length) return existing.map((r) => r.id);
+
+  // The seeded pilot org can have no orgs row until something writes one.
+  await sql`insert into orgs (id, name) values (${orgId}, '') on conflict (id) do nothing`;
+  const rows = (await sql`
+    insert into engagement_types (org_id, label, blurb, icon, proof_kind, chain_category, weight)
+    values (${orgId}, 'Brought a friend',
+            'You brought someone new. Give their name and your referral code.',
+            '🤝', 'referral_code', 0, 1)
+    on conflict (org_id, label) do update set active = true
+    returning id`) as Array<{ id: string }>;
+  return rows.map((r) => r.id);
+}
+
+export interface ReferrerRow extends RewardDue {
+  /** Clicks on this person's personal link. */
+  clicks: number;
+  /** People who joined through it. */
+  friendsJoined: number;
+}
+
+export interface ReferralBoard {
+  campaign: Campaign;
+  referrers: ReferrerRow[];
+  owed: number;
+}
+
+/**
+ * Referrals and who did what: for each referral the business created, every person
+ * who shared it or submitted under it, with their link's clicks and joins next to
+ * their approved referrals and the reward that earns them.
+ */
+export async function getReferralBoards(orgId: string): Promise<ReferralBoard[]> {
+  const ledger = (await getRewardLedger(orgId)).filter((l) => l.campaign.kind === "referral");
+  if (ledger.length === 0) return [];
+
+  const shares = (await sql`
+    select s.campaign_id, s.sharer, s.click_count, s.join_count, a.display_name
+    from campaign_shares s
+    join campaigns c on c.id = s.campaign_id
+    left join advocates a on a.org_id = s.org_id and a.address = s.sharer
+    where s.org_id = ${orgId}`) as Array<Record<string, unknown>>;
+
+  return ledger.map(({ campaign, people, owed }) => {
+    const rows = new Map<string, ReferrerRow>();
+    for (const p of people) rows.set(p.advocate, { ...p, clicks: 0, friendsJoined: 0 });
+    for (const s of shares) {
+      if (s.campaign_id !== campaign.id) continue;
+      const who = s.sharer as string;
+      const row =
+        rows.get(who) ??
+        ({
+          advocate: who,
+          displayName: (s.display_name as string) ?? undefined,
+          approved: 0, pending: 0, earned: 0, given: 0, owed: 0,
+          toNext: campaign.rewardKind
+            ? actionsToNextReward(0, campaign.rewardThreshold, campaign.rewardRepeats)
+            : undefined,
+          clicks: 0, friendsJoined: 0,
+        } satisfies ReferrerRow);
+      row.clicks = Number(s.click_count);
+      row.friendsJoined = Number(s.join_count);
+      row.displayName ??= (s.display_name as string) ?? undefined;
+      rows.set(who, row);
+    }
+    const referrers = [...rows.values()].sort(
+      (a, b) => b.owed - a.owed || b.approved - a.approved || b.friendsJoined - a.friendsJoined || b.clicks - a.clicks
+    );
+    return { campaign, referrers, owed };
+  });
 }

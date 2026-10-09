@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import {
   deleteCampaign,
+  ensureReferralEngagementIds,
   getCampaignBySlug,
   getCampaignFunnel,
   goalColumnsAvailable,
+  rewardColumnsAvailable,
   hasJoinedCampaign,
   joinCampaign,
   listAllActiveCampaigns,
@@ -16,7 +18,7 @@ import {
 } from "@/lib/store";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
-import { isGoalType, type GoalType } from "@/lib/types";
+import { CURRENCY_CODES, PAYOUT_KIND_IDS, isGoalType, type GoalType } from "@/lib/types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,7 +76,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (params.get("capabilities") === "goals") {
-    return NextResponse.json({ goalsAvailable: await goalColumnsAvailable() });
+    return NextResponse.json({
+      goalsAvailable: await goalColumnsAvailable(),
+      rewardsAvailable: await rewardColumnsAvailable(),
+    });
   }
 
   const funnelId = params.get("funnel");
@@ -114,7 +119,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "orgId or slug is required" }, { status: 400 });
   }
   const campaigns = await listCampaigns(orgId);
-  return NextResponse.json({ campaigns, goalsAvailable: await goalColumnsAvailable() });
+  return NextResponse.json({
+    campaigns,
+    goalsAvailable: await goalColumnsAvailable(),
+    rewardsAvailable: await rewardColumnsAvailable(),
+  });
 }
 
 /** Create or update a campaign — the business side. POST stays the advocate's Join. */
@@ -129,8 +138,16 @@ export async function PUT(req: NextRequest) {
   const {
     id, orgId, title, blurb, coverUrl, endsAt, active, engagementTypeIds, address, ts, signature,
     goalType, goalTarget, goalLabel, offerName, offerUrl,
+    kind, rewardKind, rewardAmount, rewardCurrency, rewardNote, rewardThreshold, rewardRepeats,
   } =
     body as {
+      kind?: string;
+      rewardKind?: string | null;
+      rewardAmount?: number | null;
+      rewardCurrency?: string | null;
+      rewardNote?: string | null;
+      rewardThreshold?: number | null;
+      rewardRepeats?: boolean;
       id?: string;
       orgId?: string;
       title?: string;
@@ -173,6 +190,31 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "offerUrl must be an http(s) link" }, { status: 400 });
   }
 
+  // Reward fields: same undefined/null rule as the goal fields.
+  if (kind !== undefined && kind !== "campaign" && kind !== "referral") {
+    return NextResponse.json({ error: "kind must be campaign or referral" }, { status: 400 });
+  }
+  if (rewardKind != null && !PAYOUT_KIND_IDS.includes(rewardKind)) {
+    return NextResponse.json({ error: "rewardKind is not a known reward" }, { status: 400 });
+  }
+  if (rewardAmount != null && (!Number.isFinite(rewardAmount) || rewardAmount < 0 || rewardAmount > 1e9)) {
+    return NextResponse.json({ error: "rewardAmount must be a positive number" }, { status: 400 });
+  }
+  if (rewardCurrency != null && !CURRENCY_CODES.includes(rewardCurrency)) {
+    return NextResponse.json({ error: "rewardCurrency is not supported" }, { status: 400 });
+  }
+  if (
+    rewardThreshold != null &&
+    (!Number.isInteger(rewardThreshold) || rewardThreshold < 1 || rewardThreshold > 10_000)
+  ) {
+    return NextResponse.json({ error: "rewardThreshold must be a whole number from 1 to 10,000" }, { status: 400 });
+  }
+  if (rewardRepeats !== undefined && typeof rewardRepeats !== "boolean") {
+    return NextResponse.json({ error: "rewardRepeats must be true or false" }, { status: 400 });
+  }
+  const note = optText(rewardNote, 120, "rewardNote");
+  if (note instanceof Error) return NextResponse.json({ error: note.message }, { status: 400 });
+
   const auth = await requireApprover({
     orgId: String(orgId),
     address: address ?? "",
@@ -185,6 +227,12 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
+    // A new referral with nothing picked counts referral-type actions, creating a
+    // "Brought a friend" action for a business that has none yet.
+    const counted =
+      !id && kind === "referral" && !engagementTypeIds?.length
+        ? await ensureReferralEngagementIds(String(orgId))
+        : engagementTypeIds;
     const campaign = await upsertCampaign({
       id,
       orgId: String(orgId),
@@ -193,7 +241,14 @@ export async function PUT(req: NextRequest) {
       coverUrl: coverUrl?.trim().slice(0, 2048) || null,
       endsAt: endsAt || null,
       active,
-      engagementTypeIds,
+      engagementTypeIds: counted,
+      kind: kind as "campaign" | "referral" | undefined,
+      rewardKind,
+      rewardAmount,
+      rewardCurrency,
+      rewardNote: note as string | null | undefined,
+      rewardThreshold,
+      rewardRepeats,
       goalType,
       goalTarget,
       goalLabel: label as string | null | undefined,

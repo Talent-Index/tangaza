@@ -2,6 +2,7 @@
 
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { LiabilityChart } from "@/components/org/LiabilityChart";
+import { CampaignLiability } from "@/components/org/CampaignLiability";
 import {
   Card,
   ConfigWarning,
@@ -53,18 +54,31 @@ function Liability() {
       <div>
         <h1 className="text-2xl font-black">Liability</h1>
         <p className="mt-1 text-sm text-mist-500">
-          What {orgName || org.data.name} still owes its advocates — and the ceiling that can never
-          move.
+          What {orgName || org.data.name} owes the people who took part — tracked against what
+          each campaign promised, plus the on-chain budget that can never move.
         </p>
       </div>
 
+      <section>
+        <SectionTitle>By campaign</SectionTitle>
+        <CampaignLiability orgId={orgId} />
+      </section>
+
       <div className="border-t border-ink-700" />
 
-      {/* Hero figure: the one number this dashboard leads with. */}
+      <div>
+        <h2 className="text-lg font-bold">On-chain reward budget</h2>
+        <p className="mt-1 text-sm text-mist-500">
+          The KES credits minted on Avalanche for approved activity, against the budget cap
+          you set at registration.
+        </p>
+      </div>
+
+      {/* The on-chain figures: budget, committed, settled. */}
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-mist-500">
-            Outstanding liability
+            Outstanding on-chain liability
           </p>
           {/* Proportional figures, not tabular — this is a display number. */}
           <p className="mt-2 text-6xl font-black leading-none text-mist-100">

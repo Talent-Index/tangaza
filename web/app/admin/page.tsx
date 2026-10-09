@@ -6,6 +6,7 @@ import { SignIn } from "@/components/customer/SignIn";
 import { BrandMark, Card, ErrorNote, Pill, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { kesLabel, shortAddress, timeAgo } from "@/lib/format";
 import { useApplications, useContractOwner } from "@/lib/hooks";
+import { describeLocation, describeSocials } from "@/lib/types";
 
 /**
  * The platform side: signed applications waiting to become on-chain orgs.
@@ -123,6 +124,12 @@ function Applications({ viewer }: { viewer: string }) {
                     {a.status}
                   </Pill>
                 </div>
+
+                {describeLocation(a) || describeSocials(a) ? (
+                  <p className="text-xs text-mist-500">
+                    {[describeLocation(a), describeSocials(a)].filter(Boolean).join(" · ")}
+                  </p>
+                ) : null}
 
                 <p className="border-l-2 border-ink-600 pl-3 text-sm text-mist-400">
                   {a.pledge}
