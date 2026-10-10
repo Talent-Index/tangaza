@@ -16,11 +16,12 @@ import {
   type ProofKind,
 } from "@/lib/types";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
+import { RewardsDue } from "@/components/org/RewardsDue";
 
 /**
- * What the business rewards, and what it gives for it.
- *
- * Campaigns live on /org/campaigns. This page is engagements + levels only.
+ * Who deserves a reward, campaign by campaign — and, folded below it, the activities
+ * campaigns count and the loyalty levels. What a campaign gives is set in the campaign
+ * itself (/org/campaigns), so this page no longer repeats campaign setup.
  */
 export default function SettingsPage() {
   return (
@@ -32,19 +33,16 @@ export default function SettingsPage() {
 
 function Settings() {
   const isApprover = useIsApprover();
-  const { orgId, orgName } = useOrgAccessContext();
+  const { orgId } = useOrgAccessContext();
 
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-black md:text-3xl">Rewards setup</h1>
+        <h1 className="text-2xl font-black md:text-3xl">Rewards</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
-          Two steps: <span className="text-mist-300">1)</span> add the{" "}
-          <span className="text-mist-300">activities</span> you want people to do, then{" "}
-          <span className="text-mist-300">2)</span> set the{" "}
-          <span className="text-mist-300">goals</span> — a total, or a specific activity a
-          number of times (e.g. 5 actions) — and what each earns: cash or an incentive
-          like merch, a voucher or a discount. Campaigns live under{" "}
+          Who deserves a reward, based on what each campaign asks for and what you approved.
+          Hand it over your way, then mark it here so you always know what you still owe.
+          Rewards are set per campaign in{" "}
           <a href="/org/campaigns" className="text-crimson-400 hover:text-crimson-300">
             Campaigns
           </a>
@@ -55,12 +53,31 @@ function Settings() {
       {!isApprover ? (
         <ErrorNote>
           You&rsquo;re signed in with an account that isn&rsquo;t this org&rsquo;s
-          approver. You can look, but changes will not stick.
+          approver. You can look, but you can&rsquo;t mark rewards or change setup.
         </ErrorNote>
       ) : null}
 
-      <EngagementEditor orgId={orgId} />
-      <TierEditor orgId={orgId} />
+      <RewardsDue orgId={orgId} isApprover={isApprover} />
+
+      {/* The activities campaigns count, and the loyalty levels on top. Setup, not
+          day-to-day, so it stays folded away under the list of people to reward. */}
+      <details className="group rounded-xl border border-ink-700">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+          <span>
+            <span className="block text-sm font-semibold">Activities and loyalty levels</span>
+            <span className="block text-xs text-mist-500">
+              The actions campaigns can count, and levels regulars climb across every campaign.
+            </span>
+          </span>
+          <span className="shrink-0 text-mist-500 transition group-open:rotate-180" aria-hidden>
+            ▾
+          </span>
+        </summary>
+        <div className="space-y-10 border-t border-ink-700 p-4 sm:p-5">
+          <EngagementEditor orgId={orgId} />
+          <TierEditor orgId={orgId} />
+        </div>
+      </details>
     </div>
   );
 }

@@ -138,6 +138,32 @@ export interface ApplicationSummary {
   orgId?: string;
   registeredTx?: string;
   signedAt?: string;
+  locationType?: "online" | "physical" | "both";
+  address?: string;
+  socialX?: string;
+  socialTiktok?: string;
+  socialInstagram?: string;
+}
+
+/** What a business told us at registration that's safe to show: where and how to find it. */
+export interface BusinessDetails {
+  locationType?: "online" | "physical" | "both";
+  address?: string;
+  socialX?: string;
+  socialTiktok?: string;
+  socialInstagram?: string;
+}
+
+export function useBusinessDetails(orgId: bigint = ORG_ID) {
+  return useAsync<BusinessDetails>(
+    async () => {
+      const res = await fetch(`/api/org?orgId=${orgId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load business details (${res.status})`);
+      return ((await res.json()) as { contact?: BusinessDetails }).contact ?? {};
+    },
+    [String(orgId)],
+    true
+  );
 }
 
 /** The platform's queue of business applications. */
@@ -335,6 +361,16 @@ export interface Campaign {
   approvedCount: number;
   /** Submissions under the campaign still awaiting approval. */
   pendingCount: number;
+  /** "referral" when created from the Referrals page. */
+  kind: "campaign" | "referral";
+  /** What one person earns; all optional. See describeCampaignReward. */
+  rewardKind?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  rewardNote?: string;
+  /** Approved actions one person needs to earn it. */
+  rewardThreshold?: number;
+  rewardRepeats: boolean;
 }
 
 export interface CampaignWithOrg extends Campaign {
@@ -402,6 +438,20 @@ export function useGoalsAvailable() {
       const res = await fetch("/api/campaigns?capabilities=goals", { cache: "no-store" });
       if (!res.ok) return false;
       return Boolean(((await res.json()) as { goalsAvailable?: boolean }).goalsAvailable);
+    },
+    [],
+    true
+  );
+  return r.data ?? null;
+}
+
+/** Can campaigns store rewards yet? null until known; false means the DB lacks the columns. */
+export function useRewardsAvailable() {
+  const r = useAsync<boolean>(
+    async () => {
+      const res = await fetch("/api/campaigns?capabilities=goals", { cache: "no-store" });
+      if (!res.ok) return false;
+      return Boolean(((await res.json()) as { rewardsAvailable?: boolean }).rewardsAvailable);
     },
     [],
     true
@@ -589,4 +639,63 @@ export function useAdvocateLabels(orgId: bigint = ORG_ID) {
     }
     return labels;
   }, [all.data]);
+}
+
+export interface RewardDue {
+  advocate: string;
+  displayName?: string;
+  approved: number;
+  pending: number;
+  earned: number;
+  given: number;
+  owed: number;
+  toNext?: number;
+  lastGivenAt?: string;
+}
+
+export interface CampaignRewardLedger {
+  campaign: Campaign;
+  people: RewardDue[];
+  earned: number;
+  given: number;
+  owed: number;
+}
+
+/** Per campaign: who has earned its reward, what was handed over, what is still owed. */
+export function useRewardLedger(orgId: bigint = ORG_ID) {
+  return useAsync<{ ledger: CampaignRewardLedger[]; rewardsAvailable: boolean }>(
+    async () => {
+      const res = await fetch(`/api/org/rewards?orgId=${orgId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load rewards (${res.status})`);
+      return (await res.json()) as { ledger: CampaignRewardLedger[]; rewardsAvailable: boolean };
+    },
+    [String(orgId)],
+    true,
+    POLL_ORG
+  );
+}
+
+export interface ReferrerRow extends RewardDue {
+  clicks: number;
+  friendsJoined: number;
+}
+
+export interface ReferralBoard {
+  campaign: Campaign;
+  referrers: ReferrerRow[];
+  owed: number;
+}
+
+/** Every referral this business created, and who did what under each. */
+export function useReferralBoards(orgId: bigint = ORG_ID) {
+  return useAsync<ReferralBoard[]>(
+    async () => {
+      const res = await fetch(`/api/org/referrals?orgId=${orgId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Could not load referrals (${res.status})`);
+      return ((await res.json()) as { referrals: ReferralBoard[] }).referrals;
+    },
+    [String(orgId)],
+    true,
+    POLL_ORG
+  );
 }

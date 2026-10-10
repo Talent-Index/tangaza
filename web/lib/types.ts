@@ -73,6 +73,7 @@ export const PAYOUT_KINDS = [
   { id: "cash", label: "Cash", icon: "💵" },
   { id: "airtime", label: "Airtime", icon: "📱" },
   { id: "data", label: "Data bundle", icon: "📶" },
+  { id: "merch", label: "Merch", icon: "👕" },
   { id: "voucher", label: "Voucher", icon: "🎟️" },
   { id: "discount", label: "Discount", icon: "🏷️" },
   { id: "product", label: "Free product", icon: "🎁" },
@@ -98,6 +99,48 @@ export function formatReward(p: {
   if (kind === "discount") return `${p.amount}% ${label.toLowerCase()}`;
   const money = `${currencySymbol(p.currency ?? undefined)}${p.amount.toLocaleString()}`.trim();
   return kind && kind !== "cash" ? `${money} ${label.toLowerCase()}` : money;
+}
+
+/**
+ * How many rewards `approved` actions have earned under a campaign's rule: one at
+ * `threshold` (default 1), or one per `threshold` when the reward repeats.
+ * Shared by the server ledger and the pages so the two can't disagree.
+ */
+export function rewardsEarned(approved: number, threshold?: number | null, repeats?: boolean): number {
+  const t = threshold && threshold > 0 ? threshold : 1;
+  if (approved < t) return 0;
+  return repeats ? Math.floor(approved / t) : 1;
+}
+
+/** Approved actions still needed for the next reward; undefined once a one-off reward is earned. */
+export function actionsToNextReward(
+  approved: number,
+  threshold?: number | null,
+  repeats?: boolean
+): number | undefined {
+  const t = threshold && threshold > 0 ? threshold : 1;
+  if (!repeats) return approved >= t ? undefined : t - approved;
+  return t - (approved % t);
+}
+
+/** "A branded T-shirt" when the business described it, else formatReward's "500 KSh airtime". */
+export function describeCampaignReward(c: {
+  rewardKind?: string | null;
+  rewardAmount?: number | null;
+  rewardCurrency?: string | null;
+  rewardNote?: string | null;
+}): string | undefined {
+  if (!c.rewardKind) return undefined;
+  const base = formatReward({ amount: c.rewardAmount, currency: c.rewardCurrency, rewardKind: c.rewardKind });
+  return c.rewardNote?.trim() ? `${base} — ${c.rewardNote.trim()}` : base;
+}
+
+/** "for 1 approved action", "for every 5 approved actions". */
+export function describeRewardRule(threshold?: number | null, repeats?: boolean, unit = "approved action"): string {
+  const t = threshold && threshold > 0 ? threshold : 1;
+  const units = t === 1 ? unit : `${unit}s`;
+  if (repeats) return t === 1 ? `for every ${unit}` : `for every ${t} ${units}`;
+  return `once someone reaches ${t} ${units}`;
 }
 
 /**
@@ -306,4 +349,39 @@ export interface CampaignFunnel {
   approved: number;
   rejected: number;
   pending: number;
+}
+
+/* ------------------------------------------------------------ business profile */
+
+/** How customers reach a business, asked at registration. */
+export const LOCATION_TYPES = [
+  { id: "physical", label: "Physical", hint: "A shop, salon or office people visit" },
+  { id: "online", label: "Online", hint: "A website, online shop or social page" },
+  { id: "both", label: "Both", hint: "A physical place and an online shop" },
+] as const;
+
+export type LocationType = (typeof LOCATION_TYPES)[number]["id"];
+
+export const isLocationType = (v: unknown): v is LocationType =>
+  typeof v === "string" && LOCATION_TYPES.some((l) => l.id === v);
+
+/** "Physical · Shop 4, Moi Avenue" — empty string when nothing was given. */
+export function describeLocation(d: { locationType?: string; address?: string }): string {
+  const type = LOCATION_TYPES.find((l) => l.id === d.locationType)?.label;
+  return [type, d.address].filter(Boolean).join(" · ");
+}
+
+/** "X @a · TikTok @b" from whichever handles were given. */
+export function describeSocials(d: { socialX?: string; socialTiktok?: string; socialInstagram?: string }): string {
+  const at = (h: string) => (/^https?:\/\//i.test(h) ? h : `@${h}`);
+  return (
+    [
+      ["X", d.socialX],
+      ["TikTok", d.socialTiktok],
+      ["Instagram", d.socialInstagram],
+    ] as const
+  )
+    .filter(([, h]) => h)
+    .map(([n, h]) => `${n} ${at(h as string)}`)
+    .join(" · ");
 }

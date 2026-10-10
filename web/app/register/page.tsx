@@ -8,6 +8,7 @@ import { useToast } from "@/components/toast";
 import { BrandMark, Button, Card, ErrorNote, SectionTitle, TxReceipt } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
+import { LOCATION_TYPES, type LocationType } from "@/lib/types";
 
 /**
  * A business applying to run rewards.
@@ -114,6 +115,10 @@ function SignedOut() {
 function ApplyForm({ address }: { address: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [locationType, setLocationType] = useState<LocationType | "">("");
+  const [bizAddress, setBizAddress] = useState("");
+  const [socials, setSocials] = useState({ x: "", tiktok: "", instagram: "" });
   const [cap, setCap] = useState(50000);
   const [pledge, setPledge] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -131,6 +136,10 @@ function ApplyForm({ address }: { address: string }) {
     e.preventDefault();
     if (!account) return;
     setError(null);
+    if (!locationType) {
+      setError("Choose whether your business is online, physical or both");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -155,6 +164,12 @@ function ApplyForm({ address }: { address: string }) {
         body: JSON.stringify({
           name: name.trim(),
           contactEmail: email.trim() || undefined,
+          contactPhone: phone.trim(),
+          locationType,
+          address: bizAddress.trim(),
+          socialX: socials.x.trim() || undefined,
+          socialTiktok: socials.tiktok.trim() || undefined,
+          socialInstagram: socials.instagram.trim() || undefined,
           approverAddress: address,
           emissionCapKes: effectiveCap,
           pledge: pledge.trim(),
@@ -195,9 +210,9 @@ function ApplyForm({ address }: { address: string }) {
           <>
             <p className="text-xl font-bold">{name} is live on Avalanche</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
-              Registered as org #{done.orgId}, and your wallet is the approver. Next: set up
-              your rewards — choose the activities you want people to do, and what each one
-              earns (cash or an incentive like merch, a voucher or a discount).
+              Registered as org #{done.orgId}, and your wallet is the approver. Next: create
+              your first campaign — what you&rsquo;re pushing, what people should do, and
+              what they earn (cash, airtime, merch, a discount or something else).
             </p>
             {done.txHash ? (
               <div className="mt-5 flex justify-center">
@@ -206,10 +221,10 @@ function ApplyForm({ address }: { address: string }) {
             ) : null}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/org/settings"
+                href="/org/campaigns"
                 className="inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
               >
-                Set up your rewards →
+                Create a campaign →
               </Link>
               <Link
                 href="/org"
@@ -256,16 +271,100 @@ function ApplyForm({ address }: { address: string }) {
             className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
           />
         </Field>
-        <Field label="Contact email">
+        <Field label="Phone number">
+          <input
+            required
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="0712 345 678"
+            className={PILL_INPUT}
+          />
+        </Field>
+      </div>
+
+      <Field label="Where customers find you">
+        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Where customers find you">
+          {LOCATION_TYPES.map((l) => {
+            const on = locationType === l.id;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setLocationType(l.id)}
+                className={`min-h-12 rounded-xl border px-4 py-3 text-left transition ${
+                  on
+                    ? "border-crimson-500 bg-crimson-500/10"
+                    : "border-ink-700 bg-ink-850 hover:border-ink-600"
+                }`}
+              >
+                <span className={`block text-sm font-semibold ${on ? "text-crimson-300" : ""}`}>
+                  {l.label}
+                </span>
+                <span className="mt-0.5 block text-xs text-mist-500">{l.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      {locationType ? (
+        <Field label={locationType === "online" ? "Website or shop link" : "Address"}>
+          <input
+            required
+            value={bizAddress}
+            maxLength={300}
+            onChange={(e) => setBizAddress(e.target.value)}
+            placeholder={
+              locationType === "online"
+                ? "mamanjeri.co.ke or instagram.com/mamanjeri"
+                : locationType === "both"
+                  ? "Shop 4, Moi Avenue, Nairobi · mamanjeri.co.ke"
+                  : "Shop 4, Moi Avenue, Nairobi"
+            }
+            className={PILL_INPUT}
+          />
+        </Field>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Contact email (optional)">
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@business.co.ke"
-            className="w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500"
+            className={PILL_INPUT}
           />
         </Field>
       </div>
+
+      <Field label="Social handles (optional)">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              ["x", "X", "@mamanjeri"],
+              ["tiktok", "TikTok", "@mamanjeri"],
+              ["instagram", "Instagram", "@mamanjeri"],
+            ] as const
+          ).map(([key, label, placeholder]) => (
+            <label key={key} className="block min-w-0">
+              <span className="mb-1 block text-xs text-mist-500">{label}</span>
+              <input
+                value={socials[key]}
+                maxLength={120}
+                onChange={(e) => setSocials((s) => ({ ...s, [key]: e.target.value }))}
+                placeholder={placeholder}
+                className={PILL_INPUT}
+              />
+            </label>
+          ))}
+        </div>
+      </Field>
 
       <Field label="Reward budget (optional)">
         <input
@@ -321,6 +420,9 @@ function ApplyForm({ address }: { address: string }) {
     </form>
   );
 }
+
+const PILL_INPUT =
+  "w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none placeholder:text-mist-500 focus:border-crimson-500";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

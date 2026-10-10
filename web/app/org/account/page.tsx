@@ -2,7 +2,8 @@
 
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { initialsFrom } from "@/lib/identity";
-import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
+import { useBusinessDetails, useCredentialEmail, useDisplayName } from "@/lib/hooks";
+import { describeLocation, describeSocials } from "@/lib/types";
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { ThemeToggle, useTheme } from "@/components/theme";
 import { useToast } from "@/components/toast";
@@ -25,7 +26,8 @@ function AccountSettings() {
   const { disconnect } = useDisconnect();
   const { success } = useToast();
   const { theme, setTheme } = useTheme();
-  const { orgName, isApprover } = useOrgAccessContext();
+  const { orgId, orgName, isApprover } = useOrgAccessContext();
+  const details = useBusinessDetails(orgId);
   const name = useDisplayName(account?.address);
   const email = useCredentialEmail();
 
@@ -60,6 +62,12 @@ function AccountSettings() {
             <SectionTitle>Your business</SectionTitle>
             <Card className="space-y-3 bg-ink-850/60">
               <DetailRow label="Business" value={orgName ?? "—"} />
+              {details.data && describeLocation(details.data) ? (
+                <DetailRow label="Location" value={describeLocation(details.data)} />
+              ) : null}
+              {details.data && describeSocials(details.data) ? (
+                <DetailRow label="Socials" value={describeSocials(details.data)} />
+              ) : null}
               <DetailRow
                 label="Wallet"
                 value={

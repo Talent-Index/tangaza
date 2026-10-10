@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgDisplayName, setOrgDisplayName } from "@/lib/store";
+import { getOrgContact, getOrgDisplayName, setOrgDisplayName } from "@/lib/store";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
 
 /**
- * A business's editable profile — currently just its display name.
+ * A business's profile: its editable display name, and the contact details it gave
+ * at registration (read-only here).
  *
  * The on-chain name is immutable (set once at registerOrg, no setter), so this is the
  * name a business can change. It is verified against the org's on-chain approver, same
  * as every other business mutation.
  *
- *   GET   ?orgId=1   – the display name override, if any
+ *   GET   ?orgId=1   – { displayName, contact }
  *   PATCH            – set it (approver-signed)
  */
 
@@ -21,8 +22,13 @@ export async function GET(req: NextRequest) {
   if (!orgId) {
     return NextResponse.json({ error: "orgId is required" }, { status: 400 });
   }
-  const displayName = await getOrgDisplayName(orgId);
-  return NextResponse.json({ displayName });
+  const [displayName, contact] = await Promise.all([
+    getOrgDisplayName(orgId),
+    getOrgContact(orgId),
+  ]);
+  // Public GET: only what a customer could see anyway — no phone or email.
+  const { contactPhone: _phone, contactEmail: _email, ...publicContact } = contact;
+  return NextResponse.json({ displayName, contact: publicContact });
 }
 
 export async function PATCH(req: NextRequest) {

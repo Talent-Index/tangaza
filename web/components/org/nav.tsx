@@ -23,7 +23,7 @@ export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Rewards"
 /** Budget and side tools — the "Budget & tools" group. */
 export const TOOLS_NAV: OrgNavItem[] = [
   { href: "/org/liability", label: "Liability", icon: "liability" },
-  { href: "/org/pilot", label: "Referral pilot", icon: "pilot" },
+  { href: "/org/referrals", label: "Referrals", icon: "pilot" },
 ];
 
 /** Reached from the avatar on desktop, so it only joins the phone "More" sheet. */

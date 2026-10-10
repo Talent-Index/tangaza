@@ -276,8 +276,8 @@ function Overview() {
             {kesLabel(issued)} committed · {kesLabel(outstanding)} outstanding
           </p>
           <div className="mt-6">
-            <Button href={started ? "/org/liability" : "/org/settings"}>
-              {started ? "View liability" : "Set up your rewards"}
+            <Button href={started ? "/org/liability" : "/org/campaigns"}>
+              {started ? "View liability" : "Create a campaign"}
             </Button>
           </div>
         </div>

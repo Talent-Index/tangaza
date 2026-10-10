@@ -6,6 +6,10 @@ import { Button, ErrorNote } from "@/components/ui";
 import type { Campaign } from "@/lib/hooks";
 import {
   DEFAULT_GOAL_LABEL,
+  PAYOUT_KINDS,
+  REWARD_CURRENCIES,
+  describeCampaignReward,
+  describeRewardRule,
   goalMeta,
   type EngagementType,
   type GoalType,
@@ -27,6 +31,14 @@ export interface CampaignDraft {
   engagementTypeIds: string[];
   /** The business changed the engagement selection itself, so goal defaults stop applying. */
   typesTouched?: boolean;
+  /** What one person earns. Empty kind = no reward set. */
+  rewardKind: string;
+  rewardAmount: string;
+  rewardCurrency: string;
+  rewardNote: string;
+  /** Approved actions one person needs to earn it. */
+  rewardThreshold: string;
+  rewardRepeats: boolean;
 }
 
 export const EMPTY_DRAFT: CampaignDraft = {
@@ -39,6 +51,12 @@ export const EMPTY_DRAFT: CampaignDraft = {
   blurb: "",
   coverUrl: "",
   engagementTypeIds: [],
+  rewardKind: "",
+  rewardAmount: "",
+  rewardCurrency: "KES",
+  rewardNote: "",
+  rewardThreshold: "1",
+  rewardRepeats: false,
 };
 
 export function draftFromCampaign(c: Campaign): CampaignDraft {
@@ -55,6 +73,12 @@ export function draftFromCampaign(c: Campaign): CampaignDraft {
     coverUrl: c.coverUrl ?? "",
     engagementTypeIds: c.engagementTypeIds,
     typesTouched: true, // never second-guess what an existing campaign counts
+    rewardKind: c.rewardKind ?? "",
+    rewardAmount: c.rewardAmount != null ? String(c.rewardAmount) : "",
+    rewardCurrency: c.rewardCurrency ?? "KES",
+    rewardNote: c.rewardNote ?? "",
+    rewardThreshold: String(c.rewardThreshold ?? 1),
+    rewardRepeats: c.rewardRepeats,
   };
 }
 
@@ -71,6 +95,38 @@ export function normalizeOfferUrl(raw: string): string {
   }
 }
 
+/** A reward amount: blank = none, else a non-negative number. NaN marks an invalid entry. */
+export function parseRewardAmount(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 && n <= 1e9 ? n : NaN;
+}
+
+export function parseThreshold(raw: string): number | null {
+  const n = Number(raw.trim());
+  return Number.isInteger(n) && n >= 1 && n <= 10_000 ? n : null;
+}
+
+/** The reward fields of a save request; null clears, so removing the reward really removes it. */
+export function rewardPayload(d: CampaignDraft) {
+  if (!d.rewardKind) {
+    return {
+      rewardKind: null, rewardAmount: null, rewardCurrency: null,
+      rewardNote: null, rewardThreshold: null, rewardRepeats: false,
+    };
+  }
+  const amount = parseRewardAmount(d.rewardAmount);
+  return {
+    rewardKind: d.rewardKind,
+    rewardAmount: amount,
+    rewardCurrency: amount != null && d.rewardKind !== "discount" ? d.rewardCurrency : null,
+    rewardNote: d.rewardNote.trim() || null,
+    rewardThreshold: parseThreshold(d.rewardThreshold) ?? 1,
+    rewardRepeats: d.rewardRepeats,
+  };
+}
+
 export function parseTarget(raw: string): number | null {
   const n = Number(raw.trim());
   return Number.isInteger(n) && n >= 1 && n <= 1_000_000 ? n : null;
@@ -82,7 +138,7 @@ function suggestedTypeIds(goal: GoalType | undefined, types: EngagementType[]): 
   return types.filter((t) => t.active && cats.includes(t.chainCategory)).map((t) => t.id);
 }
 
-const STEPS = ["Goal", "What you’re pushing", "How people can help", "Review & launch"] as const;
+const STEPS = ["Goal", "What you’re pushing", "What people do", "Reward", "Review & launch"] as const;
 
 const MONO = "font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500";
 const INPUT =
@@ -93,6 +149,7 @@ export function CampaignWizard({
   setDraft,
   types,
   goalsAvailable,
+  rewardsAvailable,
   saving,
   error,
   launched,
@@ -105,6 +162,8 @@ export function CampaignWizard({
   types: EngagementType[];
   /** true = goals can be saved; false = DB lacks the columns; null = still checking. */
   goalsAvailable: boolean | null;
+  /** true = rewards can be saved; false = DB lacks the columns; null = still checking. */
+  rewardsAvailable: boolean | null;
   saving: boolean;
   error: string | null;
   /** Set once a NEW campaign has been created: swaps the wizard for the share screen. */
@@ -115,13 +174,16 @@ export function CampaignWizard({
 }) {
   const editing = Boolean(draft.id);
   const [step, setStep] = useState(0);
-  const [furthest, setFurthest] = useState(editing ? 3 : 0);
+  const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : 0);
 
   const goalsOn = goalsAvailable === true;
   const targetOk = !draft.goalType || parseTarget(draft.goalTarget) !== null;
   const offerUrlOk = !draft.offerUrl.trim() || normalizeOfferUrl(draft.offerUrl) !== "";
-  const stepOk = [targetOk, Boolean(draft.title.trim()) && offerUrlOk, true, false];
-  stepOk[3] = stepOk[0] && stepOk[1];
+  const rewardOk =
+    !draft.rewardKind ||
+    (!Number.isNaN(parseRewardAmount(draft.rewardAmount)) && parseThreshold(draft.rewardThreshold) !== null);
+  const stepOk = [targetOk, Boolean(draft.title.trim()) && offerUrlOk, true, rewardOk, false];
+  stepOk[4] = stepOk[0] && stepOk[1] && stepOk[3];
 
   function go(n: number) {
     // Entering "how people can help" for the first time: lean on the goal, still editable.
@@ -186,7 +248,7 @@ export function CampaignWizard({
         </button>
       </div>
 
-      <ol className="grid grid-cols-4 gap-1.5" aria-label="Steps">
+      <ol className="grid grid-cols-5 gap-1.5" aria-label="Steps">
         {STEPS.map((label, i) => {
           const reachable = i <= furthest;
           return (
@@ -357,8 +419,9 @@ export function CampaignWizard({
           ) : (
             <>
               <p className="text-sm text-mist-400">
-                Which actions count toward this campaign? Tap to turn them on or off. None
-                selected means every action you reward counts.
+                What should people do for this campaign — share about it, post, bring a
+                friend? Tap to turn actions on or off. None selected means every action you
+                reward counts.
                 {!editing && draft.goalType && draft.engagementTypeIds.length > 0 && !draft.typesTouched
                   ? ` We picked the ones that usually suit "${goalMeta(draft.goalType)?.label.toLowerCase()}".`
                   : ""}
@@ -388,7 +451,11 @@ export function CampaignWizard({
         </fieldset>
       ) : null}
 
-      {step === 3 ? <Review draft={draft} types={types} goalsOn={goalsOn} editing={editing} onJump={go} /> : null}
+      {step === 3 ? (
+        <RewardStep draft={draft} setDraft={setDraft} available={rewardsAvailable} unit={draft.goalLabel.trim() || goalMeta(draft.goalType)?.unit} />
+      ) : null}
+
+      {step === 4 ? <Review draft={draft} types={types} goalsOn={goalsOn} editing={editing} onJump={go} /> : null}
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
@@ -462,6 +529,18 @@ function Review({
       ) : (
         "Nothing named"
       ),
+    },
+    {
+      label: "Reward",
+      step: 3,
+      value: draft.rewardKind
+        ? `${describeCampaignReward({
+            rewardKind: draft.rewardKind,
+            rewardAmount: parseRewardAmount(draft.rewardAmount),
+            rewardCurrency: draft.rewardCurrency,
+            rewardNote: draft.rewardNote,
+          })} ${describeRewardRule(parseThreshold(draft.rewardThreshold), draft.rewardRepeats)}`
+        : "No reward set",
     },
     {
       label: "Counts",
@@ -539,5 +618,182 @@ function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => v
         Done
       </Button>
     </div>
+  );
+}
+
+/** Step 4: what one person earns, and when. Optional — a campaign can run without one. */
+export function RewardStep({
+  draft,
+  setDraft,
+  available,
+  unit,
+}: {
+  draft: CampaignDraft;
+  setDraft: React.Dispatch<React.SetStateAction<CampaignDraft>>;
+  available: boolean | null;
+  /** What is counted, e.g. "sign-ups"; reads "approved actions" when unset. */
+  unit?: string;
+}) {
+  if (available === false) {
+    return (
+      <p className="rounded-xl border border-ink-700 bg-ink-900/40 px-3 py-2 text-sm text-mist-400">
+        Rewards aren&rsquo;t available on this setup yet — you can still launch the campaign.
+      </p>
+    );
+  }
+
+  const amount = parseRewardAmount(draft.rewardAmount);
+  const threshold = parseThreshold(draft.rewardThreshold);
+  const counted = unit || DEFAULT_GOAL_LABEL;
+
+  return (
+    <fieldset className="min-w-0 space-y-4 border-0 p-0">
+      <legend className="sr-only">Reward</legend>
+      <p className="text-sm text-mist-400">
+        What will you give people who take part? You hand it over yourself — Tangaza tracks
+        who has earned it and what you still owe.
+      </p>
+
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Reward type">
+        {PAYOUT_KINDS.map((k) => {
+          const on = draft.rewardKind === k.id;
+          return (
+            <button
+              key={k.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setDraft((d) => ({ ...d, rewardKind: on ? "" : k.id }))}
+              className={`min-h-10 rounded-full border px-3.5 py-2 text-sm transition ${
+                on
+                  ? "border-crimson-500 bg-crimson-500/15 text-crimson-300"
+                  : "border-ink-600 text-mist-400 hover:border-ink-500"
+              }`}
+            >
+              {k.icon} {k.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {draft.rewardKind ? (
+        <>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <label className="block min-w-0">
+              <span className={MONO}>
+                {draft.rewardKind === "discount" ? "Discount (%)" : "Amount (optional)"}
+              </span>
+              <div className="mt-1 flex min-w-0 gap-2">
+                <input
+                  inputMode="decimal"
+                  value={draft.rewardAmount}
+                  onChange={(e) =>
+                    setDraft({ ...draft, rewardAmount: e.target.value.replace(/[^\d.]/g, "").slice(0, 10) })
+                  }
+                  placeholder={draft.rewardKind === "discount" ? "10" : "500"}
+                  aria-invalid={Number.isNaN(amount)}
+                  className={`${INPUT} min-w-0 flex-1`}
+                />
+                {draft.rewardKind !== "discount" ? (
+                  <select
+                    value={draft.rewardCurrency}
+                    onChange={(e) => setDraft({ ...draft, rewardCurrency: e.target.value })}
+                    aria-label="Currency"
+                    className="shrink-0 rounded-xl border border-ink-700 bg-ink-850 px-2 py-2.5 text-sm outline-none focus:border-crimson-500"
+                  >
+                    {REWARD_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+              {Number.isNaN(amount) ? (
+                <span className="mt-1 block text-xs text-crimson-300">Enter a number.</span>
+              ) : null}
+            </label>
+            <label className="block min-w-0">
+              <span className={MONO}>Describe it (optional)</span>
+              <input
+                value={draft.rewardNote}
+                maxLength={120}
+                onChange={(e) => setDraft({ ...draft, rewardNote: e.target.value })}
+                placeholder={
+                  draft.rewardKind === "merch" ? "A branded T-shirt" : "e.g. 500 KSh airtime, any network"
+                }
+                className={`${INPUT} mt-1`}
+              />
+            </label>
+          </div>
+
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <label className="block min-w-0">
+              <span className={MONO}>Earned after</span>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  inputMode="numeric"
+                  value={draft.rewardThreshold}
+                  onChange={(e) =>
+                    setDraft({ ...draft, rewardThreshold: e.target.value.replace(/[^\d]/g, "").slice(0, 5) })
+                  }
+                  aria-invalid={threshold === null}
+                  className={`${INPUT} w-24`}
+                />
+                <span className="min-w-0 text-sm text-mist-400">{counted} per person</span>
+              </div>
+              {threshold === null ? (
+                <span className="mt-1 block text-xs text-crimson-300">
+                  Enter a whole number from 1 to 10,000.
+                </span>
+              ) : null}
+            </label>
+            <fieldset className="min-w-0 border-0 p-0">
+              <legend className={MONO}>How often</legend>
+              <div className="mt-1 flex gap-2">
+                {[
+                  { repeats: false, label: "Once" },
+                  { repeats: true, label: "Every time" },
+                ].map((o) => {
+                  const on = draft.rewardRepeats === o.repeats;
+                  return (
+                    <button
+                      key={o.label}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setDraft({ ...draft, rewardRepeats: o.repeats })}
+                      className={`min-h-10 flex-1 rounded-xl border px-3 text-sm transition ${
+                        on
+                          ? "border-crimson-500 bg-crimson-500/15 text-crimson-300"
+                          : "border-ink-600 text-mist-400 hover:border-ink-500"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </div>
+
+          {threshold !== null && !Number.isNaN(amount) ? (
+            <p className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 px-3 py-2 text-sm text-mist-200">
+              People earn{" "}
+              <span className="font-semibold">
+                {describeCampaignReward({
+                  rewardKind: draft.rewardKind,
+                  rewardAmount: amount,
+                  rewardCurrency: draft.rewardCurrency,
+                  rewardNote: draft.rewardNote,
+                })}
+              </span>{" "}
+              {describeRewardRule(threshold, draft.rewardRepeats, counted.replace(/s$/, ""))}.
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-xs text-mist-500">Pick one to set a reward, or skip this step.</p>
+      )}
+    </fieldset>
   );
 }
