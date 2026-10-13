@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FeedbackFab, FeedbackSection } from "@/components/feedback/Feedback";
 import { Icon, type IconName } from "@/components/icons";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { addressUrl } from "@/lib/chain";
@@ -72,8 +73,10 @@ export function LandingPage() {
       <Pilots stats={stats} />
       <Trust stats={stats} />
       <Faq />
+      <FeedbackSection />
       <ClosingCta />
       <SiteFooter />
+      <FeedbackFab />
     </div>
   );
 }
