@@ -219,12 +219,14 @@ export async function requireOwner(p: {
   action: OutreachAction;
   ts: number;
   signature: string;
+  /** Binds the signature to one object (e.g. a tracker row id) — must match what was signed. */
+  detail?: string;
 }): Promise<VerifyResult> {
   if (!p.address) return { ok: false, reason: "address is required" };
 
   const signed = await verifySignedText({
     address: p.address,
-    message: outreachActionMessage({ address: p.address, action: p.action, ts: p.ts }),
+    message: outreachActionMessage({ address: p.address, action: p.action, ts: p.ts, detail: p.detail }),
     signature: p.signature,
     ts: p.ts,
   });

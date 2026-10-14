@@ -71,16 +71,26 @@ export default function OutreachPage() {
 
 type Account = NonNullable<ReturnType<typeof useActiveAccount>>;
 
-async function callApi<T>(account: Account, action: OutreachAction, extra: Record<string, unknown> = {}): Promise<T> {
-  const auth = await signOutreachAction(account, action);
+async function callApi<T>(
+  account: Account,
+  action: OutreachAction,
+  extra: Record<string, unknown> = {},
+  detail?: string
+): Promise<T> {
+  const auth = await signOutreachAction(account, action, detail);
   const res = await fetch("/api/admin/outreach", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: action === OUTREACH_ACTIONS.read ? "read" : "run", ...auth, ...extra }),
+    body: JSON.stringify({ action: action.split(".")[1], ...auth, ...extra }),
   });
   const json = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? `Request failed (${res.status})`);
   return json;
+}
+
+/** Send one row's draft — the signature is bound to this row id, so it approves exactly this send. */
+function postSend(account: Account, rowId: string) {
+  return callApi<{ sent: string }>(account, OUTREACH_ACTIONS.send, { rowId }, rowId);
 }
 
 interface ReadResponse {
@@ -89,6 +99,8 @@ interface ReadResponse {
   runConfigured: boolean;
   /** Whether this deployment can run searches itself, and which env vars are missing if not. */
   inApp: { ready: boolean; missing: string[] };
+  send: { ready: boolean; missing: string[] };
+  chatReady: boolean;
   notionUrl: string;
   error?: string;
 }
@@ -176,6 +188,8 @@ function Outreach({ account }: { account: Account }) {
         account={account}
         runConfigured={data?.runConfigured ?? false}
         inApp={data?.inApp ?? { ready: false, missing: [] }}
+        chatReady={data?.chatReady ?? false}
+        sendReady={data?.send?.ready ?? false}
         onStarted={load}
       />
 
@@ -240,7 +254,7 @@ function Outreach({ account }: { account: Account }) {
             ) : (
               <div className="grid min-w-0 gap-3 md:grid-cols-2">
                 {rows.map((r) => (
-                  <BusinessCard key={r.id} row={r} />
+                  <BusinessCard key={r.id} row={r} account={account} sendReady={data?.send?.ready ?? false} onSent={load} />
                 ))}
               </div>
             )}
@@ -251,7 +265,37 @@ function Outreach({ account }: { account: Account }) {
   );
 }
 
-function BusinessCard({ row }: { row: OutreachRow }) {
+function BusinessCard({
+  row,
+  account,
+  sendReady,
+  onSent,
+}: {
+  row: OutreachRow;
+  account: Account;
+  sendReady: boolean;
+  onSent: () => void;
+}) {
+  const [sending, setSending] = useState(false);
+  const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const sendable =
+    sendReady && !!row.email && !!row.draftBody && !["sent", "booked", "replied_declined"].includes(row.status);
+
+  async function send() {
+    if (!window.confirm(`Send this draft to ${row.email}? This emails them for real.`)) return;
+    setSending(true);
+    setSendMsg(null);
+    try {
+      const r = await postSend(account, row.id);
+      setSendMsg({ ok: true, text: `Sent to ${r.sent}` });
+      onSent();
+    } catch (err) {
+      setSendMsg({ ok: false, text: err instanceof Error ? err.message : "Could not send" });
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
@@ -310,6 +354,19 @@ function BusinessCard({ row }: { row: OutreachRow }) {
         </p>
       ) : null}
 
+      {sendable ? (
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending}
+          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-crimson-500 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto"
+        >
+          {sending ? "Sending…" : `Send to ${row.email}`}
+        </button>
+      ) : null}
+      {sendMsg ? (
+        <p className={`mt-2 text-xs ${sendMsg.ok ? "text-jade-400" : "text-crimson-300"}`}>{sendMsg.text}</p>
+      ) : null}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-ink-700 pt-3 text-xs text-mist-500">
         <span>{row.kind ? `${row.kind} · ` : ""}{row.firstDrafted || "not drafted"}</span>
         <a href={row.url} target="_blank" rel="noreferrer" className="hover:text-mist-200">
@@ -369,15 +426,33 @@ function NotionSetup() {
   );
 }
 
+interface ChatResult {
+  plan: {
+    summary: string;
+    search: { queries: string[]; location: string; country: string; perQuery: number } | null;
+    businesses: string[];
+    sendTo: string[];
+    checkReplies: boolean;
+    maxNew: number;
+    unclear: string;
+  };
+  sends: { id: string; business: string; email: string; subject: string }[];
+  unknownSends: string[];
+}
+
 function RunPanel({
   account,
   runConfigured,
   inApp,
+  chatReady,
+  sendReady,
   onStarted,
 }: {
   account: Account;
   runConfigured: boolean;
   inApp: { ready: boolean; missing: string[] };
+  chatReady: boolean;
+  sendReady: boolean;
   onStarted: () => void;
 }) {
   // An external trigger wins if configured; otherwise the app runs the search itself.
@@ -397,11 +472,20 @@ function RunPanel({
   const [results, setResults] = useState<StepResult[]>([]);
   const stop = useRef(false);
 
-  async function startInApp(searchParams: { queries: string[]; location: string; country: string; perQuery: number }) {
+  async function startInApp(opts: {
+    search?: { queries: string[]; location: string; country: string; perQuery: number };
+    prospects?: string[];
+    maxNew?: number;
+  }) {
     setResults([]);
-    setProgress({ total: 0, done: 0, current: "Searching Google Maps…" });
+    setProgress({ total: 0, done: 0, current: opts.search ? "Searching Google Maps…" : "Preparing the list…" });
     const { plan } = await callApi<PlanResponse>(account, OUTREACH_ACTIONS.run, {
-      params: { mode: "outreach", maxNew, search: searchParams },
+      params: {
+        mode: "outreach",
+        maxNew: opts.maxNew ?? maxNew,
+        ...(opts.search ? { search: opts.search } : {}),
+        ...(opts.prospects?.length ? { prospects: opts.prospects } : {}),
+      },
     });
     const warn = plan.warnings.length ? ` ${plan.warnings.join(" ")}` : "";
     if (plan.candidates.length === 0) {
@@ -473,6 +557,63 @@ function RunPanel({
     });
   }
 
+  // --- the instruction box: plain words in, a confirmable plan out. Nothing runs or
+  // sends from here without its own click (and, for sends, its own bound signature).
+  const [instruction, setInstruction] = useState("");
+  const [planning, setPlanning] = useState(false);
+  const [chat, setChat] = useState<ChatResult | null>(null);
+  const [chatErr, setChatErr] = useState<string | null>(null);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  async function planIt(e: React.FormEvent) {
+    e.preventDefault();
+    setPlanning(true);
+    setChatErr(null);
+    setChat(null);
+    try {
+      setChat(await callApi<ChatResult>(account, OUTREACH_ACTIONS.chat, { instruction: instruction.trim() }));
+    } catch (err) {
+      setChatErr(err instanceof Error ? err.message : "Could not interpret that");
+    } finally {
+      setPlanning(false);
+    }
+  }
+
+  async function runChatPlan() {
+    if (!chat) return;
+    setBusy(true);
+    setMsg(null);
+    stop.current = false;
+    try {
+      await startInApp({
+        search: chat.plan.search ?? undefined,
+        prospects: chat.plan.businesses,
+        maxNew: chat.plan.maxNew,
+      });
+      onStarted();
+    } catch (err) {
+      setMsg({ ok: false, text: err instanceof Error ? err.message : "Could not start the run" });
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  }
+
+  async function sendFromChat(target: { id: string; business: string; email: string }) {
+    if (!window.confirm(`Send the draft to ${target.business} <${target.email}>? This emails them for real.`)) return;
+    setSendingId(target.id);
+    try {
+      await postSend(account, target.id);
+      setSentIds((prev) => new Set(prev).add(target.id));
+      onStarted();
+    } catch (err) {
+      setChatErr(err instanceof Error ? err.message : "Could not send");
+    } finally {
+      setSendingId(null);
+    }
+  }
+
   async function start(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -482,7 +623,7 @@ function RunPanel({
       const list = queries.split(",").map((q) => q.trim()).filter(Boolean);
       const searchParams = { queries: list, location: location.trim(), country: country.trim().toLowerCase(), perQuery };
       if (inAppMode) {
-        await startInApp(searchParams);
+        await startInApp({ search: searchParams });
       } else {
         await callApi(account, OUTREACH_ACTIONS.run, {
           params: { mode, maxNew, ...(useSearch && mode !== "replies" ? { search: searchParams } : {}) },
@@ -501,6 +642,97 @@ function RunPanel({
   return (
     <Card>
       <SectionTitle>Start a run</SectionTitle>
+
+      {inAppMode && chatReady ? (
+        <div className="mb-6 min-w-0 space-y-3 border-b border-ink-700 pb-6">
+          <form onSubmit={planIt} className="min-w-0 space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block text-mist-400">Tell it what to do today</span>
+              <textarea
+                className={`${FIELD} resize-none`}
+                rows={2}
+                maxLength={1000}
+                placeholder={'e.g. "10 salons in Kilimani, research Java House, and send the Nodenbo draft"'}
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={planning || busy || instruction.trim().length < 3}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-ink-600 px-5 py-2.5 text-sm font-bold transition hover:border-mist-400 disabled:opacity-50 sm:w-auto"
+            >
+              {planning ? <Spinner className="size-4" /> : null} {planning ? "Reading…" : "Plan it"}
+            </button>
+          </form>
+
+          {chatErr ? <ErrorNote>{chatErr}</ErrorNote> : null}
+
+          {chat ? (
+            <div className="space-y-3 rounded-lg border border-ink-700 bg-ink-900 p-4 light:bg-ink-850">
+              <p className="text-sm text-mist-200">{chat.plan.summary}</p>
+              <ul className="space-y-1 text-xs text-mist-400">
+                {chat.plan.search ? (
+                  <li>
+                    • Search: {chat.plan.search.queries.join(", ")} in {chat.plan.search.location} (
+                    {chat.plan.search.perQuery}/type, max {chat.plan.maxNew} new)
+                  </li>
+                ) : null}
+                {chat.plan.businesses.length ? <li>• Research by name: {chat.plan.businesses.join(", ")}</li> : null}
+                {chat.plan.checkReplies ? (
+                  <li className="text-amber-glow">• Checking replies needs Gmail — run that part from Claude Code.</li>
+                ) : null}
+                {chat.plan.unclear ? <li className="text-amber-glow">• Didn&rsquo;t understand: {chat.plan.unclear}</li> : null}
+                {chat.unknownSends.length ? (
+                  <li className="text-amber-glow">• No sendable draft for: {chat.unknownSends.join(", ")}</li>
+                ) : null}
+              </ul>
+
+              {chat.plan.search || chat.plan.businesses.length ? (
+                <button
+                  type="button"
+                  onClick={runChatPlan}
+                  disabled={busy}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-crimson-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto"
+                >
+                  {busy ? <Spinner className="size-4" /> : null} Run this
+                </button>
+              ) : null}
+
+              {chat.sends.length ? (
+                <div className="space-y-2 border-t border-ink-700 pt-3">
+                  <p className="text-xs text-mist-500">
+                    Sending is separate — each email goes out only when you confirm it here:
+                  </p>
+                  {chat.sends.map((t) =>
+                    sentIds.has(t.id) ? (
+                      <p key={t.id} className="text-xs text-jade-400">
+                        ✓ Sent to {t.business} ({t.email})
+                      </p>
+                    ) : (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => sendFromChat(t)}
+                        disabled={sendingId !== null || !sendReady}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-crimson-500/60 px-4 py-2 text-xs font-bold text-crimson-300 transition hover:bg-crimson-500/10 disabled:opacity-50 sm:w-auto"
+                      >
+                        {sendingId === t.id ? "Sending…" : `Send to ${t.business} (${t.email})`}
+                      </button>
+                    )
+                  )}
+                  {!sendReady ? (
+                    <p className="text-xs text-amber-glow">
+                      Sending is not configured yet — set SMTP_HOST, SMTP_USER and SMTP_PASS on the server.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <form onSubmit={start} className="min-w-0 space-y-4">
         {!inAppMode ? (
           <label className="block text-sm">

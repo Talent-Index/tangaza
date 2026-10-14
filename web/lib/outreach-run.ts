@@ -105,9 +105,12 @@ async function searchPlaces(p: SearchParams): Promise<{ found: Omit<Candidate, "
   return { found, warnings };
 }
 
-/** Search, drop anything already in the tracker (or repeated), and cap the batch. */
-export async function planRun(p: SearchParams, maxNew: number) {
-  const { found, warnings } = await searchPlaces(p);
+/**
+ * Search (and/or take named businesses), drop anything already in the tracker (or
+ * repeated), and cap the batch. Named prospects go first — they were asked for by name.
+ */
+export async function planRun(p: SearchParams | null, maxNew: number, prospects: string[] = []) {
+  const { found, warnings } = p ? await searchPlaces(p) : { found: [], warnings: [] as string[] };
 
   const known = new Set<string>();
   for (const row of await listOutreach()) {
@@ -117,6 +120,12 @@ export async function planRun(p: SearchParams, maxNew: number) {
   }
 
   const fresh: Candidate[] = [];
+  for (const name of prospects) {
+    const id = slug(name);
+    if (!id || known.has(id)) continue;
+    known.add(id);
+    fresh.push({ id, business: name.trim(), location: "", phone: "", website: "", query: "named" });
+  }
   for (const f of found) {
     const id = slug(f.business);
     const host = hostOf(f.website);
