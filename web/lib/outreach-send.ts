@@ -1,5 +1,7 @@
 import "server-only";
+import { ImapFlow } from "imapflow";
 import { createTransport, type Transporter } from "nodemailer";
+import MailComposer from "nodemailer/lib/mail-composer";
 import { notionHeaders, type OutreachRow } from "./outreach";
 
 /**
@@ -54,16 +56,47 @@ export async function sendRowDraft(row: OutreachRow): Promise<SendResult> {
   if (!row.draftBody.trim()) return { ok: false, reason: "This row has no draft to send" };
   if (row.status === "sent") return { ok: false, reason: "Already sent — check the tracker" };
 
+  // Build the message once so the bytes we send are the bytes we file in Sent.
+  let raw: Buffer;
   try {
-    await smtp().sendMail({
+    raw = await new MailComposer({
       from: { name: FROM_NAME, address: FROM_EMAIL ?? "" },
       to: row.email,
       subject: row.draftSubject || `A note from ${FROM_NAME}`,
       text: row.draftBody,
-    });
+    })
+      .compile()
+      .build();
+    await smtp().sendMail({ envelope: { from: FROM_EMAIL, to: [row.email] }, raw });
   } catch (err) {
     const detail = err instanceof Error ? err.message.split("\n")[0].slice(0, 160) : "unknown error";
     return { ok: false, reason: `The mail server refused it: ${detail}` };
+  }
+
+  // SMTP submission does not file a copy in the mailbox's Sent folder (a mail app does
+  // that itself over IMAP), so do the same — best-effort: the mail is already out.
+  let sentCopy = true;
+  try {
+    const imap = new ImapFlow({
+      host: HOST ?? "",
+      port: 993,
+      secure: true,
+      auth: { user: USER ?? "", pass: PASS ?? "" },
+      logger: false,
+    });
+    await imap.connect();
+    try {
+      const folders = await imap.list();
+      const sent =
+        folders.find((f) => f.specialUse === "\\Sent")?.path ??
+        folders.find((f) => /^sent/i.test(f.name))?.path ??
+        "Sent";
+      await imap.append(sent, raw, ["\\Seen"]);
+    } finally {
+      await imap.logout();
+    }
+  } catch {
+    sentCopy = false;
   }
 
   // Record the send on the tracker row. A failure here must not look like a failed
@@ -87,5 +120,5 @@ export async function sendRowDraft(row: OutreachRow): Promise<SendResult> {
   } catch {
     return { ok: true, to: `${row.email} (sent, but the tracker row could not be updated — fix it in Notion)` };
   }
-  return { ok: true, to: row.email };
+  return { ok: true, to: sentCopy ? row.email : `${row.email} (sent; no copy could be filed in the Sent folder)` };
 }
