@@ -1,12 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FeedbackFab, FeedbackSection } from "@/components/feedback/Feedback";
-import { Icon, type IconName } from "@/components/icons";
-import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
+import { Icon } from "@/components/icons";
+import { SiteFooter } from "@/components/site/SiteChrome";
 import { addressUrl } from "@/lib/chain";
-import { CONTACT } from "@/lib/contact";
 
 interface Stats {
   awaiting: number | null;
@@ -25,21 +25,8 @@ interface Stats {
     orgName: string;
     blurb?: string;
     coverUrl?: string;
-    rewards: string[];
-    participants: number;
-    approved: number;
   }>;
 }
-
-const num = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("en-US"));
-const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
-
-const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
-// Square, hairline panels in the dark look; rounded paper cards in the light look.
-const PANEL = "border border-ink-700 bg-ink-850 light:rounded-xl light:shadow-sm";
-const BTN = "inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold transition light:rounded-lg";
-const BTN_PRIMARY = `${BTN} bg-crimson-500 text-white hover:bg-crimson-400`;
-const BTN_GHOST = `${BTN} border border-ink-600 text-mist-100 hover:border-mist-400`;
 
 function useStats() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -58,464 +45,404 @@ function useStats() {
   return stats;
 }
 
-/**
- * The public page. Dark is the "warm dark" direction, light is the "daylight" one;
- * sections that differ in structure between the two render both and let the `light:`
- * variant show the right one, so the copy and live numbers stay a single source.
+/*
+ * The "control room" direction: warm charcoal, one amber, poster type. This page owns
+ * its palette outright (no theme variants) — the design is dark by nature, like the
+ * campaign mock it comes from.
  */
+const BG = "bg-[#131008]";
+const CARD = "rounded-2xl border border-[#2d2619] bg-[#1b1710]";
+const AMBER = "#e9a23b";
+const CREAM = "text-[#f1e9db]";
+const MUTED = "text-[#9d937f]";
+const POSTER = "font-[family-name:var(--font-anton)] uppercase leading-[0.92] tracking-[0.01em]";
+const KICKER = "font-mono text-[11px] uppercase tracking-[0.22em] text-[#e9a23b]";
+const PILL_AMBER =
+  "inline-flex items-center justify-center gap-2 rounded-full bg-[#e9a23b] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#17130b] transition hover:bg-[#f4b254]";
+const PILL_GHOST =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-[#443a28] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#f1e9db] transition hover:border-[#e9a23b]";
+
+const num = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("en-KE"));
+
 export function LandingPage() {
   const stats = useStats();
   return (
-    <div className="skin min-h-dvh bg-ink-950 text-mist-100">
-      <SiteHeader />
-      <Hero stats={stats} />
-      <HowItWorks />
-      <Pilots stats={stats} />
-      <Trust stats={stats} />
-      <Faq />
-      <FeedbackSection />
-      <ClosingCta />
-      <SiteFooter />
+    <div className={`${BG} relative min-h-dvh overflow-x-clip ${CREAM}`}>
+      <FloatingPhotos />
+      <div className="relative z-10">
+        <Header />
+        <Hero stats={stats} />
+        <StatStrip />
+        <Band />
+        <ClearPath />
+        <PickYourMoment stats={stats} />
+        <WhyItWorks stats={stats} />
+        <Faq />
+        <FeedbackSection />
+        <SiteFooter />
+      </div>
       <FeedbackFab />
     </div>
   );
 }
 
-function Actions({ primary = "Start a free campaign" }: { primary?: string }) {
+/* ------------------------------------------------------------------ chrome */
+
+function Header() {
+  const link = "hidden text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] transition hover:text-[#f1e9db] md:inline";
   return (
-    <div className="flex flex-wrap gap-3">
-      <Link href="/register" className={BTN_PRIMARY}>
-        {primary}
-      </Link>
-      <Link href="/book" className={BTN_GHOST}>
-        <Icon name="calendar" /> Book a setup session
-      </Link>
-      {CONTACT.whatsapp ? (
-        <a href={CONTACT.whatsapp} target="_blank" rel="noopener noreferrer" className={BTN_GHOST}>
-          <Icon name="chat" /> Chat on WhatsApp
-        </a>
-      ) : null}
-    </div>
+    <header className="sticky top-0 z-30 border-b border-[#2d2619]/60 bg-[#131008]/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <Link href="/" className="whitespace-nowrap text-base font-bold tracking-tight">
+          Ubu-Tangaza<span className="text-[#e9a23b]">.</span>
+        </Link>
+        <nav className="flex items-center gap-3 sm:gap-6">
+          <a href="#how" className={link}>
+            How it works
+          </a>
+          <a href="#campaigns" className={link}>
+            Campaigns
+          </a>
+          <a href="#why" className={link}>
+            Why it works
+          </a>
+          <Link href="/auth" className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] hover:text-[#f1e9db]">
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#e9a23b] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#17130b] transition hover:bg-[#f4b254] sm:px-5"
+          >
+            <span className="sm:hidden">Start</span>
+            <span className="hidden sm:inline">Start a campaign</span> <Icon name="arrow-up-right" className="size-3.5" />
+          </Link>
+        </nav>
+      </div>
+    </header>
   );
 }
 
-function LiveLine({ stats }: { stats: Stats | null }) {
-  return (
-    <p className="font-mono text-xs text-mist-500">
-      Live on Avalanche · {num(stats?.chain?.approved)} approved · KES {num(stats?.chain?.issuedKes)} rewarded
-    </p>
-  );
-}
-
-/* ----------------------------------------------------------------------- hero */
+/* -------------------------------------------------------------------- hero */
 
 function Hero({ stats }: { stats: Stats | null }) {
-  const pilot = stats?.pilots[0];
-  // The loop the product runs on. Where a live number exists it sits under the body.
-  const parts: Array<{ icon: IconName; title: string; body: string; live?: [string, string] }> = [
-    { icon: "clipboard", title: "Set the goal", body: "A launch, an event, a community, more bookings." },
-    {
-      icon: "send",
-      title: "Create the campaign",
-      body: "The action, the reward and a budget cap.",
-      live: pilot ? ["Live now", pilot.orgName] : undefined,
-    },
-    {
-      icon: "sliders",
-      title: "Track progress",
-      body: "Proof arrives; you see where you stand.",
-      live: ["Awaiting you", num(stats?.awaiting)],
-    },
-    {
-      icon: "check",
-      title: "Approve & reward",
-      body: "You tap approve. They get what you promised.",
-      live: ["Approved", num(stats?.chain?.approved)],
-    },
-  ];
   return (
-    <section className="px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
-      <div className="mx-auto max-w-6xl">
-        <p className={`${MONO} text-crimson-500`}>Goals, not guesswork</p>
-        <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.08] tracking-tight sm:text-6xl">
-          Tell us what you want to achieve. Your community helps you get there.
-        </h1>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-mist-400 sm:text-lg">
-          Launching a product, filling an event, growing a community: your people share, you approve
-          each action, and they&rsquo;re rewarded.
-        </p>
-        <div className="mt-8">
-          <Actions />
+    <section className="px-4 pb-14 pt-12 sm:px-6 sm:pt-16 lg:pb-24">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]">
+        <div className="min-w-0">
+          <p className={`${KICKER} flex items-center gap-3`}>
+            <span className="h-px w-8 bg-[#e9a23b]" /> Verified actions. Real rewards.
+          </p>
+          <h1 className={`${POSTER} mt-6 text-[clamp(3.4rem,11vw,7.5rem)]`}>
+            Make every
+            <br />
+            <span className="text-[#e9a23b]">action</span>
+            <br />
+            count.
+          </h1>
+          <p className={`mt-6 max-w-md text-base leading-relaxed sm:text-lg ${MUTED}`}>
+            Turn referrals, visits and social proof into rewards your business controls. Run
+            campaigns with clear goals, verified progress and only the outcomes you approve.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/register" className={PILL_AMBER}>
+              Create your campaign <Icon name="arrow-up-right" className="size-4" />
+            </Link>
+            <a href="#how" className={PILL_GHOST}>
+              See the process
+            </a>
+          </div>
         </div>
-        <p className="mt-5 text-xs text-mist-500">
-          For cafés, salons, boutiques, gyms, community hubs and events.
-        </p>
 
-        <ol className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {parts.map((p, i) => (
-            <li key={p.title} className={`${PANEL} flex min-w-0 flex-col p-5`}>
-              <div className="flex items-center justify-between gap-3">
-                <span className="grid size-9 place-items-center bg-crimson-500/10 text-crimson-500 light:rounded-full">
-                  <Icon name={p.icon} className="size-4.5" />
-                </span>
-                <span className="font-mono text-xs text-mist-500">{String(i + 1).padStart(2, "0")}</span>
-              </div>
-              <p className="mt-4 font-bold">{p.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-mist-400">{p.body}</p>
-              {p.live ? (
-                <p className="mt-auto flex items-baseline justify-between gap-3 border-t border-dashed border-ink-600 pt-3 font-mono text-xs text-mist-500">
-                  <span className="shrink-0">{p.live[0]}</span>
-                  <span className={`tabular min-w-0 truncate text-sm ${i === 3 ? "text-jade-400" : "text-mist-100"}`}>
-                    {p.live[1]}
-                  </span>
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-5">
-          <LiveLine stats={stats} />
-        </div>
+        <ControlRoom stats={stats} />
       </div>
     </section>
   );
 }
 
-/** Mono rows, a dashed rule, then a total — the daylight look's M-Pesa-confirmation feel. */
-function Receipt({
-  rows,
-  totalLabel,
-  total,
-  totalTone,
-  footer,
-}: {
-  rows: Array<[string, string]>;
-  totalLabel: string;
-  total: string;
-  totalTone?: string;
-  footer?: string;
-}) {
+/** The product, as a card: a live campaign mid-approval. Real numbers when we have them. */
+function ControlRoom({ stats }: { stats: Stats | null }) {
+  const approved = stats?.chain?.approved ?? null;
+  const title = stats?.pilots[0]?.title ?? "Referral sprint";
   return (
-    <div className={`${PANEL} p-5 font-mono text-sm`}>
-      <dl className="space-y-2.5">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-4">
-            <dt>{k}</dt>
-            <dd className="tabular">{v}</dd>
+    <div className="relative mb-10 min-w-0">
+      <div className={`${CARD} relative p-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:p-6`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className={KICKER}>Campaign control room</p>
+            <p className="mt-1 truncate text-lg font-bold">{title}</p>
           </div>
-        ))}
-      </dl>
-      <div className="my-3 border-t border-dashed border-ink-600" />
-      <div className="flex justify-between gap-4">
-        <span>{totalLabel}</span>
-        <span className={`tabular ${totalTone ?? ""}`}>{total}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2e4d33] bg-[#17241a] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7fc98b]">
+            <span className="size-1.5 rounded-full bg-[#7fc98b]" /> Live
+          </span>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-[#2d2619] bg-[#141109] p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">Approved actions</p>
+              <p className={`${POSTER} mt-1 text-5xl`}>{approved === null ? "—" : num(approved)}</p>
+            </div>
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#e9a23b] text-[#17130b]">
+              <Icon name="check" className="size-5" />
+            </span>
+          </div>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#2d2619]">
+            <div className="h-full w-3/4 rounded-full bg-[#e9a23b]" />
+          </div>
+          <p className={`mt-2 text-xs ${MUTED}`}>every one of them approved by the business, on-chain</p>
+        </div>
+
+        <div className="mt-3 space-y-2.5">
+          <RoomRow label="Bring a friend to a session" by="Submitted with proof" tag="approved" />
+          <RoomRow label="Share your launch post" by="Awaiting your review" tag="review" />
+        </div>
       </div>
-      {footer ? <p className="mt-3 text-xs text-mist-500">{footer}</p> : null}
+
+      {/* The promise, floated like a stamp over the card's corner. */}
+      <div className="absolute -bottom-12 left-4 max-w-[240px] rounded-2xl border border-[#2d2619] bg-[#17130b] p-4 shadow-xl sm:-left-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">Reward budget</p>
+        <p className={`${POSTER} mt-1 text-xl text-[#e9a23b]`}>Keeps its promise</p>
+      </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ how it works */
+function RoomRow({ label, by, tag }: { label: string; by: string; tag: "approved" | "review" }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#2d2619] bg-[#141109] px-4 py-3">
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 truncate text-sm font-semibold">
+          {tag === "approved" ? <span className="size-1.5 shrink-0 rounded-full bg-[#7fc98b]" /> : null}
+          {label}
+        </p>
+        <p className={`truncate text-xs ${MUTED}`}>{by}</p>
+      </div>
+      <span
+        className={`shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] ${
+          tag === "approved" ? "text-[#7fc98b]" : "text-[#e9a23b]"
+        }`}
+      >
+        {tag}
+      </span>
+    </div>
+  );
+}
 
-const STEPS = [
-  { title: "You set the goal", body: "Launch a product, fill an event, grow a community. Pick what you want to achieve.", short: "Set the goal" },
+/* ---------------------------------------------------------------- stats row */
+
+function StatStrip() {
+  const items = [
+    { big: "100%", label: "Your control" },
+    { big: "0", label: "Guesswork" },
+    { big: "1", label: "Clear goal" },
+  ];
+  return (
+    <section className="px-4 pb-16 sm:px-6">
+      <div className="mx-auto max-w-6xl border-t border-[#2d2619] pt-8">
+        <div className="grid max-w-xl grid-cols-3 gap-6">
+          {items.map((s) => (
+            <div key={s.label}>
+              <p className={`${POSTER} text-4xl sm:text-5xl`}>{s.big}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Band() {
+  return (
+    <div className="bg-[#e9a23b] px-4 py-4 text-[#17130b] sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-2">
+        <p className="text-sm font-bold uppercase tracking-[0.04em]">
+          The campaign platform for businesses that back their word.
+        </p>
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
+          Referrals&ensp;·&ensp;Engagement&ensp;·&ensp;Launches
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- the path */
+
+const PATH = [
   {
-    title: "You create the campaign",
-    body: "The action you want, the reward you'll give and a budget cap. I set it up with you.",
-    short: "Create the campaign",
+    n: "01",
+    title: "Set the goal",
+    body: "Choose the action that turns attention into a measurable outcome — and the reward you'll honour for it.",
   },
   {
-    title: "You track progress",
-    body: "Customers share and submit proof: a link, a screenshot or a photo. You see each one, and the count of approved actions.",
-    short: "Track progress",
+    n: "02",
+    title: "Review proof",
+    body: "See every submission — a link, a screenshot, a receipt — before it moves your campaign forward.",
   },
   {
-    title: "You approve and they're rewarded",
-    body: "Each approval is recorded on Avalanche. You honour the reward: airtime, a voucher or a discount.",
-    short: "Approve and reward",
+    n: "03",
+    title: "Release rewards",
+    body: "Approve the moments that matter. Each approval lands on Avalanche, and your capped budget only counts what you approved.",
   },
 ];
 
-function HowItWorks() {
+function ClearPath() {
   return (
-    <section id="how" className="scroll-mt-4 border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-6xl">
-        <p className={`${MONO} text-crimson-500`}>How it works</p>
-        <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-          Four steps, from goal to reward.
-        </h2>
-
-        {/* Dark: timeline */}
-        <ol className="mt-10 max-w-xl space-y-6 border-l border-ink-700 pl-6 light:hidden">
-          {STEPS.map((s, i) => (
-            <li key={s.title}>
-              <p className={`font-bold ${i === 3 ? "text-jade-400" : ""}`}>{s.title}</p>
-              <p className="mt-1 text-sm text-mist-400">{s.body}</p>
+    <section id="how" className="scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div>
+          <p className={KICKER}>The clear path</p>
+          <h2 className={`${POSTER} mt-5 text-[clamp(2.6rem,7vw,4.5rem)]`}>
+            You set the
+            <br />
+            standard.
+            <br />
+            <span className="text-[#6e6350]">We keep the receipts.</span>
+          </h2>
+        </div>
+        <ol className="min-w-0 border-t border-[#2d2619]">
+          {PATH.map((s) => (
+            <li key={s.n} className="grid grid-cols-[3.5rem_1fr_auto] items-start gap-4 border-b border-[#2d2619] py-7">
+              <span className={`${POSTER} text-3xl text-[#e9a23b]`}>{s.n}</span>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold">{s.title}</h3>
+                <p className={`mt-1.5 text-sm leading-relaxed ${MUTED}`}>{s.body}</p>
+              </div>
+              <Icon name="arrow-up-right" className="mt-1 size-4 text-[#e9a23b]" />
             </li>
           ))}
         </ol>
+      </div>
+    </section>
+  );
+}
 
-        {/* Light: ticket stubs */}
-        <div className="mt-10 hidden max-w-2xl grid-cols-2 overflow-hidden rounded-xl border border-ink-700 bg-ink-850 shadow-sm light:grid">
-          {STEPS.map((s, i) => (
-            <div
-              key={s.short}
-              className={`p-5 ${i % 2 === 0 ? "border-r border-dashed border-ink-600" : ""} ${
-                i < 2 ? "border-b border-dashed border-ink-600" : ""
+/* ----------------------------------------------------------- campaign cards */
+
+const TEMPLATES = [
+  { title: "Verified Referral Campaign", note: "Friends through the door, proven" },
+  { title: "Customer Engagement Campaign", note: "Posts, reviews and visits that count" },
+  { title: "Product Launch Campaign", note: "A push with a number on it" },
+];
+
+function PickYourMoment({ stats }: { stats: Stats | null }) {
+  const live = (stats?.pilots ?? []).slice(0, 3);
+  const cards = live.length
+    ? live.map((p, i) => ({
+        key: p.id,
+        href: `/c/${p.slug}`,
+        n: `0${i + 1}`,
+        title: p.title,
+        note: `Live now · ${p.orgName}`,
+      }))
+    : TEMPLATES.map((t, i) => ({ key: t.title, href: "/register", n: `0${i + 1}`, title: t.title, note: t.note }));
+
+  return (
+    <section id="campaigns" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className={KICKER}>{live.length ? "Running right now" : "Start with a clear brief"}</p>
+            <h2 className={`${POSTER} mt-5 text-[clamp(2.6rem,7vw,4.5rem)]`}>
+              Pick your
+              <br />
+              moment.
+            </h2>
+          </div>
+          <Link
+            href="/campaigns"
+            className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-[#e9a23b] underline underline-offset-8 hover:text-[#f4b254]"
+          >
+            See all campaigns <Icon name="arrow-up-right" className="size-3.5" />
+          </Link>
+        </div>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((c, i) => (
+            <Link
+              key={c.key}
+              href={c.href}
+              className={`${CARD} group flex min-h-[18rem] min-w-0 flex-col justify-between p-5 transition hover:border-[#e9a23b]/60 ${
+                i === 1 ? "border-[#e9a23b]/50" : ""
               }`}
             >
-              <p className={`font-mono text-[11px] uppercase tracking-[0.2em] ${i === 3 ? "text-jade-400" : "text-crimson-500"}`}>
-                Step {i + 1}
-              </p>
-              <p className="mt-1 font-semibold">{s.short}</p>
-            </div>
+              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">
+                {c.n} / Campaign
+                <Icon name="arrow-up-right" className="size-4 text-[#e9a23b] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="mb-4 grid size-12 place-items-center rounded-full border border-[#3a3222] text-[#e9a23b]">
+                  <Icon name="gift" className="size-5" />
+                </span>
+                <h3 className={`${POSTER} break-words text-3xl`}>{c.title}</h3>
+                <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#e9a23b]">{c.note}</p>
+              </div>
+            </Link>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------------ pilots */
-
-/**
- * Bold solid card skins the stack cycles through — fixed hexes on purpose, so the
- * cards read identically in the dark and light skins (only the page behind them flips).
- */
-const CARD_SKINS = [
-  { bg: "#15150f", fg: "#f5f4ee", sub: "rgba(245,244,238,0.72)", chip: "#f5f4ee", chipFg: "#15150f" },
-  { bg: "#0d5c3d", fg: "#ffffff", sub: "rgba(255,255,255,0.78)", chip: "#ffffff", chipFg: "#0d5c3d" },
-  { bg: "#1f9d63", fg: "#ffffff", sub: "rgba(255,255,255,0.82)", chip: "#ffffff", chipFg: "#15724a" },
-  { bg: "#d9a441", fg: "#17130a", sub: "rgba(23,19,10,0.72)", chip: "#17130a", chipFg: "#f2e3c4" },
-] as const;
-
-function Pilots({ stats }: { stats: Stats | null }) {
-  const pilots = stats?.pilots ?? [];
-  return (
-    <section id="pilots" className="scroll-mt-4 border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-6xl">
-        <p className={`${MONO} text-crimson-500`}>Live pilots</p>
-        <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Running now</h2>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist-400 sm:text-base">
-          Live campaigns, including our retail referral pilot, where progress also counts verified purchases.
-        </p>
-
-        {pilots.length === 0 ? (
-          <p className="mt-8 max-w-md text-sm text-mist-400">
-            {stats ? "No campaigns are live this moment." : "Loading live campaigns…"}
-          </p>
-        ) : (
-          /* The deck: every card pins just below the top of the viewport and the next
-             one slides up over it, so browsing campaigns is one scroll through
-             identical cards. */
-          <div className="mx-auto mt-10 max-w-2xl">
-            {pilots.map((p, i) => (
-              <div
-                key={p.id}
-                className="sticky pb-6"
-                style={{ top: `calc(4rem + ${i * 1.25}rem)`, zIndex: i + 1 }}
-              >
-                <PilotCard pilot={p} skin={CARD_SKINS[i % CARD_SKINS.length]} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/**
- * One campaign in the deck. Every card has the same parts in the same order —
- * cover (or mark), business, title, blurb, what you get, join — so flipping
- * through the stack never rearranges anything, only recolors it.
- */
-function PilotCard({
-  pilot: p,
-  skin,
-}: {
-  pilot: Stats["pilots"][number];
-  skin: (typeof CARD_SKINS)[number];
-}) {
-  const shown = p.rewards.slice(0, 3);
-  const more = p.rewards.length - shown.length;
-  return (
-    <Link
-      href={`/c/${p.slug}`}
-      className="group relative block overflow-hidden rounded-3xl px-6 py-10 text-center shadow-2xl transition duration-300 hover:-translate-y-1 sm:px-12 sm:py-12"
-      style={{ backgroundColor: skin.bg, color: skin.fg }}
-    >
-      {/* Tone-on-tone weave, like the leaf motif on the reference cards. */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
-        style={{
-          backgroundImage: `repeating-linear-gradient(135deg, transparent 0 14px, ${skin.fg} 14px 15px), repeating-linear-gradient(45deg, transparent 0 14px, ${skin.fg} 14px 15px)`,
-        }}
-        aria-hidden
-      />
-
-      <div className="relative">
-        {p.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={p.coverUrl}
-            alt=""
-            loading="lazy"
-            className="mx-auto h-36 w-full max-w-md rounded-2xl object-cover sm:h-44"
-          />
-        ) : (
-          <span
-            className="mx-auto grid size-14 place-items-center rounded-2xl"
-            style={{ backgroundColor: skin.chip, color: skin.chipFg }}
-          >
-            <Icon name="gift" className="size-6" />
-          </span>
-        )}
-
-        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: skin.sub }}>
-          {p.orgName} · Live
-        </p>
-        <h3 className="mx-auto mt-3 max-w-lg break-words text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl">
-          {p.title}
-        </h3>
-        {p.blurb ? (
-          <p className="mx-auto mt-4 max-w-md break-words text-sm leading-relaxed sm:text-base" style={{ color: skin.sub }}>
-            {p.blurb}
-          </p>
+        {!live.length ? (
+          <p className={`mt-4 text-xs ${MUTED}`}>Your first campaign is free — we set it up with you.</p>
         ) : null}
-
-        <div className="mx-auto mt-6 max-w-md border-t pt-5" style={{ borderColor: `color-mix(in srgb, ${skin.fg} 25%, transparent)` }}>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: skin.sub }}>
-            You get
-          </p>
-          {shown.length > 0 ? (
-            <p className="mt-2 break-words text-base font-bold sm:text-lg">
-              {shown.join(" · ")}
-              {more > 0 ? <span style={{ color: skin.sub }}> · +{more} more</span> : null}
-            </p>
-          ) : (
-            <p className="mt-2 text-sm" style={{ color: skin.sub }}>
-              Rewards from {p.orgName}
-            </p>
-          )}
-        </div>
-
-        <span
-          className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full px-7 text-sm font-bold transition group-hover:opacity-90"
-          style={{ backgroundColor: skin.chip, color: skin.chipFg }}
-        >
-          Join campaign <Icon name="send" className="size-4" />
-        </span>
-        <p className="mt-4 font-mono text-xs" style={{ color: skin.sub }}>
-          {p.approved > 0 ? `${p.approved} approved` : "Open to join"}
-          {p.participants > 0 ? ` · ${p.participants} taking part` : ""}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-/* ------------------------------------------------------------------------- trust */
-
-const TRUST_DARK: Array<[IconName, string]> = [
-  ["sliders", "Set the action, reward and cap"],
-  ["receipt", "Review proof before rewarding"],
-  ["gift", "Airtime, vouchers, discounts"],
-  ["user-check", "No wallet, seed phrase or gas fees"],
-];
-const TRUST_LIGHT: Array<[IconName, string]> = [
-  ["receipt", "Review proof first"],
-  ["lock", "Cap locked in code"],
-  ["gift", "Airtime or vouchers"],
-  ["user-check", "No crypto for customers"],
-];
-
-function Trust({ stats }: { stats: Stats | null }) {
-  const c = stats?.chain;
-  const outstanding = c ? c.issuedKes - c.redeemedKes : null;
-  const pct = c && c.capKes > 0 ? Math.min(100, (c.issuedKes / c.capKes) * 100) : 0;
-  const snow = stats?.contract ? addressUrl(stats.contract) : undefined;
-
-  return (
-    <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-6xl">
-        <p className={`${MONO} text-crimson-500`}>Trust and accountability</p>
-        <h2 className="mt-4 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
-          Reward real activity, not guesswork.
-        </h2>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist-400 sm:text-base">
-          The cap is set once and locked in code. Every redemption lowers what you owe.
-        </p>
-
-        {/* Dark: budget meter */}
-        <div className="mt-10 max-w-2xl light:hidden">
-          <div className="border border-ink-700 bg-ink-850 p-6">
-            <p className="text-sm text-mist-400">Outstanding liability · all businesses</p>
-            <p className="tabular mt-2 font-mono text-4xl font-bold sm:text-5xl">KES {num(outstanding)}</p>
-            <div className="mt-5 h-2 bg-ink-700">
-              <div className="h-full bg-crimson-500" style={{ width: `${Math.max(pct, c ? 1 : 0)}%` }} />
-            </div>
-            <div className="mt-2 flex justify-between text-xs text-mist-500">
-              <span>
-                Issued {num(c?.issuedKes)} · redeemed {num(c?.redeemedKes)}
-              </span>
-              <span>Cap {num(c?.capKes)}</span>
-            </div>
-            <p className="mt-4 flex flex-wrap items-center gap-x-2 text-xs text-jade-400">
-              <Icon name="lock" className="size-3.5" /> Cap is locked in the contract
-              {snow ? (
-                <>
-                  <span className="text-mist-500">·</span>
-                  <a href={snow} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
-                    View on Snowtrace <Icon name="external-link" className="size-3" />
-                  </a>
-                </>
-              ) : null}
-            </p>
-          </div>
-          <ul className="mt-2 divide-y divide-ink-700">
-            {TRUST_DARK.map(([icon, label]) => (
-              <li key={label} className="flex items-center gap-3 py-3.5 text-sm">
-                <Icon name={icon} className="size-4 text-crimson-500" /> {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Light: proof sheet */}
-        <div className="mt-10 hidden max-w-md light:block">
-          <Receipt
-            rows={[
-              ["Budget cap", `KES ${num(c?.capKes)}`],
-              ["Issued", `KES ${num(c?.issuedKes)}`],
-              ["Redeemed", `KES ${num(c?.redeemedKes)}`],
-            ]}
-            totalLabel="You owe"
-            total={`KES ${num(outstanding)}`}
-            totalTone="text-crimson-500"
-            footer={`all businesses · contract ${shortAddr(stats?.contract ?? "")} · Fuji`}
-          />
-          <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4">
-            {TRUST_LIGHT.map(([icon, label]) => (
-              <li key={label} className="text-sm">
-                <Icon name={icon} className="mb-1.5 size-5 text-crimson-500" />
-                {label}
-              </li>
-            ))}
-          </ul>
-          {snow ? (
-            <a href={snow} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-crimson-500 hover:underline">
-              View on Snowtrace <Icon name="external-link" className="size-3.5" />
-            </a>
-          ) : null}
-        </div>
       </div>
     </section>
   );
 }
 
-/* --------------------------------------------------------------------------- faq */
+/* ------------------------------------------------------------- the big CTA */
+
+function WhyItWorks({ stats }: { stats: Stats | null }) {
+  return (
+    <section id="why" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid overflow-hidden rounded-3xl border border-[#2d2619] lg:grid-cols-[1.2fr_minmax(0,0.8fr)]">
+          <div className="bg-[#17130b] p-7 sm:p-12">
+            <p className={KICKER}>Build it together</p>
+            <h2 className={`${POSTER} mt-5 max-w-xl text-[clamp(2.4rem,6vw,4rem)]`}>
+              Your first campaign deserves a real plan.
+            </h2>
+            <p className={`mt-5 max-w-md text-base leading-relaxed ${MUTED}`}>
+              Book a free 30-minute setup session. We will help you map the goal, the proof and
+              the reward without losing sight of your business.
+            </p>
+            <Link
+              href="/book"
+              className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-[#f1e9db] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#17130b] transition hover:bg-white"
+            >
+              Build my first campaign <Icon name="arrow-up-right" className="size-4" />
+            </Link>
+          </div>
+          <div className="relative overflow-hidden bg-[#e9a23b] p-7 text-[#17130b] sm:p-12">
+            <span className="absolute -right-16 -top-16 size-48 rounded-full border-[20px] border-[#f4b254]/60" />
+            <p className={`${POSTER} text-7xl`}>01</p>
+            <div className="mt-10 border-t border-[#17130b]/30 pt-6">
+              <p className="flex items-start gap-2 text-lg font-bold leading-snug">
+                <Icon name="check" className="mt-1 size-5 shrink-0" /> No vague numbers. No unclear payouts.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#17130b]/75">
+                Every step is visible before your reward budget moves.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* The receipts, literally: live on-chain numbers under the promise. */}
+        <p className={`mt-6 text-center font-mono text-[11px] uppercase tracking-[0.16em] ${MUTED}`}>
+          Live on Avalanche · {num(stats?.chain?.approved)} approved actions · KES {num(stats?.chain?.issuedKes)} rewarded ·{" "}
+          {stats?.contract ? (
+            <a href={addressUrl(stats.contract)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-[#e9a23b]">
+              the contract
+            </a>
+          ) : (
+            "the contract"
+          )}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* --------------------------------------------------------------------- faq */
 
 const FAQ = [
   {
@@ -536,27 +463,23 @@ const FAQ = [
   },
   {
     q: "Can I run this for a product launch or an event?",
-    a: "Yes. Tell us the goal, say a launch day or an event night, and we build a campaign around it. Your people share it, post about it or bring a friend, and you approve each action. You see how many have been approved as it builds.",
-  },
-  {
-    q: "What if my goal isn't referrals?",
-    a: "That's fine. An action can be sharing, posting, bringing a friend, visiting or leaving a review. Progress counts the actions you approve, not revenue, and we can't promise sales. You decide the reward, and you honour it.",
+    a: "Yes — a campaign is any push with a goal on it. People share, bring friends or show up; you approve what counts. Progress counts approved actions, not revenue, so we'll never promise you sales.",
   },
 ];
 
 function Faq() {
   return (
-    <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
+    <section className="border-t border-[#2d2619] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-3xl">
-        <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Questions owners ask</h2>
-        <div className="mt-6 divide-y divide-ink-700 border border-ink-700 bg-ink-850 light:rounded-xl">
+        <p className={KICKER}>Questions owners ask</p>
+        <div className="mt-6 border-t border-[#2d2619]">
           {FAQ.map((f) => (
-            <details key={f.q} className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <details key={f.q} className="group border-b border-[#2d2619] py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-bold">
                 {f.q}
-                <Icon name="plus" className="size-4 shrink-0 transition group-open:rotate-45" />
+                <Icon name="plus" className="size-4 shrink-0 text-[#e9a23b] transition group-open:rotate-45" />
               </summary>
-              <p className="px-5 pb-5 text-sm leading-relaxed text-mist-400">{f.a}</p>
+              <p className={`mt-3 max-w-xl text-sm leading-relaxed ${MUTED}`}>{f.a}</p>
             </details>
           ))}
         </div>
@@ -565,39 +488,55 @@ function Faq() {
   );
 }
 
-/* ----------------------------------------------------------------------- closing */
+/* ------------------------------------------------- floating photo layer */
 
-function ClosingCta() {
+const PHOTOS = [
+  // Gold reward coins by the phone — the signature image, drifting past the path section.
+  { src: "/images/landing/reward-coins.png", className: "right-[-6rem] top-[135vh] w-72 rotate-6 sm:right-[-3rem] lg:right-10", speed: -0.08 },
+  { src: "/images/landing/usecase-cafe.webp", className: "left-[-5rem] top-[240vh] w-60 -rotate-6 lg:left-4", speed: -0.05 },
+  { src: "/images/landing/usecase-salon.webp", className: "right-[-4rem] top-[330vh] w-56 rotate-3 lg:right-8", speed: -0.1 },
+];
+
+/**
+ * Photos drifting slowly behind the content as you scroll — decoration only, so they
+ * sit in their own non-interactive layer and move via a single rAF-throttled scroll
+ * listener writing transforms directly (no re-renders).
+ */
+function FloatingPhotos() {
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const els = Array.from(wrap.current?.querySelectorAll<HTMLElement>("[data-speed]") ?? []);
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        for (const el of els) {
+          el.style.transform = `translateY(${y * Number(el.dataset.speed)}px)`;
+        }
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   return (
-    <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-4xl">
-        {/* Dark: framed offer */}
-        <div className="border border-crimson-500 bg-ink-900 p-8 text-center sm:p-12 light:hidden">
-          <h2 className="text-3xl font-black tracking-tight sm:text-4xl">First campaign free.</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-mist-400 sm:text-base">
-            I set it up with you in 10 minutes. You only tap approve.
-          </p>
-          <div className="mt-7 flex justify-center">
-            <Actions primary="Start a campaign" />
-          </div>
+    <div ref={wrap} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-clip">
+      {PHOTOS.map((p) => (
+        <div key={p.src} data-speed={p.speed} className={`absolute ${p.className}`}>
+          <Image
+            src={p.src}
+            alt=""
+            width={288}
+            height={288}
+            className="h-auto w-full rounded-3xl opacity-25 shadow-2xl saturate-[0.9]"
+          />
         </div>
-
-        {/* Light: bold band */}
-        <div className="hidden rounded-2xl bg-crimson-500 p-8 text-center text-white sm:p-12 light:block">
-          <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Try it free this week.</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-white/85 sm:text-base">
-            One campaign, set up for you. I set it up with you in 10 minutes — you only tap approve.
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/book" className={`${BTN} bg-white text-crimson-500 hover:bg-white/90`}>
-              <Icon name="calendar" /> Book a setup session
-            </Link>
-            <Link href="/register" className={`${BTN} border border-white/60 text-white hover:bg-white/10`}>
-              Start a campaign
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
+      ))}
+    </div>
   );
 }
