@@ -100,7 +100,11 @@ function Liability() {
       </div>
 
       <StatRow cols={3}>
-        <FlatStat label="Emission cap" value={kesLabel(cap)} hint="Set once. Immutable." />
+        <FlatStat
+          label="Most you'll ever give"
+          value={kesLabel(cap)}
+          hint="Set once on-chain. Can never be raised."
+        />
         <FlatStat
           label="Committed"
           value={kesLabel(issued)}

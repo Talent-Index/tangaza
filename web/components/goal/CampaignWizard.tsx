@@ -156,6 +156,7 @@ export function CampaignWizard({
   onSubmit,
   onCancel,
   onDone,
+  initialStep = 0,
 }: {
   draft: CampaignDraft;
   setDraft: React.Dispatch<React.SetStateAction<CampaignDraft>>;
@@ -171,10 +172,12 @@ export function CampaignWizard({
   onSubmit: () => void;
   onCancel: () => void;
   onDone: () => void;
+  /** Open on a later step — a recipe prefills the early ones, so start at Reward. */
+  initialStep?: number;
 }) {
   const editing = Boolean(draft.id);
-  const [step, setStep] = useState(0);
-  const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : 0);
+  const [step, setStep] = useState(initialStep);
+  const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : initialStep);
 
   const goalsOn = goalsAvailable === true;
   const targetOk = !draft.goalType || parseTarget(draft.goalTarget) !== null;
@@ -568,6 +571,7 @@ function Review({
           </div>
         ))}
       </dl>
+      <CostPreview draft={draft} unit={unit} />
       <p className="text-xs leading-relaxed text-mist-500">
         {editing ? "Saving updates the public page right away. " : ""}
         Customers submit proof, you approve what&rsquo;s real, and you honour the rewards within
@@ -577,13 +581,62 @@ function Review({
   );
 }
 
+/**
+ * What launching this actually means, in the owner's arithmetic: what 10 people earning
+ * the reward gets them, against what it costs. Shown so the decision is made on the
+ * outcome, not on faith — and so the on-chain guardrail reads as the reassurance it is.
+ */
+function CostPreview({ draft, unit }: { draft: CampaignDraft; unit: string }) {
+  if (!draft.rewardKind) return null;
+  const amount = parseRewardAmount(draft.rewardAmount);
+  const threshold = parseThreshold(draft.rewardThreshold);
+  if (threshold === null || Number.isNaN(amount)) return null;
+
+  const PEOPLE = 10;
+  const actions = (PEOPLE * threshold).toLocaleString("en-GB");
+  const reward = describeCampaignReward({
+    rewardKind: draft.rewardKind,
+    rewardAmount: amount,
+    rewardCurrency: draft.rewardCurrency,
+    rewardNote: draft.rewardNote,
+  });
+
+  const cost =
+    draft.rewardKind === "discount" && amount != null
+      ? `each of them gets ${amount}% off — it only costs you when they buy`
+      : amount != null && amount > 0
+        ? `you'd hand over about ${(PEOPLE * amount).toLocaleString("en-GB")} ${draft.rewardCurrency}`
+        : `you'd hand over 10 × ${reward}`;
+
+  return (
+    <p className="rounded-xl border border-ink-700 bg-ink-900/40 px-3 py-2.5 text-sm leading-relaxed text-mist-300">
+      <span className="font-semibold text-mist-100">If 10 people earn this:</span> that&rsquo;s{" "}
+      {actions} {unit} for you, and {cost}. Your on-chain budget caps the total — it can
+      never run past what you signed for, even if this takes off.
+    </p>
+  );
+}
+
+/**
+ * The share kit. A campaign that exists but was never distributed produces nothing, so
+ * launching ends in the three ways a Kenyan SME actually spreads the word — a WhatsApp
+ * message ready to forward, the same message to paste anywhere, and a printable poster
+ * for the counter — with the bare link last, not first.
+ */
 function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => void }) {
   const url = typeof window !== "undefined" ? `${window.location.origin}/c/${c.slug}` : `/c/${c.slug}`;
   const [copied, setCopied] = useState(false);
 
-  async function copy() {
+  const reward = c.rewardKind
+    ? `${describeCampaignReward(c)} ${describeRewardRule(c.rewardThreshold ?? 1, c.rewardRepeats)}`
+    : null;
+  const message = `We've just started "${c.title}" 🎉 Join in, take part and earn ${
+    reward ?? "a thank-you from us"
+  }. It takes a minute to join: ${url}`;
+
+  async function copyMessage() {
     try {
-      await navigator.clipboard?.writeText(url);
+      await navigator.clipboard?.writeText(message);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -594,29 +647,47 @@ function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => v
   return (
     <div className="card min-w-0 space-y-4 p-4 sm:p-5">
       <div>
-        <p className={MONO}>Campaign created</p>
+        <p className={MONO}>Campaign live</p>
         <h2 className="mt-1 break-words text-lg font-bold leading-snug sm:text-xl">
-          {c.title} is live
+          {c.title} is live — now tell your people
         </h2>
         <p className="mt-2 text-sm text-mist-400">
-          Share this link. Anyone who opens it can join, do the actions you picked and submit
-          proof — then you approve what&rsquo;s real in Approvals.
+          The message below is ready to forward to your customers&rsquo; WhatsApp group.
+          From here it runs itself: people join, do their thing, and you approve
+          what&rsquo;s real in Approvals.
         </p>
       </div>
+
       <div className="min-w-0 rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-3">
-        <code className="block break-all rounded-lg bg-ink-850 px-3 py-2 text-xs text-crimson-300">{url}</code>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Button type="button" onClick={copy} className="w-full sm:w-auto">
-            {copied ? "Copied ✓" : "Copy link"}
-          </Button>
-          <Button href={`/c/${c.slug}`} variant="ghost" className="w-full sm:w-auto">
-            View public page
+        <p className="break-words rounded-lg bg-ink-850 px-3 py-2 text-xs leading-relaxed text-mist-300">
+          {message}
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgb(194_85_31/0.55)] transition hover:bg-crimson-400 sm:w-auto sm:px-6"
+          >
+            Send on WhatsApp
+          </a>
+          <Button type="button" variant="ghost" onClick={copyMessage} className="w-full sm:w-auto">
+            {copied ? "Copied ✓" : "Copy message"}
           </Button>
         </div>
       </div>
-      <Button type="button" variant="ghost" onClick={onDone} className="w-full sm:w-auto">
-        Done
-      </Button>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Button href={`/c/${c.slug}/poster`} variant="ghost" className="w-full sm:w-auto">
+          Print a counter poster
+        </Button>
+        <Button href={`/c/${c.slug}`} variant="ghost" className="w-full sm:w-auto">
+          View public page
+        </Button>
+        <Button type="button" variant="ghost" onClick={onDone} className="w-full sm:w-auto">
+          Done
+        </Button>
+      </div>
     </div>
   );
 }

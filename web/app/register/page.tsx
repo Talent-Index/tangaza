@@ -13,14 +13,20 @@ import { LOCATION_TYPES, type LocationType } from "@/lib/types";
 /**
  * A business applying to run rewards.
  *
- * The pledge is signed rather than merely typed because the emission cap it names is
- * written once on-chain and no function can raise it afterwards. Signing is the
+ * The pledge is signed rather than merely typed because the spending guardrail it names
+ * is written once on-chain and no function can raise it afterwards. Signing is the
  * business saying what it is putting up, in a way it cannot later deny.
+ *
+ * The guardrail amount is NOT asked for. No money changes hands at registration (there
+ * is no payment system yet), so a "budget" input only scared people into thinking they
+ * were being charged. Every business gets the same default cap; the form stays about
+ * what they'll give back, not what they must put up.
  *
  * It ends in "we'll be in touch" rather than a live contract because `registerOrg` is
  * `onlyOwner` — see the note at the bottom of the page, which says so plainly rather
  * than pretending the button did more than it did.
  */
+const DEFAULT_CAP_KES = 50000;
 export default function RegisterPage() {
   const account = useActiveAccount();
 
@@ -99,9 +105,10 @@ function SignedOut() {
               Reward the people who talk about you.
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-mist-400">
-              Put up a budget, say what you&rsquo;ll give back, and let your community earn
-              it. The budget is written once on Avalanche and can never be raised — not by
-              us, not by you. That&rsquo;s the whole promise.
+              Say what you&rsquo;ll give back and let your community earn it. Nothing to
+              pay up front — a built-in guardrail, written once on Avalanche, means what
+              you owe can never run past it. Not by us, not by you. That&rsquo;s the
+              whole promise.
             </p>
           </div>
 
@@ -119,7 +126,6 @@ function ApplyForm({ address }: { address: string }) {
   const [locationType, setLocationType] = useState<LocationType | "">("");
   const [bizAddress, setBizAddress] = useState("");
   const [socials, setSocials] = useState({ x: "", tiktok: "", instagram: "" });
-  const [cap, setCap] = useState(50000);
   const [pledge, setPledge] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,16 +149,14 @@ function ApplyForm({ address }: { address: string }) {
     setSubmitting(true);
 
     try {
-      // Budget is optional for the business; the on-chain cap must still be > 0, so a
-      // blank/zero entry falls back to a sensible default guardrail.
-      const effectiveCap = cap > 0 ? cap : 50000;
-      if (effectiveCap !== cap) setCap(effectiveCap);
+      // The on-chain cap must be > 0, so every business signs for the same default
+      // guardrail — nobody is asked to "put up" money that never actually moves.
       const ts = Date.now();
       const signature = await account.signMessage({
         message: pledgeMessage({
           name: name.trim(),
           approverAddress: address,
-          emissionCapKes: effectiveCap,
+          emissionCapKes: DEFAULT_CAP_KES,
           pledge: pledge.trim(),
           ts,
         }),
@@ -171,7 +175,7 @@ function ApplyForm({ address }: { address: string }) {
           socialTiktok: socials.tiktok.trim() || undefined,
           socialInstagram: socials.instagram.trim() || undefined,
           approverAddress: address,
-          emissionCapKes: effectiveCap,
+          emissionCapKes: DEFAULT_CAP_KES,
           pledge: pledge.trim(),
           ts,
           signature,
@@ -238,9 +242,10 @@ function ApplyForm({ address }: { address: string }) {
           <>
             <p className="text-xl font-bold">Pledge signed</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-mist-500">
-              We&rsquo;ll register {name} on Avalanche with a {kesLabel(cap)} budget and
-              send you the contract address. Your signature is on file against the
-              pledge, and your budget is exactly what you signed for.
+              We&rsquo;ll register {name} on Avalanche and send you the contract address.
+              Your signature is on file against the pledge, with a built-in{" "}
+              {kesLabel(DEFAULT_CAP_KES)} spending guardrail — nothing to pay now; you
+              decide the actual rewards later under Rewards.
             </p>
           </>
         )}
@@ -366,23 +371,6 @@ function ApplyForm({ address }: { address: string }) {
         </div>
       </Field>
 
-      <Field label="Reward budget (optional)">
-        <input
-          type="number"
-          min={0}
-          step={500}
-          value={cap}
-          onChange={(e) => setCap(Number(e.target.value))}
-          className="tabular w-full rounded-full border border-ink-700 bg-ink-850 px-4 py-3 text-sm outline-none focus:border-crimson-500"
-        />
-        <p className="mt-2 text-xs text-mist-500">
-          An on-chain spending guardrail — written once and{" "}
-          <span className="text-mist-300">never raisable</span>, only spent down. Optional:
-          leave the default if you&rsquo;re not sure. You decide the actual rewards,
-          amounts and currencies later under Rewards.
-        </p>
-      </Field>
-
       <Field label="What you'll give the community">
         <textarea
           required
@@ -409,11 +397,11 @@ function ApplyForm({ address }: { address: string }) {
         <SectionTitle>What happens next</SectionTitle>
         <Card className="bg-ink-850/60">
           <p className="text-xs leading-relaxed text-mist-500">
-            We register you on Avalanche Fuji, because registering a business mints the
-            right to issue rewards against a budget nobody can later raise — so it
-            isn&rsquo;t a button anyone gets to press for themselves. Once your business
-            is on-chain you define what you reward, what it&rsquo;s worth, and the levels
-            people climb, all without touching the budget.
+            We register you on Avalanche, because registering a business mints the
+            right to issue rewards under a spending guardrail nobody can later raise —
+            so it isn&rsquo;t a button anyone gets to press for themselves. Nothing is
+            paid or deposited. Once your business is on-chain you define what you
+            reward, what it&rsquo;s worth, and the levels people climb.
           </p>
         </Card>
       </section>

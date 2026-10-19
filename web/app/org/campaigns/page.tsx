@@ -15,6 +15,7 @@ import {
 } from "@/components/goal/CampaignWizard";
 import { CampaignFunnel } from "@/components/goal/CampaignFunnel";
 import { GoalProgress } from "@/components/goal/GoalProgress";
+import { RecipePicker, recipeDraft, type CampaignRecipe } from "@/components/goal/Recipes";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import {
@@ -50,6 +51,10 @@ function CampaignsWorkspace() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // "Create campaign" opens the recipe picker first; the wizard follows the choice.
+  const [picking, setPicking] = useState(false);
+  // A recipe prefills the early steps, so the wizard opens on Reward instead of Goal.
+  const [wizardStart, setWizardStart] = useState(0);
   // Set once a NEW campaign has been saved: the wizard turns into the share screen.
   const [launched, setLaunched] = useState<Campaign | null>(null);
   const [draft, setDraft] = useState<CampaignDraft>(EMPTY_DRAFT);
@@ -70,18 +75,29 @@ function CampaignsWorkspace() {
   }, [list, selectedId]);
 
   function openCreate() {
-    setCreating(true);
+    setPicking(true);
+    setCreating(false);
     setSelectedId(null);
     setDraft(EMPTY_DRAFT);
     setLaunched(null);
+    setError(null);
+  }
+
+  function startFrom(recipe: CampaignRecipe | null) {
+    setDraft(recipe ? recipeDraft(recipe) : EMPTY_DRAFT);
+    setWizardStart(recipe ? 3 : 0); // a recipe's early steps are filled — open on Reward
+    setPicking(false);
+    setCreating(true);
     setWizardKey((k) => k + 1);
     setError(null);
   }
 
   function openEdit(c: Campaign) {
+    setPicking(false);
     setCreating(false);
     setSelectedId(c.id);
     setDraft(draftFromCampaign(c));
+    setWizardStart(0);
     setLaunched(null);
     setWizardKey((k) => k + 1);
     setError(null);
@@ -206,7 +222,7 @@ function CampaignsWorkspace() {
 
   useEffect(() => {
     if (!campaigns.loading && !hasCampaigns && isApprover) {
-      setCreating(true);
+      setPicking(true);
     }
   }, [campaigns.loading, hasCampaigns, isApprover]);
 
@@ -261,6 +277,7 @@ function CampaignsWorkspace() {
                       type="button"
                       onClick={() => {
                         setCreating(false);
+                        setPicking(false);
                         setLaunched(null);
                         setSelectedId(c.id);
                         setDraft(EMPTY_DRAFT);
@@ -336,7 +353,13 @@ function CampaignsWorkspace() {
         </section>
 
         <section className="min-w-0">
-          {showForm ? (
+          {picking ? (
+            <RecipePicker
+              onPick={(r) => startFrom(r)}
+              onScratch={() => startFrom(null)}
+              onCancel={() => setPicking(false)}
+            />
+          ) : showForm ? (
             <CampaignWizard
               key={wizardKey}
               draft={draft}
@@ -347,6 +370,7 @@ function CampaignsWorkspace() {
               saving={saving}
               error={error}
               launched={launched}
+              initialStep={wizardStart}
               onSubmit={save}
               onCancel={() => {
                 setCreating(false);

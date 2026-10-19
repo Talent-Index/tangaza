@@ -12,7 +12,9 @@ import { neon } from "@neondatabase/serverless";
  * DATABASE_URL is deliberately not NEXT_PUBLIC_ — that prefix inlines a value into the
  * browser bundle, and this one is a database password.
  */
-const url = process.env.DATABASE_URL;
+// `|| undefined` so an empty `DATABASE_URL=` line behaves like an unset one — the
+// placeholder below must kick in either way or `neon("")` kills `next build`.
+const url = process.env.DATABASE_URL?.trim() || undefined;
 
 if (!url) {
   console.warn(

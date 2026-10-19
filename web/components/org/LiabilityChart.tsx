@@ -158,7 +158,7 @@ export function LiabilityChart({
           <svg width="16" height="4" aria-hidden>
             <rect width="16" height="1.5" y="1" fill="var(--color-amber-glow)" />
           </svg>
-          Emission cap
+          Most you&rsquo;ll ever give
         </span>
 
         <button
