@@ -131,6 +131,21 @@ html.light .card {
   }
 }
 
+/* The hero scene's slow ambient crossfade between its two photos. */
+@keyframes crossfade {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  50%,
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* A slow drift for decorative background photos (the rewards page's gift box). */
 @keyframes floaty {
   0%,

@@ -126,8 +126,30 @@ function Header() {
 
 function Hero({ stats }: { stats: Stats | null }) {
   return (
-    <section className="px-4 pb-14 pt-12 sm:px-6 sm:pt-16 lg:pb-24">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]">
+    <section className="px-3 pt-4 sm:px-5">
+      <div className="relative mx-auto max-w-[1440px] overflow-hidden rounded-[2rem] border border-[#2d2619]">
+        {/* The scene itself: the constellation phone fading into the check-card phone
+            and back — a slow ambient loop, fully visible behind a readability gradient. */}
+        <div aria-hidden="true" className="absolute inset-0">
+          <Image
+            src="/images/landing/phone-check-coins.png"
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover object-center"
+          />
+          <Image
+            src="/images/landing/phone-constellation.png"
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover object-center motion-safe:animate-[crossfade_18s_ease-in-out_infinite]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#131008] via-[#131008]/55 to-[#131008]/20" />
+        </div>
+        <div className="relative z-10 grid grid-cols-1 items-center gap-12 px-5 pb-16 pt-12 sm:px-8 sm:pt-16 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:px-12 lg:pb-24">
         <div className="min-w-0">
           <p className={`${KICKER} flex items-center gap-3`}>
             <span className="h-px w-8 bg-[#e9a23b]" /> Verified actions. Real rewards.
@@ -154,6 +176,7 @@ function Hero({ stats }: { stats: Stats | null }) {
         </div>
 
         <ControlRoom stats={stats} />
+        </div>
       </div>
     </section>
   );
@@ -326,6 +349,13 @@ const TEMPLATES = [
   { title: "Product Launch Campaign", note: "A push with a number on it" },
 ];
 
+/** Every card gets a picture — the campaign's own cover when it has one, these otherwise. */
+const CARD_IMGS = [
+  "/images/landing/usecase-cafe.webp",
+  "/images/landing/usecase-salon.webp",
+  "/images/landing/usecase-boutique.webp",
+];
+
 function PickYourMoment({ stats }: { stats: Stats | null }) {
   const live = (stats?.pilots ?? []).slice(0, 3);
   const cards = live.length
@@ -335,8 +365,16 @@ function PickYourMoment({ stats }: { stats: Stats | null }) {
         n: `0${i + 1}`,
         title: p.title,
         note: `Live now · ${p.orgName}`,
+        img: p.coverUrl || CARD_IMGS[i % CARD_IMGS.length],
       }))
-    : TEMPLATES.map((t, i) => ({ key: t.title, href: "/register", n: `0${i + 1}`, title: t.title, note: t.note }));
+    : TEMPLATES.map((t, i) => ({
+        key: t.title,
+        href: "/register",
+        n: `0${i + 1}`,
+        title: t.title,
+        note: t.note,
+        img: CARD_IMGS[i],
+      }));
 
   return (
     <section id="campaigns" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
@@ -371,10 +409,18 @@ function PickYourMoment({ stats }: { stats: Stats | null }) {
                 {c.n} / Campaign
                 <Icon name="arrow-up-right" className="size-4 text-[#e9a23b] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
-              <div className="min-w-0">
-                <span className="mb-4 grid size-12 place-items-center rounded-full border border-[#3a3222] text-[#e9a23b]">
-                  <Icon name="gift" className="size-5" />
-                </span>
+              <div className="relative mt-4 h-40 overflow-hidden rounded-xl border border-[#2d2619]">
+                {/* Campaign covers can live anywhere (uploads), so a plain img, not next/image. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={c.img}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1b1710]/70 to-transparent" />
+              </div>
+              <div className="min-w-0 pt-5">
                 <h3 className={`${POSTER} break-words text-3xl`}>{c.title}</h3>
                 <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#e9a23b]">{c.note}</p>
               </div>
@@ -491,30 +537,22 @@ function Faq() {
 /* ------------------------------------------------- floating photo layer */
 
 const PHOTOS = [
-  // The constellation phone behind the hero — swells gently as you scroll from the top.
-  {
-    src: "/images/landing/phone-constellation.png",
-    className: "left-[-7rem] top-[26rem] w-80 -rotate-6 opacity-20 sm:w-96 lg:left-[-2rem] lg:top-[30rem]",
-    speed: -0.04,
-    zoom: 0.00045,
-  },
-  // Gold reward coins by the phone, drifting past the clear-path section.
+  // Gold reward coins by the phone — swells gently as you scroll past the clear path.
   {
     src: "/images/landing/reward-coins.png",
-    className: "right-[-6rem] top-[135vh] w-72 rotate-6 opacity-25 sm:right-[-3rem] lg:right-10",
+    className: "right-[-6rem] top-[135vh] w-72 rotate-6 opacity-35 sm:right-[-3rem] lg:right-10",
     speed: -0.08,
-    zoom: 0,
+    zoom: 0.0003,
   },
-  // The check-card phone on the campaigns side.
   {
-    src: "/images/landing/phone-check-coins.png",
-    className: "left-[-6rem] top-[235vh] w-72 -rotate-3 opacity-25 lg:left-2",
+    src: "/images/landing/usecase-cafe.webp",
+    className: "left-[-6rem] top-[235vh] w-72 -rotate-3 opacity-35 lg:left-2",
     speed: -0.07,
     zoom: 0,
   },
   {
     src: "/images/landing/usecase-salon.webp",
-    className: "right-[-4rem] top-[330vh] w-56 rotate-3 opacity-25 lg:right-8",
+    className: "right-[-4rem] top-[330vh] w-56 rotate-3 opacity-35 lg:right-8",
     speed: -0.1,
     zoom: 0,
   },
