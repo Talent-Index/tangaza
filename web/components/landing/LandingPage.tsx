@@ -491,10 +491,33 @@ function Faq() {
 /* ------------------------------------------------- floating photo layer */
 
 const PHOTOS = [
-  // Gold reward coins by the phone — the signature image, drifting past the path section.
-  { src: "/images/landing/reward-coins.png", className: "right-[-6rem] top-[135vh] w-72 rotate-6 sm:right-[-3rem] lg:right-10", speed: -0.08 },
-  { src: "/images/landing/usecase-cafe.webp", className: "left-[-5rem] top-[240vh] w-60 -rotate-6 lg:left-4", speed: -0.05 },
-  { src: "/images/landing/usecase-salon.webp", className: "right-[-4rem] top-[330vh] w-56 rotate-3 lg:right-8", speed: -0.1 },
+  // The constellation phone behind the hero — swells gently as you scroll from the top.
+  {
+    src: "/images/landing/phone-constellation.png",
+    className: "left-[-7rem] top-[26rem] w-80 -rotate-6 opacity-20 sm:w-96 lg:left-[-2rem] lg:top-[30rem]",
+    speed: -0.04,
+    zoom: 0.00045,
+  },
+  // Gold reward coins by the phone, drifting past the clear-path section.
+  {
+    src: "/images/landing/reward-coins.png",
+    className: "right-[-6rem] top-[135vh] w-72 rotate-6 opacity-25 sm:right-[-3rem] lg:right-10",
+    speed: -0.08,
+    zoom: 0,
+  },
+  // The check-card phone on the campaigns side.
+  {
+    src: "/images/landing/phone-check-coins.png",
+    className: "left-[-6rem] top-[235vh] w-72 -rotate-3 opacity-25 lg:left-2",
+    speed: -0.07,
+    zoom: 0,
+  },
+  {
+    src: "/images/landing/usecase-salon.webp",
+    className: "right-[-4rem] top-[330vh] w-56 rotate-3 opacity-25 lg:right-8",
+    speed: -0.1,
+    zoom: 0,
+  },
 ];
 
 /**
@@ -512,7 +535,10 @@ function FloatingPhotos() {
       raf = requestAnimationFrame(() => {
         const y = window.scrollY;
         for (const el of els) {
-          el.style.transform = `translateY(${y * Number(el.dataset.speed)}px)`;
+          // Drift with the scroll; a photo with a zoom also swells and shrinks with it.
+          const zoom = Number(el.dataset.zoom);
+          const scale = zoom ? Math.min(1 + y * zoom, 1.35) : 1;
+          el.style.transform = `translateY(${y * Number(el.dataset.speed)}px) scale(${scale})`;
         }
       });
     };
@@ -527,13 +553,13 @@ function FloatingPhotos() {
   return (
     <div ref={wrap} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-clip">
       {PHOTOS.map((p) => (
-        <div key={p.src} data-speed={p.speed} className={`absolute ${p.className}`}>
+        <div key={p.src} data-speed={p.speed} data-zoom={p.zoom} className={`absolute ${p.className}`}>
           <Image
             src={p.src}
             alt=""
-            width={288}
-            height={288}
-            className="h-auto w-full rounded-3xl opacity-25 shadow-2xl saturate-[0.9]"
+            width={384}
+            height={384}
+            className="h-auto w-full rounded-3xl shadow-2xl saturate-[0.9]"
           />
         </div>
       ))}

@@ -131,6 +131,17 @@ html.light .card {
   }
 }
 
+/* A slow drift for decorative background photos (the rewards page's gift box). */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(1deg);
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
