@@ -38,24 +38,27 @@ export default function RewardsPage() {
 
   return (
     <CustomerShell>
-      {/* The glowing reward box, drifting behind the ladders. Decoration only. */}
-      <Image
-        src="/images/landing/reward-box.png"
-        alt=""
-        aria-hidden="true"
-        width={384}
-        height={408}
-        className="pointer-events-none fixed -bottom-12 -right-8 z-0 w-64 opacity-20 motion-safe:animate-[floaty_9s_ease-in-out_infinite] sm:w-80 lg:right-4"
-      />
-      <div className="relative z-10">
-        {account ? (
-          <Rewards address={account.address} />
-        ) : (
-          <div className="pt-16 text-center">
-            <p className="mb-6 text-mist-400">Sign in to see your rewards.</p>
-            <SignIn />
-          </div>
-        )}
+      <div className="relative">
+        {/* The glowing reward box, drifting in the background beside the ladders —
+            placed like the homepage photos, not pinned to the screen corner. */}
+        <Image
+          src="/images/landing/reward-box.png"
+          alt=""
+          aria-hidden="true"
+          width={384}
+          height={408}
+          className="pointer-events-none absolute right-0 top-32 z-0 w-72 rotate-3 opacity-20 motion-safe:animate-[floaty_9s_ease-in-out_infinite] sm:w-96 lg:top-40 light:hidden"
+        />
+        <div className="relative z-10">
+          {account ? (
+            <Rewards address={account.address} />
+          ) : (
+            <div className="pt-16 text-center">
+              <p className="mb-6 text-mist-400">Sign in to see your rewards.</p>
+              <SignIn />
+            </div>
+          )}
+        </div>
       </div>
     </CustomerShell>
   );
