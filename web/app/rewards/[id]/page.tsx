@@ -65,7 +65,8 @@ function Redeem({ creditId, address }: { creditId: string; address: string }) {
       gas: 300_000n,
     });
 
-    // Gas is sponsored by the paymaster — the advocate never sees a fee prompt.
+    // Gas comes out of the advocate's own balance (faucet drip) — a tiny fee, no
+    // prompt for in-app wallets.
     sendTx(tx, {
       onSuccess: (receipt) => {
         setTxHash(receipt.transactionHash);

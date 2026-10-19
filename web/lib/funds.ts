@@ -8,12 +8,12 @@ import { client } from "./client";
 import { useChainTick } from "./live";
 
 /**
- * Skin in the game: acting here requires holding a little testnet AVAX.
+ * Skin in the game: acting here requires holding a little AVAX.
  *
- * Gas stays sponsored — the paymaster pays for the transactions themselves — so this
- * is a gate, not a fee. Requiring a faucet visit before submitting or approving keeps
- * drive-by spam out of the queue and means everyone on stage has touched the network
- * they're writing to.
+ * Every transaction pays its own (tiny) gas — there is no sponsorship; see
+ * lib/client.ts. The gate makes that failure mode legible: requiring a funded wallet
+ * before submitting or approving keeps drive-by spam out of the queue and means a
+ * transaction never dies mid-flight for want of a fraction of a cent.
  *
  * What counts: the balance of the account the app acts as (the smart account, whose
  * address the UI shows) plus, for browser-wallet users, the wallet that signs behind

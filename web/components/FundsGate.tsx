@@ -7,8 +7,10 @@ import {
   MIN_ACTION_AVAX,
   type FundsGate as FundsGateState,
 } from "@/lib/funds";
+import { IS_MAINNET } from "@/lib/rpc";
 
 const FAUCET_URL = "https://core.app/tools/testnet-faucet/";
+const CHAIN_LABEL = IS_MAINNET ? "Avalanche" : "Fuji";
 
 type AutoFaucet =
   | { state: "requesting" }
@@ -68,9 +70,10 @@ function useAutoFaucet(funds: FundsGateState): AutoFaucet {
 }
 
 /**
- * What someone below the 0.005 AVAX requirement sees instead of a dead button.
+ * What someone below the MIN_ACTION_AVAX (0.001) requirement sees instead of a dead
+ * button.
  *
- * First it tries to make the problem disappear: the in-app faucet drips testnet AVAX
+ * First it tries to make the problem disappear: the in-app faucet drips a little AVAX
  * to the address automatically, and the card just narrates that. Only when no drip is
  * coming does it fall back to saying the three things that matter: how much is
  * needed, exactly which address to fund, and where the faucet is — then keeps
@@ -91,9 +94,9 @@ export function FundsNotice({ funds }: { funds: FundsGateState }) {
         </p>
         <p className="text-xs leading-relaxed text-mist-500">
           {faucet.state === "dripped"
-            ? `You've been topped up with ${faucet.amountAvax || "free"} testnet AVAX to cover
-               transaction fees. This page updates itself in a moment.`
-            : `We're sending you a little free testnet AVAX to cover transaction fees —
+            ? `You've been topped up with ${faucet.amountAvax || "a little"} AVAX, on us, to
+               cover transaction fees. This page updates itself in a moment.`
+            : `We're sending you a little AVAX, on us, to cover transaction fees —
                nothing to do on your side, this takes a few seconds.`}
         </p>
       </Card>
@@ -103,22 +106,33 @@ export function FundsNotice({ funds }: { funds: FundsGateState }) {
   return (
     <Card className="space-y-3 border-amber-500/30 bg-amber-500/5">
       <p className="text-sm font-semibold">
-        You need {MIN_ACTION_AVAX} AVAX on Fuji to do this
+        You need {MIN_ACTION_AVAX} AVAX on {CHAIN_LABEL} to do this
       </p>
       <p className="text-xs leading-relaxed text-mist-500">
-        This pays the tiny gas fee on each transaction you sign — fractions of a cent
-        on Fuji, so {MIN_ACTION_AVAX} lasts a very long time. Grab free testnet AVAX from the{" "}
-        <a
-          href={FAUCET_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
-        >
-          Core faucet
-        </a>{" "}
-        (pick <span className="text-mist-300">Avalanche Fuji C-Chain</span>) and send it
-        to {funds.entries.length > 1 ? "either address below" : "this address"}. This
-        page re-checks by itself.
+        This pays the tiny gas fee on each transaction you sign — typically fractions
+        of a cent, so {MIN_ACTION_AVAX} lasts a very long time.{" "}
+        {IS_MAINNET ? (
+          <>
+            Send a little AVAX (Avalanche C-Chain) from an exchange or another wallet
+            to {funds.entries.length > 1 ? "either address below" : "this address"}.
+          </>
+        ) : (
+          <>
+            Grab free testnet AVAX from the{" "}
+            <a
+              href={FAUCET_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-crimson-300 underline underline-offset-4 hover:text-crimson-400"
+            >
+              Core faucet
+            </a>{" "}
+            (pick <span className="text-mist-300">Avalanche Fuji C-Chain</span>) and
+            send it to{" "}
+            {funds.entries.length > 1 ? "either address below" : "this address"}.
+          </>
+        )}{" "}
+        This page re-checks by itself.
       </p>
       <ul className="space-y-2">
         {funds.entries.map((entry) => (

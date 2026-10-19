@@ -45,7 +45,7 @@ const SOCIAL_HINTS = {
 } as const;
 
 /**
- * Social sign-in. One tap, no seed phrase, no gas — the whole point of the demo.
+ * Social sign-in. One tap, no seed phrase, no crypto homework — the whole point.
  *
  * This drives the in-app wallet directly instead of using thirdweb's <ConnectButton />.
  * ConnectButton statically imports its entire connect UI — 500+ wallet connectors, QR
@@ -109,8 +109,8 @@ export function SignIn() {
 
   /**
    * `connect` wants a thunk that returns a connected wallet. `wallets[0]` is the
-   * configured in-app wallet, so connecting it here is what applies the smart-account
-   * + sponsored-gas wrapper from lib/client.ts.
+   * configured in-app wallet from lib/client.ts (embedded EOA — no smart account,
+   * no sponsorship; it pays its own gas from the faucet drip).
    */
   const connectWith = (options: Parameters<(typeof wallets)[0]["connect"]>[0]) =>
     connect(async () => {

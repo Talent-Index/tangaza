@@ -56,6 +56,17 @@ function resolveAddress(): string {
 const proof = (s: string) => ethers.keccak256(ethers.toUtf8Bytes(s));
 
 async function main() {
+  // Hard stop on mainnet: the demo roster below mints real, permanent KES liability
+  // to burner addresses nobody controls, and the contract is immutable. Checked by
+  // chainId too, in case a mainnet RPC is ever wired under another network name.
+  const { chainId } = await ethers.provider.getNetwork();
+  if (network.name === "avalanche" || chainId === 43114n) {
+    throw new Error(
+      "seed.ts registers a fake org and approves demo activity — never run it on mainnet. " +
+        "Use register-org.ts / set-approver.ts for real orgs."
+    );
+  }
+
   const [signer] = await ethers.getSigners();
   const address = resolveAddress();
   const rewards = (await ethers.getContractAt(

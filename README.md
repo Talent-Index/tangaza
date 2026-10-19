@@ -30,7 +30,9 @@ SME loyalty — the coffee shops, salons and boutiques that live on referrals.
 **Live at [ubutangaza.biz](https://ubutangaza.biz)** — advocate surface at
 `/`, business surface at `/org`.
 
-**Avalanche Fuji**, chain id `43113`. The only network this is deployed to.
+**Avalanche Fuji**, chain id `43113`. The only network this is deployed to so far —
+the code also supports Avalanche C-Chain mainnet (`43114`), selected purely by env
+(`NEXT_PUBLIC_CHAIN=mainnet`); see [Mainnet launch runbook](#mainnet-launch-runbook).
 
 | | |
 |---|---|
@@ -174,11 +176,13 @@ npx hardhat run scripts/seed.ts   --network localhost
 Then deploy for real:
 
 ```bash
-npx hardhat run scripts/deploy.ts --network fuji
+npx hardhat run scripts/deploy.ts --network fuji        # testnet
+npx hardhat run scripts/deploy.ts --network avalanche   # mainnet — see the runbook below
 ```
 
-The script prints the address, writes `contracts/deployments.json`, and verifies on
-Snowtrace when `SNOWTRACE_API_KEY` is set.
+The script prints the address, writes `contracts/deployments.json` (keyed by network,
+so `fuji` and `avalanche` records coexist), and verifies on Snowtrace when
+`SNOWTRACE_API_KEY` is set.
 
 ### 4. Seed the pilot org
 
@@ -193,8 +197,9 @@ DEMO_ADVOCATE=0xYourSmartAccountAddress npx hardhat run scripts/seed.ts --networ
 This registers the Blockchain Centre with a KES 50,000 cap and approves activities for
 a handful of demo advocates so the leaderboard and liability chart aren't empty.
 
-> Seeding sends one transaction per activity — ~130 on Fuji, a few minutes. Lower the
-> `approvals` numbers in `scripts/seed.ts` if you want it faster.
+> `seed.ts` is demo data and refuses to run on mainnet (it mints permanent liability
+> to burner addresses on an immutable contract). Approvals go out in batches of 40,
+> so a full seed is a handful of transactions.
 
 ### 5. Web
 
@@ -210,10 +215,10 @@ Fill in `.env.local`:
 |---|---|
 | `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` | from step 2 |
 | `NEXT_PUBLIC_CONTRACT_ADDRESS` | from step 3, or the existing one under [Deployed](#deployed) |
-| `NEXT_PUBLIC_CHAIN` | `fuji` |
+| `NEXT_PUBLIC_CHAIN` | `fuji` (dev/staging) or `mainnet` (production) — any other value throws |
 | `NEXT_PUBLIC_ORG_ID` | `1` |
-| `NEXT_PUBLIC_DEPLOY_BLOCK` | `blockNumber` from `contracts/deployments.json`, or `57298496` for the deployment above — event scanning starts here |
-| `NEXT_PUBLIC_ORG_APPROVER` | the approver's smart-account address; blank = any signed-in account (dev only) |
+| `NEXT_PUBLIC_DEPLOY_BLOCK` | `blockNumber` from `contracts/deployments.json`, or `57436704` for the deployment above — event scanning starts here |
+| `NEXT_PUBLIC_ORG_APPROVER` | the approver's wallet address; blank = any signed-in account (dev only) |
 | `DATABASE_URL` | Postgres connection string — see step 6. **No `NEXT_PUBLIC_` prefix**: that would inline a database password into the browser bundle |
 
 ### 6. Database
@@ -245,6 +250,40 @@ reserve. From then on, a signed-in wallet below the 0.001 AVAX gate gets
 "setting up your account" instead of faucet instructions. Unset, everything falls
 back to the manual Core-faucet card. Guards live in `web/lib/faucet.ts`: once per
 address ever, only when actually below the gate, per-IP and global daily caps.
+
+---
+
+## Mainnet launch runbook
+
+The same code serves both networks; `NEXT_PUBLIC_CHAIN` picks one per deployment.
+Going to mainnet is a fresh deploy (the contract is immutable and chain history
+doesn't move), executed in this order:
+
+1. **Deployer key.** Fund a fresh key with real AVAX — it becomes the **permanent
+   contract owner**. The deploy uses ~1.4M gas (≈0.003–0.035 AVAX depending on base
+   fee). Set `contracts/.env`: `PRIVATE_KEY`, `AVALANCHE_RPC_URL` (blank = public
+   endpoint), `SNOWTRACE_API_KEY`.
+2. **Deploy.** `npx hardhat run scripts/deploy.ts --network avalanche` — zero-address
+   forwarder, auto-verifies via Routescan. Record the address and `blockNumber` from
+   `contracts/deployments.json` (`avalanche` key). **Never run `seed.ts` on mainnet**
+   (it refuses anyway).
+3. **Real orgs.** Per org: `register-org.ts` (owner-signed; the emission cap is
+   permanent — choose it deliberately), then `set-approver.ts` if the approver
+   changes.
+4. **Vercel Production env** (project `ubu-tangaza`): `NEXT_PUBLIC_CHAIN=mainnet`,
+   `NEXT_PUBLIC_CONTRACT_ADDRESS`, `NEXT_PUBLIC_DEPLOY_BLOCK`, `NEXT_PUBLIC_ORG_ID` /
+   `NEXT_PUBLIC_ORG_APPROVER` for the launch org, `AVALANCHE_RPC_URL` (and/or the
+   `NEXT_PUBLIC_` variant), `NEXT_PUBLIC_AVACLOUD_API_KEY`, `PLATFORM_OWNER_KEY`
+   (minimal balance — it's a hot key now). Faucet: `FAUCET_PRIVATE_KEY` (fresh key,
+   small reserve, 1–2 AVAX) **plus `FAUCET_ALLOW_MAINNET=1`** — drips are real money,
+   so mainnet defaults tighten to 2/IP and 50 global per day. Keep Preview/Development
+   on the Fuji set.
+5. **Public docs.** `web/public/openapi.json`, `web/public/agents.md` and
+   `web/public/llms.txt` hardcode the deployed address, chain id and explorer links —
+   update them to the mainnet values before shipping.
+6. **Ship and smoke-test.** Deploy, then check: explorer links hit `snowtrace.io`, a
+   brand-new wallet gets dripped, and one real submit → approve → credit round-trip
+   lands on the mainnet contract.
 
 ---
 

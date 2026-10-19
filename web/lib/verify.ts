@@ -1,7 +1,7 @@
 import "server-only";
 import { createPublicClient, http, parseAbiItem, parseEventLogs } from "viem";
-import { avalancheFuji } from "viem/chains";
-import { FUJI_RPC_URL } from "./rpc";
+import { VIEM_CHAIN } from "./viem-chain";
+import { RPC_URL } from "./rpc";
 import { CONTRACT_ADDRESS } from "./client";
 import { proofHashOf } from "./proof";
 import { orgActionMessage, type OrgAction } from "./org-action";
@@ -28,10 +28,8 @@ import { outreachActionMessage, type OutreachAction } from "./outreach-action";
  * id is domain-restricted and a serverless function sends no Origin header, so it
  * would need a secret key this path does not otherwise require.
  */
-const RPC_URL = FUJI_RPC_URL;
-
 const publicClient = createPublicClient({
-  chain: avalancheFuji,
+  chain: VIEM_CHAIN,
   transport: http(RPC_URL),
 });
 
@@ -286,7 +284,7 @@ export async function verifyApprovalReceipt(p: {
   // Also the "invented hash" case: no such transaction on this chain.
   const receipt = await receiptFor(p.txHash as `0x${string}`);
   if (!receipt) {
-    return { ok: false, reason: "No such transaction on Avalanche Fuji" };
+    return { ok: false, reason: `No such transaction on ${VIEM_CHAIN.name}` };
   }
 
   if (receipt.status !== "success") {

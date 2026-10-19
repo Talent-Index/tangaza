@@ -1,14 +1,13 @@
 import "server-only";
 import { createPublicClient, http } from "viem";
-import { avalancheFuji } from "viem/chains";
-import { FUJI_RPC_URL } from "./rpc";
+import { VIEM_CHAIN } from "./viem-chain";
+import { RPC_URL } from "./rpc";
 import { TANGAZA_ABI } from "./abi";
 import { sql } from "./db";
 import { listAllActiveCampaigns, listRewardTiers } from "./store";
 import { formatReward } from "./types";
 
-const RPC_URL = FUJI_RPC_URL;
-const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC_URL) });
+const client = createPublicClient({ chain: VIEM_CHAIN, transport: http(RPC_URL) });
 
 export interface ChainTotals {
   businesses: number;

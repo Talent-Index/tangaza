@@ -85,8 +85,8 @@ function SubmitForm() {
   // (nothing sent), "confirming" once the signed op is with the bundler (a write is
   // now genuinely happening). See lib/send-two-phase.ts.
   const { send: sendTx, signing, confirming, phase, isPending: sending } = useTwoPhaseSend();
-  // Skin in the game: submitting needs 0.005 AVAX across their account and wallet.
-  // Gas itself is still sponsored — see lib/funds.ts.
+  // Skin in the game: submitting needs a funded wallet (MIN_ACTION_AVAX) — the
+  // transaction pays its own tiny gas fee. See lib/funds.ts.
   const funds = useFundsGate();
   const [submitting, setSubmitting] = useState(false);
   // True while the userOp is out of our hands but not yet confirmed. The button stays
@@ -214,10 +214,10 @@ function SubmitForm() {
       /**
        * Your wallet writes the submission to Avalanche before anything else happens.
        *
-       * This is a real transaction from your smart account — gas sponsored, so it
-       * costs you nothing — and msg.sender inside the contract is you. The server
-       * then verifies the receipt instead of trusting the request. The proof itself
-       * stays off-chain; the chain records its fingerprint.
+       * This is a real transaction from your own wallet — it pays a tiny gas fee in
+       * AVAX — and msg.sender inside the contract is you. The server then verifies
+       * the receipt instead of trusting the request. The proof itself stays
+       * off-chain; the chain records its fingerprint.
        */
       const proofUrl = proof.trim() || undefined;
       const proofHash = proofHashOf(proofUrl);

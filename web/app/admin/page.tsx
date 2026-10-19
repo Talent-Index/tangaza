@@ -5,6 +5,7 @@ import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { BrandMark, Card, ErrorNote, Pill, SectionTitle, Spinner, TxReceipt } from "@/components/ui";
 import { kesLabel, shortAddress, timeAgo } from "@/lib/format";
+import { IS_MAINNET } from "@/lib/rpc";
 import { useApplications, useContractOwner } from "@/lib/hooks";
 import { describeLocation, describeSocials } from "@/lib/types";
 
@@ -146,7 +147,7 @@ function Applications({ viewer }: { viewer: string }) {
                       To register, the operator runs:
                     </p>
                     <code className="block overflow-x-auto whitespace-pre text-xs text-mist-300">
-                      {`ORG_NAME="${a.name}" ORG_APPROVER=${a.approverAddress} ORG_CAP_KES=${a.emissionCapKes} \\\n  npx hardhat run scripts/register-org.ts --network fuji`}
+                      {`ORG_NAME="${a.name}" ORG_APPROVER=${a.approverAddress} ORG_CAP_KES=${a.emissionCapKes} \\\n  npx hardhat run scripts/register-org.ts --network ${IS_MAINNET ? "avalanche" : "fuji"}`}
                     </code>
                   </div>
                 ) : null}

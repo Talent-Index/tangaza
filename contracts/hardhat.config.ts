@@ -7,6 +7,8 @@ dotenv.config();
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
 const FUJI_RPC_URL =
   process.env.FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc";
+const AVALANCHE_RPC_URL =
+  process.env.AVALANCHE_RPC_URL ?? "https://api.avax.network/ext/bc/C/rpc";
 const SNOWTRACE_API_KEY = process.env.SNOWTRACE_API_KEY ?? "";
 
 const config: HardhatUserConfig = {
@@ -33,10 +35,18 @@ const config: HardhatUserConfig = {
       chainId: 43113,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
+    // Avalanche C-Chain mainnet. PRIVATE_KEY here is the permanent contract owner —
+    // fund and choose it deliberately. Never run seed.ts against this network.
+    avalanche: {
+      url: AVALANCHE_RPC_URL,
+      chainId: 43114,
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+    },
   },
   etherscan: {
     apiKey: {
       avalancheFujiTestnet: SNOWTRACE_API_KEY,
+      avalanche: SNOWTRACE_API_KEY,
     },
     customChains: [
       {
@@ -45,6 +55,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
           browserURL: "https://testnet.snowtrace.io",
+        },
+      },
+      {
+        network: "avalanche",
+        chainId: 43114,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          browserURL: "https://snowtrace.io",
         },
       },
     ],

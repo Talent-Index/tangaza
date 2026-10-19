@@ -98,9 +98,9 @@ export const externalWallets = [coreWallet, metamaskWallet];
  * The model now matches what a wallet owner expects: connect Core or MetaMask and you
  * ARE that address. Every submit and approve is an ordinary transaction — the
  * extension pops, you sign, gas comes out of your balance, msg.sender is you, and the
- * hash on Snowtrace is yours. The in-app wallet keeps its own smart-account +
- * sponsored-gas config above, because a Google user has no extension to pop and no way
- * to hold gas.
+ * hash on Snowtrace is yours. The in-app wallet differs only in UX, not in model: its
+ * embedded EOA signs silently (a Google user has no extension to pop) and pays gas
+ * from the faucet drip.
  *
  * If this flips again, remember the sharp edge both directions: the contract's
  * registered approver must match the address the connection actually produces, or

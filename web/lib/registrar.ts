@@ -7,8 +7,8 @@ import {
   parseEventLogs,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { avalancheFuji } from "viem/chains";
-import { FUJI_RPC_URL } from "./rpc";
+import { VIEM_CHAIN } from "./viem-chain";
+import { RPC_URL } from "./rpc";
 import { TANGAZA_ABI } from "./abi";
 import { CONTRACT_ADDRESS } from "./client";
 
@@ -32,7 +32,6 @@ import { CONTRACT_ADDRESS } from "./client";
  */
 
 const OWNER_KEY = process.env.PLATFORM_OWNER_KEY ?? "";
-const RPC_URL = FUJI_RPC_URL;
 
 const ORG_REGISTERED = parseAbiItem(
   "event OrgRegistered(uint256 indexed orgId, string name, address indexed approver, uint256 emissionCapKES)"
@@ -63,8 +62,8 @@ export async function registerOrgOnChain(p: {
 
   const account = privateKeyToAccount(OWNER_KEY as `0x${string}`);
   const transport = http(RPC_URL);
-  const publicClient = createPublicClient({ chain: avalancheFuji, transport });
-  const wallet = createWalletClient({ account, chain: avalancheFuji, transport });
+  const publicClient = createPublicClient({ chain: VIEM_CHAIN, transport });
+  const wallet = createWalletClient({ account, chain: VIEM_CHAIN, transport });
 
   /**
    * Explicit gas, for the same reason contracts/scripts/deploy.ts sets it: Fuji's RPC

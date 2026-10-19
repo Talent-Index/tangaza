@@ -1,6 +1,6 @@
 /**
  * Exercises the browser's exact read path from the command line: real thirdweb
- * client, real ABI, real Fuji. Catches client-id problems, ABI drift and struct
+ * client, real ABI, real chain. Catches client-id problems, ABI drift and struct
  * decoding bugs without needing a browser or a wallet.
  *
  *   cd web && node --env-file=.env.local scripts/verify-reads.mjs
@@ -9,8 +9,25 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createThirdwebClient, getContract, readContract, getContractEvents, prepareEvent } from "thirdweb";
-import { avalancheFuji } from "thirdweb/chains";
+import { avalanche, avalancheFuji } from "thirdweb/chains";
 import { eth_blockNumber, getRpcClient } from "thirdweb/rpc";
+
+// Plain .mjs cannot import the TS modules, so this mirrors lib/rpc.ts + lib/chain.ts:
+// NEXT_PUBLIC_CHAIN picks fuji (default) or mainnet, the matching RPC env overrides.
+// Unlike the app, no public-endpoint fallback: the event sweep below scans thousands
+// of blocks per request, which Avalanche's public RPC caps at 100 — thirdweb's
+// default RPC (metered, fine for a one-off script) is the only default that works.
+const chainName = process.env.NEXT_PUBLIC_CHAIN ?? "fuji";
+if (chainName !== "fuji" && chainName !== "mainnet") {
+  console.error(`NEXT_PUBLIC_CHAIN is "${chainName}" — expected "fuji" or "mainnet"`);
+  process.exit(1);
+}
+const isMainnet = chainName === "mainnet";
+const rpcUrl = isMainnet
+  ? process.env.AVALANCHE_RPC_URL || process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL
+  : process.env.FUJI_RPC_URL || process.env.NEXT_PUBLIC_FUJI_RPC_URL;
+const base = isMainnet ? avalanche : avalancheFuji;
+const chain = rpcUrl ? { ...base, rpc: rpcUrl } : base;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { abi } = JSON.parse(
@@ -31,7 +48,7 @@ if (!clientId || !address) {
 }
 
 const client = createThirdwebClient({ clientId });
-const contract = getContract({ client, chain: avalancheFuji, address, abi });
+const contract = getContract({ client, chain, address, abi });
 
 let failures = 0;
 const check = (label, ok, detail) => {
@@ -39,7 +56,7 @@ const check = (label, ok, detail) => {
   if (!ok) failures++;
 };
 
-console.log(`Contract ${address} on Fuji\n`);
+console.log(`Contract ${address} on ${chain.name} (chain ${chain.id})\n`);
 
 // --- constants -------------------------------------------------------------
 console.log("Constants");
@@ -117,7 +134,7 @@ const events = {
   }),
 };
 
-const rpc = getRpcClient({ client, chain: avalancheFuji });
+const rpc = getRpcClient({ client, chain });
 const latest = await eth_blockNumber(rpc);
 const WINDOW = 2000n;
 const logs = [];

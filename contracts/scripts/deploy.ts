@@ -12,6 +12,12 @@ import * as path from "path";
  */
 const TRUSTED_FORWARDER = "0x0000000000000000000000000000000000000000";
 
+/** Networks with a Snowtrace explorer + Routescan verification (see hardhat.config.ts). */
+const EXPLORERS: Record<string, string> = {
+  fuji: "https://testnet.snowtrace.io",
+  avalanche: "https://snowtrace.io",
+};
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (!deployer) {
@@ -27,7 +33,9 @@ async function main() {
 
   if (balance === 0n && network.name !== "hardhat") {
     throw new Error(
-      "Deployer has 0 AVAX. Fund it at https://core.app/tools/testnet-faucet/ (Fuji C-Chain)."
+      network.name === "avalanche"
+        ? "Deployer has 0 AVAX. Fund it with real AVAX (the deploy uses ~1.4M gas)."
+        : "Deployer has 0 AVAX. Fund it at https://core.app/tools/testnet-faucet/ (Fuji C-Chain)."
     );
   }
 
@@ -45,8 +53,8 @@ async function main() {
   // and web/.env.local needs it for NEXT_PUBLIC_DEPLOY_BLOCK.
   const receipt = await rewards.deploymentTransaction()?.wait();
   console.log(`\n✅ TangazaRewards deployed to ${address}`);
-  if (network.name === "fuji") {
-    console.log(`   https://testnet.snowtrace.io/address/${address}`);
+  if (EXPLORERS[network.name]) {
+    console.log(`   ${EXPLORERS[network.name]}/address/${address}`);
   }
 
   const record = {
@@ -68,10 +76,17 @@ async function main() {
   console.log(`  1. contracts/.env   -> CONTRACT_ADDRESS=${address}`);
   console.log(`  2. web/.env.local   -> NEXT_PUBLIC_CONTRACT_ADDRESS=${address}`);
   console.log(`                      -> NEXT_PUBLIC_DEPLOY_BLOCK=${receipt?.blockNumber ?? 0}`);
-  console.log(`  3. npx hardhat run scripts/seed.ts --network ${network.name}`);
+  if (network.name === "avalanche") {
+    // Mainnet gets real orgs, never the demo roster — seed.ts refuses to run there.
+    console.log(`  3. npx hardhat run scripts/register-org.ts --network avalanche   (per real org)`);
+    console.log(`  4. npx hardhat run scripts/set-approver.ts --network avalanche   (if the approver changes)`);
+    console.log(`     Do NOT run seed.ts on mainnet.`);
+  } else {
+    console.log(`  3. npx hardhat run scripts/seed.ts --network ${network.name}`);
+  }
 
   // Verification needs a few confirmations before the explorer indexes the code.
-  if (network.name === "fuji" && process.env.SNOWTRACE_API_KEY) {
+  if (EXPLORERS[network.name] && process.env.SNOWTRACE_API_KEY) {
     console.log("\nWaiting 5 confirmations before verifying...");
     await rewards.deploymentTransaction()?.wait(5);
     try {

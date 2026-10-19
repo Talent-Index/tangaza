@@ -1,30 +1,23 @@
 import { defineChain } from "thirdweb";
-import { avalancheFuji } from "thirdweb/chains";
-import { FUJI_RPC_URL } from "./rpc";
+import { avalanche, avalancheFuji } from "thirdweb/chains";
+import { IS_MAINNET, RPC_URL } from "./rpc";
 
 /**
- * Ubu-Tangaza runs on Avalanche Fuji for the jam. Kept in one place so the chain is
- * never ambiguous — the UI, the explorer links and the smart-account config all
- * read from here.
- *
- * NEXT_PUBLIC_CHAIN exists so a wrong deployment is loud rather than silent. Fuji is
- * the only supported value; add the mapping deliberately if you ever move.
+ * Kept in one place so the chain is never ambiguous — the UI, the explorer links and
+ * the wallet config all read from here. NEXT_PUBLIC_CHAIN (parsed and validated in
+ * lib/rpc.ts) picks Fuji (dev/staging) or Avalanche C-Chain mainnet (production);
+ * an unknown value throws there, so a wrong deployment is loud rather than silent.
  */
-const CHAIN_NAME = process.env.NEXT_PUBLIC_CHAIN ?? "fuji";
-
-if (CHAIN_NAME !== "fuji") {
-  console.warn(
-    `[ubu-tangaza] NEXT_PUBLIC_CHAIN is "${CHAIN_NAME}" but only "fuji" is supported — using Fuji.`
-  );
-}
 
 /**
- * Fuji, but reading and writing through our own RPC endpoint (lib/rpc.ts) instead of
- * thirdweb's shared, per-client-id metered one.
+ * The selected chain, reading and writing through our own RPC endpoint (lib/rpc.ts)
+ * instead of thirdweb's shared, per-client-id metered one.
  */
-export const CHAIN = defineChain({ ...avalancheFuji, rpc: FUJI_RPC_URL });
+export const CHAIN = defineChain({ ...(IS_MAINNET ? avalanche : avalancheFuji), rpc: RPC_URL });
 
-export const EXPLORER = "https://testnet.snowtrace.io";
+export const EXPLORER = IS_MAINNET
+  ? "https://snowtrace.io"
+  : "https://testnet.snowtrace.io";
 
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`;
 export const addressUrl = (address: string) => `${EXPLORER}/address/${address}`;

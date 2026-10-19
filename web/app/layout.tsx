@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Anton, DM_Sans, Fraunces, JetBrains_Mono, Syne } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { FUJI_RPC_URL } from "@/lib/rpc";
+import { RPC_URL } from "@/lib/rpc";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 import { Providers } from "./providers";
 
@@ -62,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
        * while the welcome screen paints takes that off the sign-in path.
        */}
       <link rel="preconnect" href="https://embedded-wallet.thirdweb.com" crossOrigin="" />
-      <link rel="preconnect" href={new URL(FUJI_RPC_URL).origin} crossOrigin="" />
+      <link rel="preconnect" href={new URL(RPC_URL).origin} crossOrigin="" />
       <body className="app-glow font-sans">
         <Script id="theme-boot" strategy="beforeInteractive">
           {THEME_BOOT_SCRIPT}

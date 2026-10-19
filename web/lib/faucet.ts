@@ -6,25 +6,31 @@ import {
   parseEther,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { avalancheFuji } from "viem/chains";
-import { FUJI_RPC_URL } from "./rpc";
+import { VIEM_CHAIN } from "./viem-chain";
+import { IS_MAINNET, RPC_URL } from "./rpc";
 import { isDbConfigured, sql } from "./db";
 
 /**
- * The in-app faucet: new wallets get a little Fuji AVAX pushed to them, so nobody is
- * sent off to find a testnet faucet they have no idea how to use.
+ * The in-app faucet: new wallets get a little AVAX pushed to them, so nobody is
+ * sent off to find a faucet or an exchange they have no idea how to use.
  *
  * A brand-new wallet holds nothing, so it cannot call anything — whatever funds it
  * must act first. That is why this is a server key making a plain transfer, not a
  * faucet contract the user calls. The abuse surface is bounded four ways: an address
  * is funded once ever (primary key on faucet_drips, claimed before the send), only
  * when its balance is actually below the gate (checked on-chain at request time),
- * behind a per-IP and a global daily cap. Worst case is somebody farming testnet
- * tokens out of a wallet we chose to keep small.
+ * behind a per-IP and a global daily cap. Worst case is somebody farming tokens out
+ * of a wallet we chose to keep small.
+ *
+ * On MAINNET every drip is real money, so two extra locks: FAUCET_ALLOW_MAINNET=1
+ * must be set explicitly (a Fuji env accidentally pointed at mainnet stays off), and
+ * the default daily caps drop (2 per IP, 50 global — the env vars still override).
+ * Worst case at the defaults is 50 × 0.005 = 0.25 AVAX/day.
  *
  * FAUCET_PRIVATE_KEY is its own key with its own small balance — never the deployer,
- * never the org. Unset means the faucet is off and the UI falls back to Core faucet
- * instructions, so this file failing closed never blocks anyone who can self-serve.
+ * never the org. Unset means the faucet is off and the UI falls back to manual
+ * funding instructions, so this file failing closed never blocks anyone who can
+ * self-serve.
  */
 
 /** Mirrored from lib/funds.ts (MIN_ACTION_WEI) — that module is client-only. */
@@ -38,12 +44,16 @@ const DRIP_AVAX = process.env.FAUCET_DRIP_AVAX ?? "0.005";
  * so does everyone on one event WiFi, which is exactly when mass onboarding happens.
  * The default suits quiet days; set FAUCET_IP_DAILY_LIMIT high for an event.
  */
-const IP_DAILY_LIMIT = Number(process.env.FAUCET_IP_DAILY_LIMIT) || 3;
+const IP_DAILY_LIMIT = Number(process.env.FAUCET_IP_DAILY_LIMIT) || (IS_MAINNET ? 2 : 3);
 
 /** Sends across everyone per 24h — the "wake up to an empty faucet" backstop. */
-const GLOBAL_DAILY_LIMIT = Number(process.env.FAUCET_GLOBAL_DAILY_LIMIT) || 200;
+const GLOBAL_DAILY_LIMIT =
+  Number(process.env.FAUCET_GLOBAL_DAILY_LIMIT) || (IS_MAINNET ? 50 : 200);
 
-const key = process.env.FAUCET_PRIVATE_KEY;
+const key =
+  IS_MAINNET && process.env.FAUCET_ALLOW_MAINNET !== "1"
+    ? undefined
+    : process.env.FAUCET_PRIVATE_KEY;
 
 export const isFaucetConfigured = Boolean(key) && isDbConfigured;
 
@@ -51,9 +61,9 @@ const account = key
   ? privateKeyToAccount((key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`)
   : null;
 
-const publicClient = createPublicClient({ chain: avalancheFuji, transport: http(FUJI_RPC_URL) });
+const publicClient = createPublicClient({ chain: VIEM_CHAIN, transport: http(RPC_URL) });
 const walletClient = account
-  ? createWalletClient({ account, chain: avalancheFuji, transport: http(FUJI_RPC_URL) })
+  ? createWalletClient({ account, chain: VIEM_CHAIN, transport: http(RPC_URL) })
   : null;
 
 export type DripResult =

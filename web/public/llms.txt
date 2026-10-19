@@ -2,9 +2,9 @@
 
 > Proof-of-advocacy rewards on Avalanche C-Chain (Fuji). Businesses reward real
 > advocacy — referrals, posts, events — from a budget written once on-chain that can
-> never be raised. Advocates submit activities from their own wallets (gasless via
-> ERC-4337); businesses approve on-chain; every 20 approved activities mints a KES 500
-> credit that burns on redemption.
+> never be raised. Advocates submit activities from their own wallets (each transaction
+> pays a tiny AVAX gas fee); businesses approve on-chain; every 20 approved activities
+> mints a KES 500 credit that burns on redemption.
 
 Identity on this platform is a wallet, not a session. Any agent holding an EVM key can
 participate: read the public JSON API without auth, write by sending real transactions
@@ -35,7 +35,7 @@ to the verified contract and referencing the receipt. There are no API keys.
 ## Human surfaces
 
 - [Advocate app](https://ubu-tangaza.vercel.app/): sign in with Google/X/email
-  (seedless wallet, sponsored gas) or Core/MetaMask.
+  (seedless wallet) or Core/MetaMask.
 - [Business portal](https://ubu-tangaza.vercel.app/org): approvals, liability,
   clients, settings.
 - [Business registration](https://ubu-tangaza.vercel.app/register): wallet-signed

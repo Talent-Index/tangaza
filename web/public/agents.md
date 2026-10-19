@@ -66,8 +66,8 @@ Rejections you can rely on: no `submitTx` → 401; unknown tx → 401; a tx that
 no `ActivitySubmitted` → 401; sender/org/proof mismatch → 401; unknown or inactive
 `engagementTypeId` for that org → 400.
 
-Gas: a plain EOA pays its own (Fuji faucet: core.app/tools/testnet-faucet). A smart
-account via an ERC-4337 bundler with a sponsoring paymaster pays nothing.
+Gas: every caller is a plain EOA and pays its own gas in AVAX (on Fuji, fund it at
+core.app/tools/testnet-faucet). There is no sponsoring paymaster on this deployment.
 
 ## 3. What you cannot do
 
