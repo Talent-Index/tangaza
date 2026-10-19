@@ -39,16 +39,18 @@ export default function RewardsPage() {
   return (
     <CustomerShell>
       <div className="relative">
-        {/* The glowing reward box, drifting in the background beside the ladders —
-            placed like the homepage photos, not pinned to the screen corner. */}
-        <Image
-          src="/images/landing/reward-box.png"
-          alt=""
-          aria-hidden="true"
-          width={384}
-          height={408}
-          className="pointer-events-none absolute right-0 top-32 z-0 w-72 rotate-3 opacity-20 motion-safe:animate-[floaty_9s_ease-in-out_infinite] sm:w-96 lg:top-40 light:hidden"
-        />
+        {/* The glowing reward box as the page's backdrop — full-bleed behind the
+            ladders, fading into the page colour so the cards stay readable. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden light:hidden">
+          <Image
+            src="/images/landing/reward-box.png"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover object-[50%_42%] opacity-40"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink-950/55 via-ink-950/15 to-ink-950" />
+        </div>
         <div className="relative z-10">
           {account ? (
             <Rewards address={account.address} />
