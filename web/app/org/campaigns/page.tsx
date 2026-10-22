@@ -135,6 +135,9 @@ function CampaignsWorkspace() {
           // Editing must not silently reopen a closed campaign; only a new one starts active.
           active: draft.id ? selected?.active ?? true : true,
           engagementTypeIds: draft.engagementTypeIds,
+          // Untouched + empty lets the server connect suited actions for the goal;
+          // an explicit "none" keeps "every action counts".
+          activitiesTouched: Boolean(draft.typesTouched),
           // Goal fields only when the database can hold them; null clears, so a business
           // that skips or removes the goal really ends up with none.
           ...(goalsAvailable === true

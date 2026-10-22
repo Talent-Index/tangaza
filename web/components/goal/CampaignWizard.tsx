@@ -548,7 +548,11 @@ function Review({
     {
       label: "Counts",
       step: 2,
-      value: picked.length ? picked.map((t) => `${t.icon} ${t.label}`).join(" · ") : "Every action you reward",
+      value: picked.length
+        ? picked.map((t) => `${t.icon} ${t.label}`).join(" · ")
+        : !editing && !draft.typesTouched && draft.goalType && goalMeta(draft.goalType)?.categories.length
+          ? "Actions suited to your goal — connected for you at launch"
+          : "Every action you reward",
     },
   ];
 

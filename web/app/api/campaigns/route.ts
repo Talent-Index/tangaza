@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import {
   deleteCampaign,
+  ensureGoalEngagementIds,
   ensureReferralEngagementIds,
   getCampaignBySlug,
   getCampaignFunnel,
@@ -138,10 +139,12 @@ export async function PUT(req: NextRequest) {
 
   const {
     id, orgId, title, blurb, coverUrl, endsAt, active, engagementTypeIds, address, ts, signature,
-    goalType, goalTarget, goalLabel, offerName, offerUrl,
+    goalType, goalTarget, goalLabel, offerName, offerUrl, activitiesTouched,
     kind, rewardKind, rewardAmount, rewardCurrency, rewardNote, rewardThreshold, rewardRepeats,
   } =
     body as {
+      /** True when the business explicitly chose activities (even "none = everything"). */
+      activitiesTouched?: boolean;
       kind?: string;
       rewardKind?: string | null;
       rewardAmount?: number | null;
@@ -246,12 +249,16 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    // A new referral with nothing picked counts referral-type actions, creating a
-    // "Brought a friend" action for a business that has none yet.
+    // A new campaign with nothing picked gets suited actions connected for it —
+    // referral-type for referrals, the goal's categories otherwise — created on the
+    // spot when the business has none. A business that explicitly chose "none"
+    // (activitiesTouched) keeps "every action counts"; editing never second-guesses.
     const counted =
       !id && kind === "referral" && !engagementTypeIds?.length
         ? await ensureReferralEngagementIds(String(orgId))
-        : engagementTypeIds;
+        : !id && !engagementTypeIds?.length && !activitiesTouched && goalType
+          ? await ensureGoalEngagementIds(String(orgId), goalType)
+          : engagementTypeIds;
     const campaign = await upsertCampaign({
       id,
       orgId: String(orgId),

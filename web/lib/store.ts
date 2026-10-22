@@ -10,7 +10,14 @@ import type {
   ProofKind,
   XLinkStatus,
 } from "./types";
-import { actionsToNextReward, isGoalType, isLocationType, rewardsEarned, type LocationType } from "./types";
+import {
+  actionsToNextReward,
+  goalMeta,
+  isGoalType,
+  isLocationType,
+  rewardsEarned,
+  type LocationType,
+} from "./types";
 
 /**
  * The off-chain half of Ubu-Tangaza: engagement types a business defines for itself,
@@ -1957,6 +1964,67 @@ export async function ensureReferralEngagementIds(orgId: string): Promise<string
     on conflict (org_id, label) do update set active = true
     returning id`) as Array<{ id: string }>;
   return rows.map((r) => r.id);
+}
+
+/**
+ * One ready-to-use action per contract category, created on the spot like the
+ * referral one above — so a campaign launched from a goal (the recipe flow skips the
+ * "what people do" step) counts REAL, suited actions instead of falling back to
+ * "everything counts", and the business never has to set actions up first.
+ */
+const CATEGORY_DEFAULTS: Record<number, { label: string; blurb: string; icon: string; proof: string }> = {
+  0: {
+    label: "Brought a friend",
+    blurb: "You brought someone new. Give their name and your referral code.",
+    icon: "🤝",
+    proof: "referral_code",
+  },
+  1: {
+    label: "Posted about us",
+    blurb: "Post or share about the business and drop the link.",
+    icon: "📣",
+    proof: "social_link",
+  },
+  2: {
+    label: "Took part",
+    blurb: "Booked, attended or showed up — the business confirms it.",
+    icon: "🗓️",
+    proof: "none",
+  },
+};
+
+/**
+ * The engagements a goal-driven campaign counts: the org's active types in the goal's
+ * categories, plus a default created for any category the org has nothing for yet.
+ * A goal with no categories ("something else") returns [] — everything counts, as before.
+ */
+export async function ensureGoalEngagementIds(orgId: string, goal: GoalType): Promise<string[]> {
+  const cats: readonly number[] = goalMeta(goal)?.categories ?? [];
+  if (cats.length === 0) return [];
+
+  const existing = (await sql`
+    select id, chain_category from engagement_types
+    where org_id = ${orgId} and active and chain_category = any(${[...cats]})`) as Array<{
+    id: string;
+    chain_category: number;
+  }>;
+  const ids = existing.map((r) => r.id);
+  const have = new Set(existing.map((r) => Number(r.chain_category)));
+
+  const missing = cats.filter((c) => !have.has(c) && CATEGORY_DEFAULTS[c]);
+  if (missing.length) {
+    await sql`insert into orgs (id, name) values (${orgId}, '') on conflict (id) do nothing`;
+    for (const c of missing) {
+      const d = CATEGORY_DEFAULTS[c];
+      const rows = (await sql`
+        insert into engagement_types (org_id, label, blurb, icon, proof_kind, chain_category, weight)
+        values (${orgId}, ${d.label}, ${d.blurb}, ${d.icon}, ${d.proof}, ${c}, 1)
+        on conflict (org_id, label) do update set active = true
+        returning id`) as Array<{ id: string }>;
+      ids.push(...rows.map((r) => r.id));
+    }
+  }
+  return ids;
 }
 
 export interface ReferrerRow extends RewardDue {
