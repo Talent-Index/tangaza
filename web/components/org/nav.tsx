@@ -24,6 +24,7 @@ export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Rewards"
 export const TOOLS_NAV: OrgNavItem[] = [
   { href: "/org/liability", label: "Liability", icon: "liability" },
   { href: "/org/referrals", label: "Referrals", icon: "pilot" },
+  { href: "/org/billing", label: "Billing", icon: "billing" },
 ];
 
 /** Reached from the avatar on desktop, so it only joins the phone "More" sheet. */
@@ -62,6 +63,7 @@ const ICONS = {
   liability: ["M12 2v20", "M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"],
   pilot: ["M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z", "M4 22v-7"],
   account: ["M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"],
+  billing: ["M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z", "M2 10h20", "M6 15h4"],
   more: ["M5 12h.01", "M12 12h.01", "M19 12h.01"],
   close: ["M18 6 6 18", "M6 6l12 12"],
 } as const;

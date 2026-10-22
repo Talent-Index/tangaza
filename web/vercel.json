@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/billing/recheck",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

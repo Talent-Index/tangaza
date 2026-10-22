@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { matchBillingMpesa } from "@/lib/billing-match";
 import { recordMpesaPayment } from "@/lib/store";
 import type { C2BConfirmation } from "@/lib/mpesa";
 
@@ -23,6 +24,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Payments to OUR OWN shortcode are campaign-credit purchases, not merchant
+    // referral sales — they go to the billing matcher, not the attribution tables.
+    const billingShortcode = process.env.BILLING_MPESA_SHORTCODE?.trim();
+    if (body.TransID && billingShortcode && String(body.BusinessShortCode ?? "") === billingShortcode) {
+      await matchBillingMpesa({
+        transId: String(body.TransID),
+        amount: Number(body.TransAmount ?? 0),
+        billRef: body.BillRefNumber ? String(body.BillRefNumber) : undefined,
+        msisdn: body.MSISDN ? String(body.MSISDN) : undefined,
+      });
+      return NextResponse.json(ACK);
+    }
     if (body.TransID) {
       await recordMpesaPayment({
         transId: String(body.TransID),

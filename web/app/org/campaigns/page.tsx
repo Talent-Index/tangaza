@@ -16,6 +16,7 @@ import {
 import { CampaignFunnel } from "@/components/goal/CampaignFunnel";
 import { GoalProgress } from "@/components/goal/GoalProgress";
 import { RecipePicker, recipeDraft, type CampaignRecipe } from "@/components/goal/Recipes";
+import { BillingBadge, CheckoutPanel, useBilling } from "@/components/org/Checkout";
 import { useToast } from "@/components/toast";
 import { Button, Card, ErrorNote, SectionTitle, Spinner } from "@/components/ui";
 import {
@@ -48,11 +49,14 @@ function CampaignsWorkspace() {
   const types = engagements.data ?? [];
   const goalsAvailable = useGoalsAvailable();
   const rewardsAvailable = useRewardsAvailable();
+  const billing = useBilling(orgId);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   // "Create campaign" opens the recipe picker first; the wizard follows the choice.
   const [picking, setPicking] = useState(false);
+  // The paywall: shown instead of the picker when the next campaign needs a credit.
+  const [checkout, setCheckout] = useState(false);
   // A recipe prefills the early steps, so the wizard opens on Reward instead of Goal.
   const [wizardStart, setWizardStart] = useState(0);
   // Set once a NEW campaign has been saved: the wizard turns into the share screen.
@@ -75,7 +79,15 @@ function CampaignsWorkspace() {
   }, [list, selectedId]);
 
   function openCreate() {
-    setPicking(true);
+    // No recipe browsing behind a paywall: if the next campaign needs a credit, say so
+    // first. The server enforces this regardless — a stale status just means a 402 later.
+    if (billing.data?.billing.paymentRequired) {
+      setCheckout(true);
+      setPicking(false);
+    } else {
+      setPicking(true);
+      setCheckout(false);
+    }
     setCreating(false);
     setSelectedId(null);
     setDraft(EMPTY_DRAFT);
@@ -94,6 +106,7 @@ function CampaignsWorkspace() {
 
   function openEdit(c: Campaign) {
     setPicking(false);
+    setCheckout(false);
     setCreating(false);
     setSelectedId(c.id);
     setDraft(draftFromCampaign(c));
@@ -138,9 +151,17 @@ function CampaignsWorkspace() {
         }),
       });
       const json = (await res.json()) as { error?: string; campaign?: Campaign };
+      // The server is the paywall of record: a stale status here still ends at checkout.
+      if (res.status === 402) {
+        setCreating(false);
+        setCheckout(true);
+        void billing.refresh();
+        throw new Error(json.error ?? "This campaign needs a credit");
+      }
       if (!res.ok) throw new Error(json.error ?? "Could not save");
       success(draft.id ? "Campaign updated" : "Campaign created");
       campaigns.refresh();
+      void billing.refresh();
       if (json.campaign) {
         setSelectedId(json.campaign.id);
         if (draft.id) {
@@ -237,9 +258,12 @@ function CampaignsWorkspace() {
           </p>
         </div>
         {isApprover ? (
-          <Button type="button" onClick={openCreate} className="shrink-0">
-            Create campaign
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <BillingBadge billing={billing.data?.billing} />
+            <Button type="button" onClick={openCreate}>
+              Create campaign
+            </Button>
+          </div>
         ) : null}
       </header>
 
@@ -278,6 +302,7 @@ function CampaignsWorkspace() {
                       onClick={() => {
                         setCreating(false);
                         setPicking(false);
+                        setCheckout(false);
                         setLaunched(null);
                         setSelectedId(c.id);
                         setDraft(EMPTY_DRAFT);
@@ -353,7 +378,19 @@ function CampaignsWorkspace() {
         </section>
 
         <section className="min-w-0">
-          {picking ? (
+          {checkout && billing.data ? (
+            <CheckoutPanel
+              orgId={orgId}
+              billing={billing.data.billing}
+              instructions={billing.data.instructions}
+              onRefresh={billing.refresh}
+              onReady={() => {
+                setCheckout(false);
+                setPicking(true);
+              }}
+              onCancel={() => setCheckout(false)}
+            />
+          ) : picking ? (
             <RecipePicker
               onPick={(r) => startFrom(r)}
               onScratch={() => startFrom(null)}

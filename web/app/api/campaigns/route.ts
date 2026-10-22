@@ -16,6 +16,7 @@ import {
   listCampaigns,
   upsertCampaign,
 } from "@/lib/store";
+import { FREE_CAMPAIGNS, chargeForCampaign, refundCampaignCharge } from "@/lib/billing";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
 import { CURRENCY_CODES, PAYOUT_KIND_IDS, isGoalType, type GoalType } from "@/lib/types";
@@ -226,6 +227,24 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: auth.reason }, { status: 401 });
   }
 
+  // The paywall: first 2 campaigns are free, after that creating one burns a credit
+  // (bought via /api/billing). Editing an existing campaign is never charged. The
+  // charge is one atomic UPDATE in lib/billing.ts, refunded below if the insert fails.
+  let charge: Awaited<ReturnType<typeof chargeForCampaign>> | null = null;
+  if (!id) {
+    charge = await chargeForCampaign(String(orgId));
+    if (!charge.ok) {
+      return NextResponse.json(
+        {
+          error: `You've used your ${FREE_CAMPAIGNS} free campaigns — the next one costs KES ${charge.status.nextPriceKes}. Get a campaign credit under Campaigns.`,
+          paymentRequired: true,
+          billing: charge.status,
+        },
+        { status: 402 }
+      );
+    }
+  }
+
   try {
     // A new referral with nothing picked counts referral-type actions, creating a
     // "Brought a friend" action for a business that has none yet.
@@ -260,6 +279,8 @@ export async function PUT(req: NextRequest) {
       { status: id ? 200 : 201 }
     );
   } catch (err) {
+    // The campaign never happened, so neither did the charge.
+    if (charge?.ok) await refundCampaignCharge(String(orgId), charge.usedCredit);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not save campaign" },
       { status: 400 }
