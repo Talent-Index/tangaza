@@ -106,6 +106,13 @@ function Header() {
           <a href="#why" className={link}>
             Why it works
           </a>
+          {/* Visible on phones too — a price nobody can find reads as a price being hidden. */}
+          <Link
+            href="/pricing"
+            className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] transition hover:text-[#f1e9db]"
+          >
+            Pricing
+          </Link>
           <Link href="/auth" className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] hover:text-[#f1e9db]">
             Sign in
           </Link>
@@ -497,7 +504,17 @@ const FAQ = [
   },
   {
     q: "What does it cost?",
-    a: "Your first campaign is free, and I set it up with you. Nothing is charged without you agreeing to it first.",
+    a: (
+      <>
+        Your first 2 campaigns are free — run them, see the referrals arrive, decide with
+        your own numbers. After that it&rsquo;s a small one-off price per campaign, paid
+        by M-Pesa. No subscription, no cut of your sales.{" "}
+        <Link href="/pricing" className="text-[#e9a23b] underline underline-offset-4">
+          See the exact prices
+        </Link>
+        .
+      </>
+    ),
   },
   {
     q: "What if the proof is fake?",

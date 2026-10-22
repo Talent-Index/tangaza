@@ -275,10 +275,17 @@ function Overview() {
           <p className="mt-2 text-xs text-mist-500">
             {kesLabel(issued)} committed · {kesLabel(outstanding)} outstanding
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button href={started ? "/org/liability" : "/org/campaigns"}>
               {started ? "View liability" : "Create a campaign"}
             </Button>
+            {/* Optional, quiet — but findable: credits, receipts and what campaigns cost. */}
+            <Link
+              href="/org/billing"
+              className="text-sm font-medium text-mist-400 underline underline-offset-4 transition hover:text-mist-100"
+            >
+              Billing &amp; pricing →
+            </Link>
           </div>
         </div>
 
