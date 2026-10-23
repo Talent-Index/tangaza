@@ -36,27 +36,37 @@ export function SiteFooter() {
         <div>
           <p className="text-lg font-bold tracking-tight">Ubu-Tangaza</p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-mist-400">
-            Built by Daniel Mwihoti. Born at the Team1 Avalanche Game Jam.
+            Referral and reward campaigns for businesses that grow by word of mouth —
+            every action verified, every reward budget capped on a public record.
           </p>
+          <p className="mt-3 text-xs text-mist-500">Nairobi, Kenya</p>
         </div>
         <div className="flex flex-col gap-2 text-sm text-mist-400 md:items-end">
           <Link href="/#how" className="hover:text-mist-100">
             How it works
           </Link>
-          <Link href="/#pilots" className="hover:text-mist-100">
-            Pilots
+          <Link href="/pricing" className="hover:text-mist-100">
+            Pricing
           </Link>
           <Link href="/book" className="hover:text-mist-100">
             Book a setup session
           </Link>
+          <a href={`mailto:${CONTACT.email}`} className="hover:text-mist-100">
+            {CONTACT.email}
+          </a>
         </div>
       </div>
       <div className="border-t border-ink-700">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-mist-500 sm:px-6">
-          <a href={`mailto:${CONTACT.email}`} className="font-mono text-[11px] tracking-[0.04em] hover:text-mist-300">
-            {CONTACT.email}
-          </a>
-          <span>Ubu-Tangaza</span>
+          <span>© {new Date().getFullYear()} Ubu-Tangaza</span>
+          <span className="flex gap-4">
+            <Link href="/terms" className="hover:text-mist-300">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-mist-300">
+              Privacy
+            </Link>
+          </span>
         </div>
       </div>
     </footer>

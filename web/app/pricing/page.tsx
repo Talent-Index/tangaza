@@ -95,6 +95,17 @@ export default function PricingPage() {
             Start with 2 free campaigns →
           </Link>
         </div>
+
+        <p className="border-t border-ink-700 pt-6 text-xs text-mist-500">
+          Payments and refunds are governed by our{" "}
+          <Link href="/terms" className="text-mist-300 underline underline-offset-4">
+            Terms of Service
+          </Link>{" "}
+          ·{" "}
+          <Link href="/privacy" className="text-mist-300 underline underline-offset-4">
+            Privacy Policy
+          </Link>
+        </p>
       </main>
     </div>
   );

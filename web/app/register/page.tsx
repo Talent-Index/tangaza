@@ -392,6 +392,17 @@ function ApplyForm({ address }: { address: string }) {
       <Button type="submit" disabled={submitting} className="w-full">
         {submitting ? "Signing…" : "Sign the pledge"}
       </Button>
+      <p className="text-center text-xs text-mist-500">
+        By signing the pledge you agree to our{" "}
+        <Link href="/terms" className="text-mist-300 underline underline-offset-4">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-mist-300 underline underline-offset-4">
+          Privacy Policy
+        </Link>
+        .
+      </p>
 
       <section>
         <SectionTitle>What happens next</SectionTitle>

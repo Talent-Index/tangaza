@@ -40,9 +40,21 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ubu-Tangaza | Grow your business through trackable campaigns",
+  metadataBase: new URL("https://www.ubutangaza.biz"),
+  title: {
+    default: "Ubu-Tangaza | Grow your business through trackable campaigns",
+    template: "%s | Ubu-Tangaza",
+  },
   description:
     "Create a campaign, set the target, and reward customers for engaging with it — referrals, posts, visits. Proof behind every action, and a reward budget you control.",
+  openGraph: {
+    siteName: "Ubu-Tangaza",
+    type: "website",
+    locale: "en_KE",
+    title: "Ubu-Tangaza — referral and reward campaigns for your business",
+    description:
+      "Your customers already bring you customers. See it, prove it, and reward it — with a reward budget that can never be overspent.",
+  },
 };
 
 export const viewport: Viewport = {
