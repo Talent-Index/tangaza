@@ -506,13 +506,15 @@ const FAQ = [
     q: "What does it cost?",
     a: (
       <>
-        Your first 2 campaigns are free — run them, see the referrals arrive, decide with
-        your own numbers. After that it&rsquo;s a small one-off price per campaign, paid
-        by M-Pesa. No subscription, no cut of your sales.{" "}
+        Your first campaign is free, and setup is simple.{" "}
+        <Link href="/book" className="text-[#e9a23b] underline underline-offset-4">
+          Book a setup session
+        </Link>{" "}
+        if you&rsquo;d like a hand, and{" "}
         <Link href="/pricing" className="text-[#e9a23b] underline underline-offset-4">
-          See the exact prices
-        </Link>
-        .
+          see the exact prices
+        </Link>{" "}
+        for what campaigns cost after that.
       </>
     ),
   },
