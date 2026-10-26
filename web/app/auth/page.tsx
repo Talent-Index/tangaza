@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
-import { BrandMark } from "@/components/ui";
+import { SiteHeader } from "@/components/site/SiteChrome";
 
 /**
  * Dedicated advocate auth screen. The landing page links here instead of hosting
@@ -21,30 +21,15 @@ export default function AuthPage() {
   }, [account, router]);
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-x-clip px-4 py-12 sm:px-6">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(194_85_31/0.12),transparent_70%)]"
-        aria-hidden
-      />
-
+    <div className="marketing light flex min-h-dvh flex-col">
+      <SiteHeader />
+      <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6">
       <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-          <Link href="/" className="min-w-0 rounded-md bg-ink-900 px-2.5 py-2 sm:px-3">
-            <BrandMark className="text-sm sm:text-base" />
-          </Link>
-          <Link
-            href="/org"
-            className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
-          >
-            Sign in as business
-          </Link>
-        </div>
-
-        <div className="card animate-fade-up px-4 py-7 sm:px-8 sm:py-8">
-          <p className="text-center text-sm text-mist-500">
+        <div className="card px-4 py-7 sm:px-8 sm:py-8">
+          <p className="text-center text-base text-[#3a382c]">
             Sign in or create your advocate account — same place for new and returning users.
           </p>
-          <h1 className="mt-3 text-center font-display text-2xl font-bold uppercase tracking-tight text-white sm:text-4xl">
+          <h1 className="mt-3 text-center text-3xl font-bold tracking-tight text-[#15140d] sm:text-4xl">
             Advocate portal.
           </h1>
 
@@ -52,20 +37,26 @@ export default function AuthPage() {
             <SignIn />
           </div>
 
-          <div className="mt-6 space-y-2 text-center text-xs text-mist-500">
+          <div className="mt-6 space-y-2 text-center text-base text-[#3a382c]">
             <p>
               First time here? Pick email or a provider above — we&apos;ll set up your wallet
               automatically.
             </p>
             <p>
               Run a business?{" "}
-              <Link href="/waitlist" className="text-mist-300 underline underline-offset-4 hover:text-white">
+              <Link href="/waitlist" className="font-semibold text-[#15140d] underline underline-offset-4">
                 Join the waitlist
               </Link>
             </p>
-            <p className="text-mist-600">No fees — ever</p>
+            <p>
+              <Link href="/org" className="font-semibold text-[#15140d] underline underline-offset-4">
+                Sign in as a business
+              </Link>
+            </p>
+            <p>No fees — ever</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

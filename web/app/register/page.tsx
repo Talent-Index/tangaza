@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { useToast } from "@/components/toast";
-import { BrandMark, Button, Card, ErrorNote, SectionTitle, TxReceipt } from "@/components/ui";
+import { SiteHeader } from "@/components/site/SiteChrome";
+import { Button, Card, ErrorNote, SectionTitle, TxReceipt } from "@/components/ui";
 import { kesLabel } from "@/lib/format";
 import { pledgeMessage } from "@/lib/pledge";
 import { LOCATION_TYPES, type LocationType } from "@/lib/types";
@@ -33,48 +34,40 @@ export default function RegisterPage() {
   if (!account) return <SignedOut />;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col overflow-x-clip px-4 py-8 sm:px-6 sm:py-10">
-      <header className="mb-8 flex items-center justify-between gap-3 sm:mb-10">
-        <Link href="/" className="min-w-0 shrink">
-          <BrandMark className="text-base sm:text-lg" />
+    <div className="marketing light min-h-dvh">
+      <SiteHeader />
+      <div className="mx-auto flex w-full max-w-2xl flex-col overflow-x-clip px-4 py-8 sm:px-6 sm:py-10">
+        <Link href="/org" className="mb-8 self-end text-base font-semibold text-[#15140d] underline underline-offset-4">
+          Already registered?
         </Link>
-        <Link href="/org" className="shrink-0 text-xs text-mist-500 hover:text-mist-300">
-          Already registered? →
-        </Link>
-      </header>
-
-      <main className="flex-1">
-        <ApplyForm address={account.address} />
-      </main>
+        <main className="flex-1">
+          <ApplyForm address={account.address} />
+        </main>
+      </div>
     </div>
   );
 }
 
 function SignedOut() {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-2">
+    <div className="marketing light min-h-dvh">
+      <SiteHeader />
+      <div className="grid lg:grid-cols-2">
       <section className="flex flex-col px-6 py-8 sm:px-10 lg:px-14">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="min-w-0">
-            <BrandMark className="text-base sm:text-lg" />
-          </Link>
-          <Link
-            href="/org"
-            className="shrink-0 text-xs text-mist-500 underline-offset-4 hover:text-mist-300 hover:underline"
-          >
-            Already registered? →
-          </Link>
-        </div>
-
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
-          <p className="text-sm text-mist-500">Sign in with the account that will approve activities</p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Sign in</h1>
+          <p className="text-base text-[#3a382c]">Sign in with the account that will approve activities</p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight">Sign in</h1>
+          <p className="mt-3 text-base">
+            <Link href="/org" className="font-semibold text-[#15140d] underline underline-offset-4">
+              Already registered?
+            </Link>
+          </p>
           <div className="mt-8">
             <SignIn />
           </div>
-          <p className="mt-8 text-center text-sm text-mist-500">
+          <p className="mt-8 text-center text-base text-[#3a382c]">
             Joining as an advocate?{" "}
-            <Link href="/auth" className="text-mist-200 underline underline-offset-4 hover:text-white">
+            <Link href="/auth" className="font-semibold text-[#15140d] underline underline-offset-4">
               Open the advocate portal
             </Link>
           </p>
@@ -82,29 +75,18 @@ function SignedOut() {
       </section>
 
       <aside className="relative hidden p-4 lg:block">
-        <div className="flex h-full flex-col rounded-[2rem] border border-ink-700 bg-ink-850 px-10 py-8">
-          <div className="flex justify-end">
-            <Link
-              href="/org"
-              className="rounded-full border border-ink-600 px-4 py-2 text-sm text-mist-300 transition hover:border-ink-500 hover:text-mist-100"
-            >
-              Already registered?
-            </Link>
-          </div>
-
+        <div className="flex h-full flex-col rounded-[2rem] border border-[#ddd8c8] bg-white px-10 py-8">
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <div className="relative h-44 w-64" aria-hidden>
-              <span className="absolute left-1/2 top-2 h-24 w-52 -translate-x-1/2 rounded-2xl border border-ink-600 bg-ink-800" />
-              <span className="absolute left-1/2 top-8 h-24 w-44 -translate-x-1/2 rounded-2xl border border-ink-600 bg-ink-700" />
-              <span className="absolute left-1/2 top-16 h-24 w-36 -translate-x-1/2 rounded-2xl border border-crimson-500/40 bg-ink-850" />
+              <span className="absolute left-1/2 top-2 h-24 w-52 -translate-x-1/2 rounded-2xl border border-[#ddd8c8] bg-[#f8f6f0]" />
+              <span className="absolute left-1/2 top-8 h-24 w-44 -translate-x-1/2 rounded-2xl border border-[#ddd8c8] bg-[#ece8dc]" />
+              <span className="absolute left-1/2 top-16 h-24 w-36 -translate-x-1/2 rounded-2xl border border-[#e9a23b] bg-white" />
             </div>
-            <p className="mt-12 text-[11px] font-semibold uppercase tracking-[0.2em] text-crimson-400">
-              Register portal
-            </p>
-            <h2 className="mt-4 max-w-md font-display text-4xl font-bold leading-tight tracking-tight">
+            <p className="mt-12 text-[13px] font-semibold text-[#6b4a12]">Register portal</p>
+            <h2 className="mt-4 max-w-md text-4xl font-bold leading-tight tracking-tight">
               Reward the people who talk about you.
             </h2>
-            <p className="mt-5 max-w-md text-sm leading-relaxed text-mist-400">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-[#2c2a1f]">
               Say what you&rsquo;ll give back and let your community earn it. Nothing to
               pay up front — a built-in guardrail, written once on Avalanche, means what
               you owe can never run past it. Not by us, not by you. That&rsquo;s the
@@ -112,9 +94,10 @@ function SignedOut() {
             </p>
           </div>
 
-          <p className="text-center text-xs text-mist-500">No fees — ever</p>
+          <p className="text-center text-base text-[#3a382c]">No fees — ever</p>
         </div>
       </aside>
+      </div>
     </div>
   );
 }
@@ -256,7 +239,7 @@ function ApplyForm({ address }: { address: string }) {
   return (
     <form onSubmit={apply} className="animate-rise space-y-8">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Register your business</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Register your business</h1>
         <p className="mt-1 text-sm text-mist-500">
           Signing in as{" "}
           <code className="tabular text-mist-300">

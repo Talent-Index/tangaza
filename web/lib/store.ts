@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "./db";
+import { isObviouslyTestCampaign } from "./public-display";
 import type {
   AdvocateXLink,
   CampaignFunnel,
@@ -1650,7 +1651,9 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     where c.active and (c.ends_at is null or c.ends_at > now())
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
-  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+  return rows
+    .map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }))
+    .filter((c) => !isObviouslyTestCampaign(c));
 }
 
 /** All campaigns on the platform — upcoming and past — for the campaigns timeline. */
@@ -1677,7 +1680,9 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
     where c.active
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
-  return rows.map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }));
+  return rows
+    .map((r) => ({ ...toCampaign(r), orgName: r.org_name as string }))
+    .filter((c) => !isObviouslyTestCampaign(c));
 }
 
 /** Every campaign this advocate has joined, newest first, with the business's display name. */

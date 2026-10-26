@@ -18,7 +18,7 @@ import {
   todayEat,
 } from "@/lib/booking";
 
-const MONO = "font-mono text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.2em]";
+const LABEL = "text-[13px] font-semibold text-[#3a382c]";
 const PANEL = "border border-ink-700 bg-ink-850 light:rounded-xl light:shadow-sm";
 const FIELD =
   "w-full min-w-0 border border-ink-600 bg-ink-900 px-3.5 py-3 text-base outline-none sm:text-sm placeholder:text-mist-500 focus:border-crimson-500 light:rounded-lg light:bg-ink-850";
@@ -121,7 +121,7 @@ export function BookingForm() {
   return (
     <form onSubmit={submit} className="min-w-0 space-y-8">
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>1 · Pick a day</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>1 · Pick a day</legend>
         {view && days.length > 0 ? (
           <MonthCalendar
             view={view}
@@ -143,7 +143,7 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>2 · Pick a time (East Africa Time)</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>2 · Pick a time (East Africa Time)</legend>
         {slots.length === 0 ? (
           <p className="text-sm text-mist-500">No times left on this day — try another.</p>
         ) : (
@@ -162,7 +162,7 @@ export function BookingForm() {
                     isTaken
                       ? "cursor-not-allowed border-ink-700 text-mist-500 line-through opacity-50"
                       : active
-                        ? "border-crimson-500 bg-crimson-500 text-white"
+                        ? "border-[#c4841f] bg-[#e9a23b] font-semibold text-[#17130b]"
                         : "border-ink-600 hover:border-mist-400"
                   }`}
                 >
@@ -176,7 +176,7 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>3 · Your goal (optional)</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>3 · Your goal (optional)</legend>
         <div className="flex flex-wrap gap-2">
           {GOALS.map((g) => {
             const active = g === goal;
@@ -188,7 +188,7 @@ export function BookingForm() {
                 aria-pressed={active}
                 className={`border px-3.5 py-2.5 text-sm transition light:rounded-lg ${
                   active
-                    ? "border-crimson-500 bg-crimson-500 text-white"
+                    ? "border-[#c4841f] bg-[#e9a23b] font-semibold text-[#17130b]"
                     : "border-ink-600 hover:border-mist-400"
                 }`}
               >
@@ -200,7 +200,7 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0 space-y-3">
-        <legend className={`${MONO} mb-3 text-mist-400`}>4 · About you</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>4 · About you</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <input required className={FIELD} placeholder="Your name" value={form.name} maxLength={120}
             onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" />
@@ -229,7 +229,7 @@ export function BookingForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 bg-crimson-500 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto light:rounded-lg"
+          className="btn-gold w-full disabled:opacity-50 sm:w-auto"
         >
           <Icon name="calendar" /> {submitting ? "Booking…" : "Book my session"}
         </button>
