@@ -18,7 +18,7 @@ import {
   todayEat,
 } from "@/lib/booking";
 
-const MONO = "font-mono text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.2em]";
+const LABEL = "text-[13px] font-semibold text-[#3a382c]";
 const PANEL = "border border-ink-700 bg-ink-850 light:rounded-xl light:shadow-sm";
 const FIELD =
   "w-full min-w-0 border border-ink-600 bg-ink-900 px-3.5 py-3 text-base outline-none sm:text-sm placeholder:text-mist-500 focus:border-crimson-500 light:rounded-lg light:bg-ink-850";
@@ -121,7 +121,7 @@ export function BookingForm() {
   return (
     <form onSubmit={submit} className="min-w-0 space-y-8">
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>1 · Pick a day</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>1 · Pick a day</legend>
         {view && days.length > 0 ? (
           <MonthCalendar
             view={view}
@@ -143,11 +143,11 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>2 · Pick a time (East Africa Time)</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>2 · Pick a time (East Africa Time)</legend>
         {slots.length === 0 ? (
           <p className="text-sm text-mist-500">No times left on this day — try another.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
             {slots.map((s) => {
               const isTaken = taken.has(s);
               const active = s === slot;
@@ -162,7 +162,7 @@ export function BookingForm() {
                     isTaken
                       ? "cursor-not-allowed border-ink-700 text-mist-500 line-through opacity-50"
                       : active
-                        ? "border-crimson-500 bg-crimson-500 text-white"
+                        ? "border-[#c4841f] bg-[#e9a23b] font-semibold text-[#17130b]"
                         : "border-ink-600 hover:border-mist-400"
                   }`}
                 >
@@ -176,7 +176,7 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0">
-        <legend className={`${MONO} mb-3 text-mist-400`}>3 · Your goal (optional)</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>3 · Your goal (optional)</legend>
         <div className="flex flex-wrap gap-2">
           {GOALS.map((g) => {
             const active = g === goal;
@@ -188,7 +188,7 @@ export function BookingForm() {
                 aria-pressed={active}
                 className={`border px-3.5 py-2.5 text-sm transition light:rounded-lg ${
                   active
-                    ? "border-crimson-500 bg-crimson-500 text-white"
+                    ? "border-[#c4841f] bg-[#e9a23b] font-semibold text-[#17130b]"
                     : "border-ink-600 hover:border-mist-400"
                 }`}
               >
@@ -200,7 +200,7 @@ export function BookingForm() {
       </fieldset>
 
       <fieldset className="min-w-0 space-y-3">
-        <legend className={`${MONO} mb-3 text-mist-400`}>4 · About you</legend>
+        <legend className={`${LABEL} mb-3 text-mist-400`}>4 · About you</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <input required className={FIELD} placeholder="Your name" value={form.name} maxLength={120}
             onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" />
@@ -229,9 +229,9 @@ export function BookingForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 bg-crimson-500 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-crimson-400 disabled:opacity-50 sm:w-auto light:rounded-lg"
+          className="btn-gold w-full disabled:opacity-50 sm:w-auto"
         >
-          <Icon name="calendar" /> {submitting ? "Booking…" : "Book my session"}
+          <Icon name="calendar" /> {submitting ? "Booking…" : "Book the 5-minute call"}
         </button>
         <p className="text-xs text-mist-500">
           {slot ? `You picked ${formatSlot(slot)}.` : "Pick a day and a time."}
@@ -245,8 +245,8 @@ function Confirmation({ slot, contact, business }: { slot: string; contact: stri
   function download() {
     const ics = buildIcs(
       slot,
-      "Ubu-Tangaza setup session",
-      `Setting up ${business}'s first campaign with Daniel. He'll reach you on ${contact}.`
+      "Ubu-Tangaza 5-minute intro call",
+      `A ${SESSION_MINUTES}-minute intro call about ${business}. Daniel will reach you on ${contact}.`
     );
     const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
     const a = document.createElement("a");
@@ -261,7 +261,7 @@ function Confirmation({ slot, contact, business }: { slot: string; contact: stri
       <span className="grid size-10 place-items-center bg-jade-500/15 text-jade-400 light:rounded-full">
         <Icon name="check" className="size-5" />
       </span>
-      <h2 className="mt-5 text-2xl font-black tracking-tight">Session requested</h2>
+      <h2 className="mt-5 text-2xl font-black tracking-tight">Call requested</h2>
       <p className="mt-2 text-sm leading-relaxed text-mist-400">
         Daniel will confirm by calling or messaging you on {contact}. Nothing else for you to do until then.
       </p>

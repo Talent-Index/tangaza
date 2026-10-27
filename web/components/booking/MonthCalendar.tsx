@@ -64,7 +64,7 @@ export function MonthCalendar({
 
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAYS.map((d) => (
-          <p key={d} className="pb-1 text-center font-mono text-[10px] uppercase tracking-wider text-mist-500 sm:text-[11px]">
+          <p key={d} className="pb-1 text-center text-[13px] text-[#4a4638]">
             {d}
           </p>
         ))}
@@ -89,9 +89,9 @@ export function MonthCalendar({
               title={full ? "Fully booked" : undefined}
               className={`relative aspect-square min-w-0 border text-sm transition light:rounded-lg ${
                 isSel
-                  ? "border-crimson-500 bg-crimson-500 font-bold text-white"
+                  ? "border-[#c4841f] bg-[#e9a23b] font-bold text-[#17130b]"
                   : open
-                    ? "border-ink-600 font-semibold hover:border-crimson-500"
+                    ? "border-ink-600 font-semibold hover:border-[#c4841f]"
                     : "cursor-not-allowed border-transparent text-mist-500/50"
               }`}
             >
@@ -100,7 +100,7 @@ export function MonthCalendar({
                 <span
                   aria-hidden
                   className={`absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full ${
-                    isSel ? "bg-white" : "bg-crimson-500"
+                    isSel ? "bg-[#17130b]" : "bg-[#e9a23b]"
                   }`}
                 />
               ) : null}

@@ -234,3 +234,58 @@ html.light .skin {
   --color-crimson-400: #c2354f;
   --color-crimson-300: #a81c38;
 }
+
+/*
+ * Public pages (home, pricing, book, register, auth) share one cream surface.
+ * Tokens are overridden on the wrapper so existing utilities follow, including
+ * when the visitor's device is in dark mode.
+ */
+.marketing {
+  --color-ink-950: #f3f1e9;
+  --color-ink-900: #f8f6f0;
+  --color-ink-850: #ffffff;
+  --color-ink-800: #ece8dc;
+  --color-ink-700: #ddd8c8;
+  --color-ink-600: #c7c1ac;
+  --color-ink-500: #a39c85;
+  --color-mist-500: #4a4638;
+  --color-mist-400: #3a382c;
+  --color-mist-300: #2c2a1f;
+  --color-mist-100: #15140d;
+  color: #15140d;
+  background: #f3f1e9;
+  color-scheme: light;
+  min-height: 100dvh;
+}
+
+body:has(.marketing) {
+  background: #f3f1e9;
+  color: #15140d;
+}
+
+body:has(.marketing)::before {
+  display: none;
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: #e9a23b;
+  color: #17130b;
+  font-weight: 700;
+  padding: 0.85rem 1.35rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  transition: background 0.15s ease;
+}
+
+.btn-gold:hover {
+  background: #f0b04a;
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CoverImageField } from "@/components/org/CoverImageField";
+import { RewardPresets } from "@/components/org/RewardPresets";
 import { Button, ErrorNote } from "@/components/ui";
 import type { Campaign } from "@/lib/hooks";
 import {
@@ -11,8 +12,10 @@ import {
   describeCampaignReward,
   describeRewardRule,
   goalMeta,
+  matchingRewardPreset,
   type EngagementType,
   type GoalType,
+  type RewardPreset,
 } from "@/lib/types";
 import { GoalPicker } from "./GoalPicker";
 
@@ -696,6 +699,25 @@ function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => v
   );
 }
 
+function applyCampaignPreset(
+  setDraft: React.Dispatch<React.SetStateAction<CampaignDraft>>,
+  preset: RewardPreset | null,
+) {
+  setDraft((d) => {
+    if (!preset) {
+      if (d.rewardKind === "other") return d;
+      return { ...d, rewardKind: "other", rewardAmount: "", rewardNote: "" };
+    }
+    return {
+      ...d,
+      rewardKind: preset.kind,
+      rewardAmount: preset.amount,
+      rewardCurrency: preset.amount ? preset.currency : d.rewardCurrency,
+      rewardNote: preset.label,
+    };
+  });
+}
+
 /** Step 4: what one person earns, and when. Optional — a campaign can run without one. */
 export function RewardStep({
   draft,
@@ -728,6 +750,23 @@ export function RewardStep({
         What will you give people who take part? You hand it over yourself — Tangaza tracks
         who has earned it and what you still owe.
       </p>
+
+      <div>
+        <p className={MONO}>Preset reward</p>
+        <div className="mt-2">
+          <RewardPresets
+            selectedId={
+              matchingRewardPreset({
+                kind: draft.rewardKind,
+                note: draft.rewardNote,
+                amount: draft.rewardAmount,
+                currency: draft.rewardCurrency,
+              })?.id ?? (draft.rewardKind === "other" ? "custom" : null)
+            }
+            onPick={(preset) => applyCampaignPreset(setDraft, preset)}
+          />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Reward type">
         {PAYOUT_KINDS.map((k) => {
