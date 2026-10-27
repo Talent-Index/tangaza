@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { goalSentence } from "@/lib/campaigns";
+import { isObviouslyTestCampaign } from "@/lib/public-display";
 import { getCampaignBySlug } from "@/lib/store";
 
 /**
@@ -14,7 +15,7 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const c = await getCampaignBySlug(slug);
-    if (!c) return {};
+    if (!c || isObviouslyTestCampaign(c)) return { robots: { index: false, follow: false } };
     // Many campaigns are named after the business itself; don't say it twice.
     const title =
       c.title.trim().toLowerCase() === c.orgName.trim().toLowerCase()

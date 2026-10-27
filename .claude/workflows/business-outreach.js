@@ -277,12 +277,12 @@ ${angle === 'goal'
   ? `ANGLE: their goal first. Structure the message as:
 1. One sentence showing you understand what THEY are trying to achieve (use research.vision / research.goals in their own terms; do not quote anything you cannot source). If goals are empty, use the most specific true thing from the research instead and do not invent a mission.
 2. One or two sentences on how recognising and rewarding the people who already spread the word could help them reach that goal (use research.fit). Describe the outcome for them, not product features.
-3. One clear, low-pressure ask: a short call about their goal (30 minutes), with the booking link.
+3. One clear, low-pressure ask: a free 5-minute intro call about their goal (the idea is explained in the first minute), with the booking link.
 If research.fit is "unclear" or confidence is "none", write a shorter, more curious note that asks about their goals instead of claiming a fit.`
   : `ANGLE: product. Lead with what Tangaza does and how it fits their campaigns.`}
 
 Adjust by kind (keeping the angle above):
-- "booked": they already booked a setup session (${b.bookingSlot || 'time unknown'}). Confirm warmly and ask 1-2 questions that help prepare, starting with "what do you most want to achieve in the next few months?" Do not re-pitch.
+- "booked": they already booked a 5-minute intro call (${b.bookingSlot || 'time unknown'}). Confirm warmly and ask 1-2 questions that help prepare, starting with "what do you most want to achieve in the next few months?" Do not re-pitch.
 - "applied": they signed up/applied but have not booked. Thank them, reference their application, and invite them to book a session to shape it around their goal.
 - "cold": a short intro as described by the angle.
 If the research shows they already run a referral/loyalty scheme, position Tangaza as complementing it, not replacing it.

@@ -258,9 +258,6 @@ export function ConfigWarning() {
 /** Split-color wordmark — readable on dark and light surfaces. */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
-    <span className={`font-display font-bold tracking-tight ${className}`}>
-      <span className="text-mist-100">Ubu-</span>
-      <span className="text-crimson-400">Tangaza</span>
-    </span>
+    <span className={`font-bold tracking-tight text-mist-100 ${className}`}>Ubu-Tangaza</span>
   );
 }

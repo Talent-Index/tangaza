@@ -205,9 +205,9 @@ Booking link: ${bookingUrl || '[BOOKING LINK] (leave this literal placeholder; t
 What Tangaza is: pay-for-advocacy for local businesses — customers bring friends or post about the business, the business approves, and rewards accumulate toward perks the business chooses. Read PITCH.md and README.md for exact wording; do not exceed what they claim.
 
 Tailor by kind:
-- "booked": they already booked a setup session (${b.bookingSlot || 'time unknown'}). Confirm warmly, ask 1-2 questions that help prepare (what do they want customers to do, what reward they'd honour), mention what the session covers. Do not re-pitch.
-- "applied": they signed up/applied but have not booked. Thank them, reference their application, invite them to book a 30-minute setup session.
-- "cold": short intro, one sentence tied to their actual campaign (or lack of one) from the research hooks, invite to a 30-minute setup session.
+- "booked": they already booked a 5-minute intro call (${b.bookingSlot || 'time unknown'}). Confirm warmly, ask 1-2 questions that help prepare (what do they want customers to do, what reward they'd honour), mention that the idea is explained in the first minute. Do not re-pitch.
+- "applied": they signed up/applied but have not booked. Thank them, reference their application, invite them to book a free 5-minute intro call.
+- "cold": short intro, one sentence tied to their actual campaign (or lack of one) from the research hooks, invite to a free 5-minute intro call.
 If the research shows they already run a referral/loyalty scheme, position Tangaza as complementing it, not replacing it.
 
 Channel: the email address is ${b.email || r.publicEmail || '(none)'}. If there is an email address, load the Gmail tools with ToolSearch ("select:mcp__claude_ai_Gmail__create_draft") and create a draft to that address; return its draftId and threadId if provided. If there is NO email but there is a phone, do not create a draft; write a WhatsApp-length text (channel "whatsapp_text", draftCreated false). If neither, channel "none" and explain in "reason".

@@ -6,40 +6,28 @@ import { TANGAZA_ABI } from "./abi";
 import { sql } from "./db";
 import { listAllActiveCampaigns, listRewardTiers } from "./store";
 import { formatReward } from "./types";
+import type { PublicChainTotals, PublicPilot, PublicStats } from "./public-display";
+
+export type ChainTotals = PublicChainTotals;
+export type Pilot = PublicPilot;
+export type { PublicStats };
 
 const client = createPublicClient({ chain: VIEM_CHAIN, transport: http(RPC_URL) });
 
-export interface ChainTotals {
-  businesses: number;
-  approved: number;
-  capKes: number;
-  issuedKes: number;
-  redeemedKes: number;
-}
-
-export interface Pilot {
-  id: string;
-  slug: string;
-  title: string;
-  orgName: string;
-  blurb?: string;
-  coverUrl?: string;
-  /** What taking part earns, one line per level the business offers, cheapest first. */
-  rewards: string[];
-  participants: number;
-  approved: number;
-}
-
-export interface PublicStats {
-  awaiting: number | null;
-  chain: ChainTotals | null;
-  contract: string;
-  pilots: Pilot[];
-}
+let memo: { at: number; value: PublicStats } | null = null;
+const MEMO_MS = 60_000;
 
 /** Everything the public site shows as "live", in one cacheable call. */
 export async function getPublicStats(): Promise<PublicStats> {
+  if (memo && Date.now() - memo.at < MEMO_MS) return memo.value;
+  const value = await loadPublicStats();
+  if (value.chain || value.pilotsKnown) memo = { at: Date.now(), value };
+  return value;
+}
+
+async function loadPublicStats(): Promise<PublicStats> {
   const contract = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "") as `0x${string}`;
+  let pilotsKnown = true;
 
   const [chain, awaiting, pilots] = await Promise.all([
     readChain(contract).catch((e) => {
@@ -51,14 +39,15 @@ export async function getPublicStats(): Promise<PublicStats> {
       .catch(() => null),
     readPilots().catch((e) => {
       console.error("[stats:pilots]", e);
-      return [] as Pilot[];
+      pilotsKnown = false;
+      return [] as PublicPilot[];
     }),
   ]);
 
-  return { awaiting, chain, contract, pilots };
+  return { awaiting, chain, contract, pilots, pilotsKnown };
 }
 
-async function readChain(contract: `0x${string}`): Promise<ChainTotals | null> {
+async function readChain(contract: `0x${string}`): Promise<PublicChainTotals | null> {
   if (!contract) return null;
   const count = Number(
     await client.readContract({ address: contract, abi: TANGAZA_ABI, functionName: "orgCount" })
@@ -73,7 +62,7 @@ async function readChain(contract: `0x${string}`): Promise<ChainTotals | null> {
       })
     )
   );
-  const totals: ChainTotals = { businesses: count, approved: 0, capKes: 0, issuedKes: 0, redeemedKes: 0 };
+  const totals: PublicChainTotals = { businesses: count, approved: 0, capKes: 0, issuedKes: 0, redeemedKes: 0 };
   for (const o of orgs as Array<Record<string, unknown>>) {
     totals.approved += Number(o.approvedActivities ?? 0);
     totals.capKes += Number(o.emissionCapKES ?? 0);
@@ -83,7 +72,7 @@ async function readChain(contract: `0x${string}`): Promise<ChainTotals | null> {
   return totals;
 }
 
-async function readPilots(): Promise<Pilot[]> {
+async function readPilots(): Promise<PublicPilot[]> {
   const [campaigns, counts] = await Promise.all([
     listAllActiveCampaigns(),
     sql`select campaign_id, count(*)::int as n from submissions

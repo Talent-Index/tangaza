@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { timeAgo } from "@/lib/format";
+import { isObviouslyTestFeedback } from "@/lib/public-display";
 
 /**
  * Public feedback, in two pieces the homepage and /feedback share:
@@ -12,7 +13,6 @@ import { timeAgo } from "@/lib/format";
  * carries the booking page's defenses (honeypot, length caps) rather than a login.
  */
 
-const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
 const FIELD =
   "w-full min-w-0 border border-ink-600 bg-ink-900 px-3.5 py-3 text-base outline-none placeholder:text-mist-500 focus:border-crimson-500 sm:text-sm light:rounded-lg light:bg-ink-850";
 
@@ -106,12 +106,12 @@ export function FeedbackForm({ onPosted }: { onPosted?: () => void }) {
           <Icon name="check" className="size-5" />
         </span>
         <h2 className="mt-4 text-xl font-black tracking-tight">Thank you.</h2>
-        <p className="mt-2 text-sm leading-relaxed text-mist-400">
-          Your feedback is on the{" "}
+        <p className="mt-2 text-base leading-relaxed text-mist-400">
+          Thank you. It&rsquo;s saved, and it can show on the{" "}
           <Link href="/" className="underline underline-offset-2 hover:text-mist-200">
             homepage
           </Link>{" "}
-          now.
+          once a few owners have written in.
         </p>
       </div>
     );
@@ -164,42 +164,28 @@ export function FeedbackForm({ onPosted }: { onPosted?: () => void }) {
   );
 }
 
-/** The homepage section: eyebrow, the wall, and the door to /feedback. */
+/** The homepage section. Hidden until there are a couple of real quotes. */
 export function FeedbackSection() {
   const { entries } = useFeedback();
+  const real = (entries ?? []).filter((entry) => !isObviouslyTestFeedback(entry));
+  if (entries === null || real.length < 2) return null;
   return (
-    <section id="feedback" className="scroll-mt-4 border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
+    <section id="feedback" className="scroll-mt-4 border-t border-[#ddd8c8] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className={`${MONO} text-crimson-500`}>Feedback</p>
-            <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">What people tell us.</h2>
-          </div>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">What business owners say</h2>
           <Link
             href="/feedback"
-            className="inline-flex items-center gap-2 border border-ink-600 px-5 py-3 text-sm font-bold transition hover:border-mist-400 light:rounded-lg"
+            className="inline-flex items-center gap-2 rounded-full border border-[#c7c1ac] px-5 py-3 text-base font-semibold hover:border-[#15140d]"
           >
             <Icon name="chat" className="size-4" /> Leave feedback
           </Link>
         </div>
         <div className="mt-8">
-          <FeedbackWall entries={entries} />
+          <FeedbackWall entries={real} />
         </div>
       </div>
     </section>
   );
 }
 
-/** The floating door to /feedback, pinned to the corner of the homepage. */
-export function FeedbackFab() {
-  return (
-    <Link
-      href="/feedback"
-      aria-label="Leave feedback"
-      className="fixed bottom-5 right-4 z-40 grid size-12 place-items-center rounded-full bg-crimson-500 text-white shadow-lg transition hover:bg-crimson-400 sm:bottom-6 sm:right-6"
-      style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <Icon name="chat" className="size-5" />
-    </Link>
-  );
-}
