@@ -62,7 +62,7 @@ function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/book" className="btn-gold">
-              Book a free setup call <Icon name="arrow-up-right" className="size-4" />
+              Book a free 5-minute call <Icon name="arrow-up-right" className="size-4" />
             </Link>
             <a
               href="#how"
@@ -328,11 +328,11 @@ function Setup() {
             Let&rsquo;s set up your first campaign together, free.
           </h2>
           <p className="mt-4 max-w-md text-[17px] leading-relaxed text-[#2c2a1f]">
-            Book 30 minutes with me. We&rsquo;ll choose the goal, decide what proof counts and set the reward, and you&rsquo;ll finish the call with a campaign ready to share with your customers.
+            Book a free 5-minute intro call with me. I&rsquo;ll explain how it works in the first minute, then we can look at the goal, the proof and the reward.
           </p>
           <p className="mt-4 text-base font-semibold">Daniel, founder</p>
           <Link href="/book" className="btn-gold mt-8">
-            Book a free setup call
+            Book a free 5-minute call
           </Link>
         </div>
         <ul className="flex flex-col justify-center gap-5 bg-[#f8f6f0] p-7 sm:p-10">
@@ -379,7 +379,7 @@ const FAQ = [
       <>
         Your first campaign is free, and setup is simple.{" "}
         <Link href="/book" className="underline underline-offset-4">
-          Book a setup session
+          Book a free 5-minute call
         </Link>{" "}
         if you&rsquo;d like a hand, and{" "}
         <Link href="/pricing" className="underline underline-offset-4">

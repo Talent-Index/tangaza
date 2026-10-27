@@ -147,7 +147,7 @@ export function BookingForm() {
         {slots.length === 0 ? (
           <p className="text-sm text-mist-500">No times left on this day — try another.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
             {slots.map((s) => {
               const isTaken = taken.has(s);
               const active = s === slot;
@@ -231,7 +231,7 @@ export function BookingForm() {
           disabled={submitting}
           className="btn-gold w-full disabled:opacity-50 sm:w-auto"
         >
-          <Icon name="calendar" /> {submitting ? "Booking…" : "Book my session"}
+          <Icon name="calendar" /> {submitting ? "Booking…" : "Book the 5-minute call"}
         </button>
         <p className="text-xs text-mist-500">
           {slot ? `You picked ${formatSlot(slot)}.` : "Pick a day and a time."}
@@ -245,8 +245,8 @@ function Confirmation({ slot, contact, business }: { slot: string; contact: stri
   function download() {
     const ics = buildIcs(
       slot,
-      "Ubu-Tangaza setup session",
-      `Setting up ${business}'s first campaign with Daniel. He'll reach you on ${contact}.`
+      "Ubu-Tangaza 5-minute intro call",
+      `A ${SESSION_MINUTES}-minute intro call about ${business}. Daniel will reach you on ${contact}.`
     );
     const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
     const a = document.createElement("a");
@@ -261,7 +261,7 @@ function Confirmation({ slot, contact, business }: { slot: string; contact: stri
       <span className="grid size-10 place-items-center bg-jade-500/15 text-jade-400 light:rounded-full">
         <Icon name="check" className="size-5" />
       </span>
-      <h2 className="mt-5 text-2xl font-black tracking-tight">Session requested</h2>
+      <h2 className="mt-5 text-2xl font-black tracking-tight">Call requested</h2>
       <p className="mt-2 text-sm leading-relaxed text-mist-400">
         Daniel will confirm by calling or messaging you on {contact}. Nothing else for you to do until then.
       </p>

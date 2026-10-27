@@ -6,9 +6,9 @@ import { SESSION_MINUTES } from "@/lib/booking";
 import { CONTACT } from "@/lib/contact";
 
 export const metadata: Metadata = {
-  title: "Book a setup session | Ubu-Tangaza",
+  title: "Book a free 5-minute call",
   description:
-    "Tell us your goal and pick a time. We'll build your first campaign around it together: the action, the reward and the budget cap.",
+    "A free 5-minute intro call. We'll explain how it works in the first minute, then look at your goal, the reward and the proof you'd want.",
 };
 
 export default function BookPage() {
@@ -18,13 +18,14 @@ export default function BookPage() {
       <main className="px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <p className="text-[13px] font-semibold text-[#6b4a12]">Book a setup session</p>
+            <p className="text-[13px] font-semibold text-[#6b4a12]">Book a free 5-minute call</p>
             <h1 className="mt-3 text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-              Tell us your goal. We&rsquo;ll build the campaign around it.
+              Tell us your goal. We&rsquo;ll explain how it works.
             </h1>
             <p className="mt-5 max-w-md text-[17px] leading-relaxed text-[#2c2a1f]">
-              A {SESSION_MINUTES}-minute call. We turn your goal into a campaign, with the action,
-              the reward and the budget cap, then you only tap approve. Your first campaign is free.
+              A free {SESSION_MINUTES}-minute intro call. We&rsquo;ll explain how it works in the first
+              minute, then look at the action, the reward and the budget cap. You still approve every
+              reward yourself. Your first campaign is free.
             </p>
             <ul className="mt-8 space-y-3 text-base text-[#2c2a1f]">
               {[

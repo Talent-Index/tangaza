@@ -23,8 +23,8 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
-          <Link href="/book" className="btn-gold px-4 py-2 text-sm">
-            Book free setup
+          <Link href="/book" className="btn-gold whitespace-nowrap px-4 py-2 text-sm">
+            Book a free 5-minute call
           </Link>
         </nav>
         {/* A native disclosure, so the menu opens even before JavaScript runs. */}
@@ -48,7 +48,7 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link href="/book" className="btn-gold my-2 w-full">
-              Book free setup
+              Book a free 5-minute call
             </Link>
           </nav>
         </details>
@@ -76,7 +76,7 @@ export function SiteFooter() {
             Pricing
           </Link>
           <Link href="/book" className="hover:underline">
-            Book a setup session
+            Book a free 5-minute call
           </Link>
           <Link href="/feedback" className="hover:underline">
             Leave feedback
