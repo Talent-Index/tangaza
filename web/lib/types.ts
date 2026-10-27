@@ -82,6 +82,36 @@ export const PAYOUT_KINDS = [
 
 export type PayoutKind = (typeof PAYOUT_KINDS)[number]["id"];
 
+/**
+ * Ready-made rewards. Choosing one fills the kind, amount and description the
+ * campaign and the level form already save. An empty amount means the field stays blank.
+ */
+export const REWARD_PRESETS = [
+  { id: "tshirts", label: "T-shirts", kind: "merch", amount: "", currency: "KES" },
+  { id: "airtime", label: "Airtime", kind: "airtime", amount: "", currency: "KES" },
+  { id: "gifts", label: "Gifts from the shop", kind: "product", amount: "", currency: "KES" },
+  { id: "discount", label: "A discount from the shop (10–20%)", kind: "discount", amount: "", currency: "KES" },
+  { id: "cash300", label: "Small cash: KES 300", kind: "cash", amount: "300", currency: "KES" },
+  { id: "cash1000", label: "Small cash: KES 1,000", kind: "cash", amount: "1000", currency: "KES" },
+] as const;
+
+export type RewardPreset = (typeof REWARD_PRESETS)[number];
+
+/** Which preset the current fields match, if the business has not edited them. */
+export function matchingRewardPreset(fields: {
+  kind: string;
+  note: string;
+  amount: string;
+  currency?: string;
+}): RewardPreset | undefined {
+  return REWARD_PRESETS.find((p) => {
+    if (fields.kind !== p.kind || fields.note.trim() !== p.label) return false;
+    if (fields.amount !== p.amount) return false;
+    if (p.amount && fields.currency !== p.currency) return false;
+    return true;
+  });
+}
+
 export const PAYOUT_KIND_IDS = PAYOUT_KINDS.map((k) => k.id) as readonly string[];
 
 export const payoutKindLabel = (id?: string) =>
