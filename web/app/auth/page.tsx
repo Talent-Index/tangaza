@@ -114,6 +114,11 @@ export default function AuthPage() {
             <Link href="/org" className="underline underline-offset-4 hover:text-mist-100">
               Sign in as a business
             </Link>
+            <br />
+            Need help?{" "}
+            <Link href="/book" className="font-bold text-gold-text underline underline-offset-4">
+              Book a 5-minute call
+            </Link>
           </p>
         </div>
       </main>

@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import { BookingForm } from "@/components/booking/BookingForm";
 import { Icon } from "@/components/icons";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
-import { SESSION_MINUTES } from "@/lib/booking";
 import { CONTACT } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Book a setup session | Ubu-Tangaza",
   description:
-    "Tell us your goal and pick a time. We'll build your first campaign around it together: the action, the reward and the budget cap.",
+    "Tell us your goal and pick a time. We'll build your first campaign around it together: the action and the reward.",
 };
 
 const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
@@ -25,8 +24,8 @@ export default function BookPage() {
               Tell us your goal. We&rsquo;ll build the campaign around it.
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-mist-400">
-              A {SESSION_MINUTES}-minute call. We turn your goal into a campaign, with the action,
-              the reward and the budget cap, then you only tap approve. Your first campaign is free.
+              A 5-minute call. We turn your goal into a campaign, with the action and the
+              reward, then you check the proof. Your first campaign is free.
             </p>
             <ul className="mt-8 space-y-3 text-sm text-mist-400">
               {[

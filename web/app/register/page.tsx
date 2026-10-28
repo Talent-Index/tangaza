@@ -77,6 +77,11 @@ function SignedOut() {
             <Link href="/auth" className="text-mist-100 underline underline-offset-4 hover:text-gold-text">
               Sign in here
             </Link>
+            <br />
+            Need help?{" "}
+            <Link href="/book" className="text-gold-text underline underline-offset-4">
+              Book a 5-minute call
+            </Link>
           </p>
         </div>
       </section>
