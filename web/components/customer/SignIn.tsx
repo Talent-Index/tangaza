@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useConnect } from "thirdweb/react";
 import { injectedProvider } from "thirdweb/wallets";
 import { preAuthenticate } from "thirdweb/wallets/in-app";
@@ -39,9 +39,8 @@ const EXTERNAL_WALLETS = [
 ] as const;
 
 const SOCIAL_HINTS = {
-  google:
-    "One tap with Google. No seed phrase — we create a secure wallet tied to your Google account.",
-  x: "Sign in with X. Good if you advocate on social — same account, no password to remember.",
+  google: "One tap with your Google account. Nothing else to set up.",
+  x: "Use your X account. Handy if you post a lot.",
 } as const;
 
 /**
@@ -57,7 +56,7 @@ const SOCIAL_HINTS = {
  * The tradeoff: <AutoConnect /> in app/providers.tsx now has to restore the session on
  * reload, because that came free with ConnectButton.
  */
-export function SignIn() {
+export function SignIn({ kicker = "Ambassadors portal" }: { kicker?: string }) {
   /**
    * No accountAbstraction here, on purpose: a browser wallet connects as itself. The
    * address the app acts as is the extension's own, transactions pop the extension,
@@ -74,6 +73,7 @@ export function SignIn() {
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [moreWays, setMoreWays] = useState(false);
 
   const busy = isConnecting || sending;
   const error = emailError ?? connectError?.message ?? null;
@@ -169,246 +169,248 @@ export function SignIn() {
   }
 
   return (
-    <div className="space-y-6 text-left">
-      {emailStage === "address" ? (
-        <form onSubmit={sendCode} className="space-y-4">
-          <PortalField label="Email address" required>
-            <input
-              type="email"
-              required
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className={portalInput}
-            />
-          </PortalField>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <button
-              type="submit"
-              disabled={busy || !email.trim()}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#15140d] transition hover:bg-[#ece8dc] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {sending ? <Spinner /> : null}
-              Send code
-            </button>
-          </div>
-        </form>
-      ) : null}
-
+    <div className="text-left">
       {emailStage === "code" ? (
-        <form onSubmit={verifyCode} className="space-y-4">
-          <p className="text-sm text-mist-400">
-            Code sent to <span className="text-mist-200">{email}</span>
+        <form onSubmit={verifyCode}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setCode("");
+              setEmailStage("address");
+            }}
+            className="inline-flex items-center gap-2 text-[13px] text-mist-400 hover:text-mist-100 disabled:opacity-45"
+          >
+            <span aria-hidden>←</span> Use a different email
+          </button>
+          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">Check your email</p>
+          <h2 className="poster mt-2 text-[2.4rem]">Enter your code</h2>
+          <p className="mt-2 text-sm leading-relaxed text-mist-300">
+            Enter the 6-digit code we sent to <span className="font-bold text-mist-100">{email}</span>. It
+            can take a minute.
           </p>
-
-          <PortalField label="Verification code" required>
+          <label className="mt-4 block text-sm font-bold" htmlFor="signin-code">
+            6-digit code
+          </label>
+          <div className="relative mt-2">
+            <div className="grid grid-cols-6 gap-2" aria-hidden>
+              {Array.from({ length: 6 }, (_, i) => (
+                <span
+                  key={i}
+                  className={`grid h-12 place-items-center rounded-xl border bg-ink-900 font-mono text-2xl font-bold sm:h-14 ${
+                    code[i] ? "border-gold-line" : "border-ink-500"
+                  }`}
+                >
+                  {code[i] ?? ""}
+                </span>
+              ))}
+            </div>
             <input
+              id="signin-code"
               inputMode="numeric"
               autoComplete="one-time-code"
               required
               autoFocus
+              maxLength={6}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="6-digit code"
-              className={`tabular ${portalInput}`}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              aria-label="6-digit code"
+              className="absolute inset-0 cursor-text opacity-0"
             />
-          </PortalField>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          </div>
+          <button
+            type="submit"
+            disabled={busy || code.length < 6}
+            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-on-gold transition hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {isConnecting ? <Spinner /> : null}
+            Sign in
+          </button>
+          <p className="mt-3 text-center text-[13px] text-mist-500">
+            Didn&apos;t get it? Check spam, or{" "}
             <button
               type="button"
               disabled={busy}
               onClick={() => {
-                setCode("");
-                setEmailStage("address");
+                setEmailError(null);
+                setSending(true);
+                void preAuthenticate({ client, strategy: "email", email })
+                  .then(() => success("Code sent — check your email"))
+                  .catch((err: unknown) => {
+                    const msg = err instanceof Error ? err.message : "Could not send that code.";
+                    setEmailError(msg);
+                    toastError(msg);
+                  })
+                  .finally(() => setSending(false));
               }}
-              className="text-sm text-mist-400 underline underline-offset-4 hover:text-mist-200 disabled:opacity-45"
+              className="font-semibold text-mist-100 underline underline-offset-4 disabled:opacity-45"
             >
-              Use a different email
+              resend the code
             </button>
+          </p>
+        </form>
+      ) : (
+        <>
+          {kicker ? (
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">{kicker}</p>
+          ) : null}
+          <div className="mt-4 flex flex-col gap-2.5">
+            <ProviderRow
+              mark={<GoogleMark />}
+              title="Continue with Google"
+              body={SOCIAL_HINTS.google}
+              disabled={busy}
+              emphasized
+              onClick={() => void connectWith({ client, chain: CHAIN, strategy: "google" })}
+            />
+            <ProviderRow
+              mark={<XMark />}
+              title="Continue with X"
+              body={SOCIAL_HINTS.x}
+              disabled={busy}
+              onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
+            />
+          </div>
+
+          <div className="my-4 flex items-center gap-3">
+            <span className="h-px flex-1 bg-ink-700" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">or use your email</span>
+            <span className="h-px flex-1 bg-ink-700" />
+          </div>
+
+          <form onSubmit={sendCode}>
+            <label htmlFor="signin-email" className="block text-sm font-bold">
+              Email
+            </label>
+            <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-ink-600 bg-ink-900 px-3.5 py-3">
+              <MailIcon />
+              <input
+                id="signin-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                className="min-w-0 flex-1 bg-transparent text-[15px] text-mist-100 outline-none placeholder:text-mist-500"
+              />
+            </div>
             <button
               type="submit"
-              disabled={busy || !code}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-bold text-[#15140d] transition hover:bg-[#ece8dc] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={busy || !email.trim()}
+              className="mt-3.5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-on-gold transition hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isConnecting ? <Spinner /> : null}
-              Sign in
+              {sending ? <Spinner /> : null}
+              Send me a code
             </button>
-          </div>
-        </form>
-      ) : null}
+            <p className="mt-2.5 text-[13px] text-mist-500">
+              We&apos;ll email you a 6-digit code. No password needed.
+            </p>
+          </form>
 
-      <div className="space-y-3">
-        <p className="text-center text-xs text-mist-500">Or continue with</p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <IconAuthButton
-            label="Google"
-            hint={SOCIAL_HINTS.google}
-            disabled={busy}
-            onClick={() => void connectWith({ client, chain: CHAIN, strategy: "google" })}
+          <button
+            type="button"
+            onClick={() => setMoreWays((v) => !v)}
+            aria-expanded={moreWays}
+            className="mt-4 flex w-full items-center justify-between border-t border-ink-700 pt-3.5 text-[13.5px] text-mist-400"
           >
-            {isConnecting ? <Spinner className="size-5" /> : <GoogleLogo />}
-          </IconAuthButton>
+            More ways to sign in
+            <span aria-hidden className={moreWays ? "rotate-180" : ""}>
+              ▾
+            </span>
+          </button>
+          {moreWays ? (
+            <div className="mt-3 flex flex-col gap-2">
+              {EXTERNAL_WALLETS.map((entry) =>
+                installed.includes(entry.id) ? (
+                  <ProviderRow
+                    key={entry.id}
+                    mark={<span className="text-base">{entry.mark}</span>}
+                    title={entry.label}
+                    body={entry.hint}
+                    disabled={busy}
+                    onClick={() => connectExternal(entry)}
+                  />
+                ) : (
+                  <a
+                    key={entry.id}
+                    href={entry.installUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm text-mist-300 hover:border-ink-500"
+                  >
+                    <span className="font-bold text-mist-100">Get {entry.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] text-mist-500">{entry.installHint}</span>
+                  </a>
+                )
+              )}
+            </div>
+          ) : null}
+          <p className="mt-4 text-[13px] leading-relaxed text-mist-500">
+            First time? Use your email, Google or X. We set up your account for you.
+          </p>
+        </>
+      )}
 
-          <IconAuthButton
-            label="X"
-            hint={SOCIAL_HINTS.x}
-            disabled={busy}
-            onClick={() => void connectWith({ client, chain: CHAIN, strategy: "x" })}
-          >
-            <XLogo />
-          </IconAuthButton>
-
-          {EXTERNAL_WALLETS.map((entry) =>
-            installed.includes(entry.id) ? (
-              <IconAuthButton
-                key={entry.id}
-                label={entry.label}
-                hint={entry.hint}
-                disabled={busy}
-                onClick={() => connectExternal(entry)}
-              >
-                <span className="text-lg" aria-hidden>{entry.mark}</span>
-              </IconAuthButton>
-            ) : (
-              <IconAuthButton
-                key={entry.id}
-                label={`Get ${entry.label}`}
-                hint={entry.installHint}
-                href={entry.installUrl}
-              >
-                <span className="text-lg opacity-60" aria-hidden>{entry.mark}</span>
-              </IconAuthButton>
-            )
-          )}
-        </div>
-      </div>
-
-      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {error ? <div className="mt-4"><ErrorNote>{error}</ErrorNote></div> : null}
     </div>
   );
 }
 
-const portalInput =
-  "w-full rounded-lg border-0 bg-[#ece8dc] px-4 py-3.5 text-sm text-[#15140d] outline-none placeholder:text-[#6b6858] focus:ring-2 focus:ring-crimson-500/50";
-
-function PortalField({
-  label,
-  required,
-  children,
+function ProviderRow({
+  mark,
+  title,
+  body,
+  disabled,
+  emphasized,
+  onClick,
 }: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
+  mark: ReactNode;
+  title: string;
+  body: string;
+  disabled?: boolean;
+  emphasized?: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div className="space-y-2">
-      <label className="block text-sm text-mist-100">
-        {label}
-        {required ? <span className="text-mist-400"> *</span> : null}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function IconAuthButton({
-  label,
-  hint,
-  disabled,
-  onClick,
-  href,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  disabled?: boolean;
-  onClick?: () => void;
-  href?: string;
-  children: React.ReactNode;
-}) {
-  const buttonClass =
-    "grid size-12 place-items-center rounded-full border border-ink-600 bg-ink-850/80 text-mist-100 transition hover:border-ink-500 hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-45";
-
-  const control = href ? (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={label}
-      className={buttonClass}
-    >
-      {children}
-    </a>
-  ) : (
     <button
       type="button"
-      aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={buttonClass}
+      className={`flex w-full items-center gap-3.5 rounded-2xl border bg-ink-900 px-4 py-3.5 text-left transition hover:border-gold-line disabled:cursor-not-allowed disabled:opacity-45 ${
+        emphasized ? "border-gold/40" : "border-ink-700"
+      }`}
     >
-      {children}
+      {mark}
+      <span className="min-w-0">
+        <span className="block text-[15px] font-bold">{title}</span>
+        <span className="mt-0.5 block text-[12.5px] leading-snug text-mist-500">{body}</span>
+      </span>
     </button>
   );
-
-  return (
-    <div className="group relative flex flex-col items-center">
-      {control}
-      {hint ? (
-        <div
-          role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-[11.5rem] -translate-x-1/2 rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-center text-[11px] leading-snug text-mist-300 opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-48"
-        >
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-mist-100">
-            {label}
-          </span>
-          {hint}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
-function GoogleLogo() {
+function MailIcon() {
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      className="size-5 shrink-0"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      />
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-gold-text" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M3 5h18v14H3z" />
+      <path d="m3 6 9 7 9-7" />
     </svg>
   );
 }
 
-function XLogo() {
+function GoogleMark() {
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      className="size-4 shrink-0 fill-current"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.743l7.727-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
+    <span className="grid size-[22px] shrink-0 place-items-center rounded-full border border-ink-600 bg-white font-[Arial] text-[13px] font-bold text-[#4285f4]">
+      G
+    </span>
+  );
+}
+
+function XMark() {
+  return (
+    <span className="grid size-[22px] shrink-0 place-items-center rounded-full border border-[#555] bg-black font-[Arial] text-[12px] font-bold text-white">
+      X
+    </span>
   );
 }

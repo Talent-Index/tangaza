@@ -70,7 +70,7 @@ function SignedOut() {
           <p className="text-sm text-mist-500">Sign in with the account that will approve activities</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Sign in</h1>
           <div className="mt-8">
-            <SignIn />
+            <SignIn kicker="For businesses" />
           </div>
           <p className="mt-8 text-center text-sm text-mist-500">
             Joining as an advocate?{" "}
