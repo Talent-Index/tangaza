@@ -725,8 +725,9 @@ export function RewardStep({
     <fieldset className="min-w-0 space-y-4 border-0 p-0">
       <legend className="sr-only">Reward</legend>
       <p className="text-sm text-mist-400">
-        What will you give people who take part? You hand it over yourself — Tangaza tracks
-        who has earned it and what you still owe.
+        What will you give people who bring you customers? You give it yourself. We keep
+        track of who earned it and what you still owe. Set a target. When you hit it, you
+        decide the reward.
       </p>
 
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Reward type">
