@@ -208,12 +208,12 @@ function Overview() {
 
         <GoalCard campaigns={campaigns.data} loading={campaigns.loading} />
 
-        <h1 className="mt-10 max-w-3xl text-2xl font-black leading-[1.1] tracking-tight sm:text-3xl">
-          A clear view of activity, rewards, and what you may owe.
+        <h1 className="poster mt-10 max-w-3xl text-4xl sm:text-5xl">
+          See who brought you customers.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-mist-400 sm:text-base">
-          Track approved activity, committed rewards, outstanding liability, and cost per
-          activity in one practical workspace.
+          Approved customers, rewards you have given, and what you still owe. Set a target.
+          When you hit it, you decide the reward.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -222,14 +222,14 @@ function Overview() {
             value={started ? kes(activities) : "No approved activity yet"}
             hint={
               started
-                ? `${advocates} advocate${advocates === 1 ? "" : "s"} taking part`
+                ? `${advocates} ambassador${advocates === 1 ? "" : "s"} taking part`
                 : "Verified actions appear here."
             }
           />
           <OverviewStat
             label="Committed rewards"
             value={issued > 0 ? kesLabel(issued) : "Nothing committed yet"}
-            hint={issued > 0 ? `of a ${kesLabel(cap)} cap` : "Commit only what you approve."}
+            hint={issued > 0 ? "given by you" : "You give the reward yourself."}
           />
           <OverviewStat
             label="Outstanding liability"
@@ -246,25 +246,22 @@ function Overview() {
 
       {/* Budget + what happens next */}
       <section className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
-        <div className="rounded-2xl border border-teal-500/25 bg-teal-500/10 p-6 sm:p-7">
+        <div className="rounded-2xl border border-ink-700 bg-ink-850 p-6 sm:p-7">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-crimson-500">
-              Budget &amp; liability
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-text">
+              Your target
             </p>
-            <span className="text-teal-500" aria-hidden>
-              ⛨
-            </span>
           </div>
           <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">
-            Keep reward commitments in view.
+            Set a target. When you hit it, you decide the reward.
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-mist-400 sm:text-base">
             {started
-              ? "Your budget is capped once, on-chain, and can't be raised. This tracks what you've committed and what is still owed."
-              : "Your reward budget is capped once, on-chain. Until a campaign begins, there is no reward liability to manage."}
+              ? "This is what you have given and what you still owe. You choose the reward."
+              : "Until a campaign begins, there is nothing to give yet."}
           </p>
           <div className="mt-6 flex items-center justify-between text-sm font-semibold">
-            <span>Reward budget</span>
+            <span>Rewards given</span>
             <span className="tabular text-mist-400">
               {cap > 0 ? `${kesLabel(cap)} cap` : "Not set"}
             </span>
@@ -297,7 +294,7 @@ function Overview() {
           <ol className="mt-5 space-y-4 text-sm leading-relaxed text-mist-400">
             {[
               ["Create a campaign.", "Pick one action your team can recognise.", "/org/campaigns"],
-              ["Invite advocates.", "Share it with regulars, guests, or your community.", "/org/campaigns"],
+              ["Invite ambassadors.", "Share it with regulars, guests, or your community.", "/org/campaigns"],
               ["Review approvals.", "Reward valid activity within your guardrails.", "/org"],
             ].map(([bold, rest, href], i) => (
               <li key={bold} className="flex items-start gap-3">
@@ -318,13 +315,13 @@ function Overview() {
 
       {/* Top advocates + recent activity */}
       <section className="grid gap-5 lg:grid-cols-2">
-        <Panel title="Top advocates" icon="👥">
+        <Panel title="Top ambassadors" icon="👥">
           {ledger.loading && !ledger.data ? (
             <div className="grid place-items-center py-10">
               <Spinner />
             </div>
           ) : top.length === 0 ? (
-            <DashedEmpty>Your most active advocates will appear after approved activity begins.</DashedEmpty>
+            <DashedEmpty>Your most active ambassadors will appear after you approve someone.</DashedEmpty>
           ) : (
             <ul className="divide-y divide-ink-700">
               {top.slice(0, 5).map((row, i) => (

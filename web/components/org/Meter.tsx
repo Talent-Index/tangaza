@@ -71,7 +71,7 @@ export function BudgetMeter({
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-mist-500">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ background: fill }} />
-          Committed to advocates
+          Given to ambassadors
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-ink-600" />

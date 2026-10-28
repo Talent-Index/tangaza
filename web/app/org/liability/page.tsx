@@ -108,7 +108,7 @@ function Liability() {
         <FlatStat
           label="Committed"
           value={kesLabel(issued)}
-          hint="Rewards minted to advocates"
+          hint="Rewards given to ambassadors"
           tone="crimson"
         />
         <FlatStat
