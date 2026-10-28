@@ -196,7 +196,7 @@ export function FeedbackFab() {
     <Link
       href="/feedback"
       aria-label="Leave feedback"
-      className="fixed bottom-5 right-4 z-40 grid size-12 place-items-center rounded-full bg-crimson-500 text-white shadow-lg transition hover:bg-crimson-400 sm:bottom-6 sm:right-6"
+      className="fixed bottom-5 left-4 z-40 grid size-12 place-items-center rounded-full bg-crimson-500 text-white shadow-lg transition hover:bg-crimson-400 sm:bottom-6 sm:left-auto sm:right-6"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <Icon name="chat" className="size-5" />
