@@ -17,7 +17,7 @@ import {
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
 import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
-import { BrandMark, Spinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 import { shortAddress } from "@/lib/format";
@@ -221,13 +221,10 @@ function OrgSignedOut() {
         aria-hidden
       />
       <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="min-w-0 rounded-md bg-ink-900 px-2.5 py-2 sm:px-3">
-            <BrandMark className="text-sm sm:text-base" />
-          </div>
+        <div className="mb-4 flex justify-end">
           <Link
             href="/auth"
-            className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
+            className="text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
           >
             Ambassador sign-in →
           </Link>
