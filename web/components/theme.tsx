@@ -99,8 +99,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       <span className="theme-when-light" aria-hidden>
         ☾
       </span>
-      <span className="theme-when-dark">Dark</span>
-      <span className="theme-when-light">Light</span>
+      <span className="theme-when-dark hidden sm:inline">Dark</span>
+      <span className="theme-when-light hidden sm:inline">Light</span>
       <span className="sr-only theme-when-dark">Switch to light mode</span>
       <span className="sr-only theme-when-light">Switch to dark mode</span>
     </button>
