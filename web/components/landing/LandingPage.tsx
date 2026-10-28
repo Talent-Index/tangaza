@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { FeedbackFab, FeedbackSection } from "@/components/feedback/Feedback";
 import { Icon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteChrome";
+import { ThemeToggle } from "@/components/theme";
 import { addressUrl } from "@/lib/chain";
 
 interface Stats {
@@ -45,38 +46,33 @@ function useStats() {
   return stats;
 }
 
-/*
- * The "control room" direction: warm charcoal, one amber, poster type. This page owns
- * its palette outright (no theme variants) — the design is dark by nature, like the
- * campaign mock it comes from.
- */
-const BG = "bg-[#131008]";
-const CARD = "rounded-2xl border border-[#2d2619] bg-[#1b1710]";
-const AMBER = "#e9a23b";
-const CREAM = "text-[#f1e9db]";
-const MUTED = "text-[#9d937f]";
-const POSTER = "font-[family-name:var(--font-anton)] uppercase leading-[0.92] tracking-[0.01em]";
-const KICKER = "font-mono text-[11px] uppercase tracking-[0.22em] text-[#e9a23b]";
+const POSTER = "poster";
+const KICKER = "font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text";
+const MUTED = "text-mist-500";
+const CARD = "rounded-2xl border border-ink-700 bg-ink-850";
 const PILL_AMBER =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-[#e9a23b] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#17130b] transition hover:bg-[#f4b254]";
+  "inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-on-gold transition hover:bg-gold-hover";
 const PILL_GHOST =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-[#443a28] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#f1e9db] transition hover:border-[#e9a23b]";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-ink-500 px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-mist-100 transition hover:border-gold-line";
+const PILL_CREAM =
+  "inline-flex items-center justify-center gap-2 rounded-full bg-mist-100 px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-ink-950 transition hover:opacity-90";
 
 const num = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("en-KE"));
 
 export function LandingPage() {
   const stats = useStats();
   return (
-    <div className={`${BG} relative min-h-dvh overflow-x-clip ${CREAM}`}>
+    <div className="relative min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
       <FloatingPhotos />
       <div className="relative z-10">
         <Header />
-        <Hero stats={stats} />
+        <Hero />
         <StatStrip />
         <Band />
-        <ClearPath />
-        <PickYourMoment stats={stats} />
-        <WhyItWorks stats={stats} />
+        <HowItWorks />
+        <SalonExample />
+        <PickYourMoment />
+        <BuildTogether stats={stats} />
         <Faq />
         <FeedbackSection />
         <SiteFooter />
@@ -86,17 +82,16 @@ export function LandingPage() {
   );
 }
 
-/* ------------------------------------------------------------------ chrome */
-
 function Header() {
-  const link = "hidden text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] transition hover:text-[#f1e9db] md:inline";
+  const link =
+    "hidden text-[12px] font-semibold uppercase tracking-[0.14em] text-mist-400 transition hover:text-mist-100 lg:inline";
   return (
-    <header className="sticky top-0 z-30 border-b border-[#2d2619]/60 bg-[#131008]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-ink-700/60 bg-ink-950/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
         <Link href="/" className="whitespace-nowrap text-base font-bold tracking-tight">
-          Ubu-Tangaza<span className="text-[#e9a23b]">.</span>
+          Ubu-Tangaza<span className="text-gold-text">.</span>
         </Link>
-        <nav className="flex items-center gap-3 sm:gap-6">
+        <nav className="flex items-center gap-3 sm:gap-5 lg:gap-6">
           <a href="#how" className={link}>
             How it works
           </a>
@@ -106,22 +101,24 @@ function Header() {
           <a href="#why" className={link}>
             Why it works
           </a>
-          {/* Visible on phones too — a price nobody can find reads as a price being hidden. */}
           <Link
             href="/pricing"
-            className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] transition hover:text-[#f1e9db]"
+            className="hidden text-[12px] font-semibold uppercase tracking-[0.14em] text-mist-400 transition hover:text-mist-100 sm:inline"
           >
             Pricing
           </Link>
-          <Link href="/auth" className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.14em] text-[#b7ac96] hover:text-[#f1e9db]">
+          <Link
+            href="/auth"
+            className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.1em] text-mist-400 hover:text-mist-100 sm:text-[12px] sm:tracking-[0.14em]"
+          >
             Sign in
           </Link>
+          <ThemeToggle className="px-2.5 sm:px-3" />
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#e9a23b] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#17130b] transition hover:bg-[#f4b254] sm:px-5"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gold px-3.5 py-2 text-[10.5px] font-bold uppercase tracking-[0.1em] text-on-gold transition hover:bg-gold-hover sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[11px]"
           >
-            <span className="sm:hidden">Start</span>
-            <span className="hidden sm:inline">Start a campaign</span> <Icon name="arrow-up-right" className="size-3.5" />
+            Start free <Icon name="arrow-up-right" className="size-3.5" />
           </Link>
         </nav>
       </div>
@@ -129,127 +126,135 @@ function Header() {
   );
 }
 
-/* -------------------------------------------------------------------- hero */
-
-function Hero({ stats }: { stats: Stats | null }) {
+function Hero() {
   return (
-    <section className="px-3 pt-4 sm:px-5">
-      <div className="relative mx-auto max-w-[1440px] overflow-hidden rounded-[2rem] border border-[#2d2619]">
-        {/* The scene itself: the constellation phone fading into the check-card phone
-            and back — a slow ambient loop, fully visible behind a readability gradient. */}
+    <section className="px-2.5 pt-3 sm:px-5 sm:pt-4">
+      <div className="relative mx-auto max-w-[1440px] overflow-hidden rounded-3xl border border-ink-700 sm:rounded-[2rem]">
         <div aria-hidden="true" className="absolute inset-0">
-          <Image
-            src="/images/landing/phone-check-coins.png"
-            alt=""
-            fill
-            sizes="100vw"
-            priority
-            className="object-cover object-center"
-          />
           <Image
             src="/images/landing/phone-constellation.png"
             alt=""
             fill
             sizes="100vw"
             priority
-            className="object-cover object-center motion-safe:animate-[crossfade_18s_ease-in-out_infinite]"
+            className="object-cover object-center light:[filter:sepia(0.5)_saturate(0.85)_brightness(1.1)]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#131008] via-[#131008]/55 to-[#131008]/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/55 to-ink-950/20 light:bg-[linear-gradient(90deg,rgb(247_241_230/0.95)_30%,rgb(247_241_230/0.62)_58%,rgb(247_241_230/0.3)),linear-gradient(to_top,#f7f1e6,rgb(247_241_230/0)_40%)] max-sm:light:bg-[linear-gradient(to_top,#f7f1e6,rgb(247_241_230/0.86)_55%,rgb(247_241_230/0.74))]" />
         </div>
-        <div className="relative z-10 grid grid-cols-1 items-center gap-12 px-5 pb-16 pt-12 sm:px-8 sm:pt-16 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:px-12 lg:pb-24">
-        <div className="min-w-0">
-          <p className={`${KICKER} flex items-center gap-3`}>
-            <span className="h-px w-8 bg-[#e9a23b]" /> Verified actions. Real rewards.
-          </p>
-          <h1 className={`${POSTER} mt-6 text-[clamp(3.4rem,11vw,7.5rem)]`}>
-            Make every
-            <br />
-            <span className="text-[#e9a23b]">action</span>
-            <br />
-            count.
-          </h1>
-          <p className={`mt-6 max-w-md text-base leading-relaxed sm:text-lg ${MUTED}`}>
-            Turn referrals, visits and social proof into rewards your business controls. Run
-            campaigns with clear goals, verified progress and only the outcomes you approve.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/register" className={PILL_AMBER}>
-              Create your campaign <Icon name="arrow-up-right" className="size-4" />
-            </Link>
-            <a href="#how" className={PILL_GHOST}>
-              See the process
-            </a>
+        <div className="relative z-10 grid grid-cols-1 items-center gap-9 px-4 pb-16 pt-8 sm:px-8 sm:pb-20 sm:pt-14 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:gap-12 lg:px-12 lg:pb-24 lg:pt-14">
+          <div className="min-w-0">
+            <p className={`${KICKER} flex items-center gap-3`}>
+              <span className="h-px w-8 bg-gold" /> New customers. Real rewards.
+            </p>
+            <h1 className={`${POSTER} mt-5 text-[clamp(3.15rem,12vw,5.75rem)] sm:mt-6`}>
+              Get your customers to bring you <span className="text-gold-text">new</span> customers.
+            </h1>
+            <p className={`mt-5 max-w-md text-base leading-relaxed text-mist-400 sm:mt-6 sm:text-[17px] sm:leading-[1.65]`}>
+              Your regulars already tell people about you. Now you can reward them for it. They
+              bring you a new customer or come to your launch, send proof, and you check it. Only
+              then do they get their airtime, voucher or discount.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/register" className={PILL_AMBER}>
+                Start free <Icon name="arrow-up-right" className="size-4" />
+              </Link>
+              <Link href="/book" className={PILL_GHOST}>
+                Book a 5-minute call
+              </Link>
+            </div>
+            <p className={`mt-4 font-mono text-[11px] uppercase tracking-[0.14em] ${MUTED}`}>
+              Your first campaign is free · nothing to pay today
+            </p>
           </div>
-        </div>
-
-        <ControlRoom stats={stats} />
+          <ControlRoom />
         </div>
       </div>
     </section>
   );
 }
 
-/** The product, as a card: a live campaign mid-approval. Real numbers when we have them. */
-function ControlRoom({ stats }: { stats: Stats | null }) {
-  const approved = stats?.chain?.approved ?? null;
-  const title = stats?.pilots[0]?.title ?? "Referral sprint";
+function ControlRoom() {
   return (
-    <div className="relative mb-10 min-w-0">
+    <div className="relative mb-10 min-w-0 sm:mb-12">
       <div className={`${CARD} relative p-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:p-6`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className={KICKER}>Campaign control room</p>
-            <p className="mt-1 truncate text-lg font-bold">{title}</p>
+            <p className="mt-1 text-lg font-bold">Bring a new customer · December</p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2e4d33] bg-[#17241a] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7fc98b]">
-            <span className="size-1.5 rounded-full bg-[#7fc98b]" /> Live
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-ok-line bg-ok-bg px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ok">
+            <span className="size-1.5 rounded-full bg-ok" /> Live
           </span>
         </div>
 
-        <div className="mt-5 rounded-xl border border-[#2d2619] bg-[#141109] p-4">
+        <div className="mt-5 rounded-xl border border-ink-700 bg-ink-900 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">Approved actions</p>
-              <p className={`${POSTER} mt-1 text-5xl`}>{approved === null ? "—" : num(approved)}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">
+                New customers approved
+              </p>
+              <p className={`${POSTER} mt-1 text-5xl`}>18</p>
             </div>
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#e9a23b] text-[#17130b]">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold text-on-gold">
               <Icon name="check" className="size-5" />
             </span>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#2d2619]">
-            <div className="h-full w-3/4 rounded-full bg-[#e9a23b]" />
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-ink-700">
+            <div className="h-full w-3/5 rounded-full bg-gold" />
           </div>
-          <p className={`mt-2 text-xs ${MUTED}`}>every one of them approved by the business, on-chain</p>
+          <p className={`mt-2 text-xs ${MUTED}`}>every one of them checked and approved by the business</p>
         </div>
 
-        <div className="mt-3 space-y-2.5">
-          <RoomRow label="Bring a friend to a session" by="Submitted with proof" tag="approved" />
-          <RoomRow label="Share your launch post" by="Awaiting your review" tag="review" />
-        </div>
+        <RoomRow
+          label="Otieno brought 2 new clients"
+          by="Payment receipt · yesterday"
+          tag="APPROVED"
+          tone="ok"
+          dot
+        />
+        <RoomRow
+          label="Wanjiku brought Amina"
+          by="Photo at the counter · waiting for you"
+          tag="CHECK IT"
+          tone="gold"
+        />
       </div>
 
-      {/* The promise, floated like a stamp over the card's corner. */}
-      <div className="absolute -bottom-12 left-4 max-w-[240px] rounded-2xl border border-[#2d2619] bg-[#17130b] p-4 shadow-xl sm:-left-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">Reward budget</p>
-        <p className={`${POSTER} mt-1 text-xl text-[#e9a23b]`}>Keeps its promise</p>
+      <div className="absolute -bottom-11 left-3 max-w-[250px] rounded-2xl border border-ink-700 bg-ink-800 p-3.5 shadow-[0_20px_40px_rgba(0,0,0,0.45)] sm:-left-6 sm:p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">Your target</p>
+        <p className={`${POSTER} mt-1 text-lg leading-[1.15] text-gold-text`}>
+          Set a target. When you hit it, you decide the reward.
+        </p>
       </div>
     </div>
   );
 }
 
-function RoomRow({ label, by, tag }: { label: string; by: string; tag: "approved" | "review" }) {
+function RoomRow({
+  label,
+  by,
+  tag,
+  tone,
+  dot,
+}: {
+  label: string;
+  by: string;
+  tag: string;
+  tone: "ok" | "gold";
+  dot?: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#2d2619] bg-[#141109] px-4 py-3">
+    <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
       <div className="min-w-0">
-        <p className="flex items-center gap-2 truncate text-sm font-semibold">
-          {tag === "approved" ? <span className="size-1.5 shrink-0 rounded-full bg-[#7fc98b]" /> : null}
-          {label}
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          {dot ? <span className="size-1.5 shrink-0 rounded-full bg-ok" /> : null}
+          <span className="truncate">{label}</span>
         </p>
         <p className={`truncate text-xs ${MUTED}`}>{by}</p>
       </div>
       <span
         className={`shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] ${
-          tag === "approved" ? "text-[#7fc98b]" : "text-[#e9a23b]"
+          tone === "ok" ? "text-ok" : "text-gold-text"
         }`}
       >
         {tag}
@@ -258,22 +263,20 @@ function RoomRow({ label, by, tag }: { label: string; by: string; tag: "approved
   );
 }
 
-/* ---------------------------------------------------------------- stats row */
-
 function StatStrip() {
   const items = [
+    { big: "KES 0", label: "To start" },
+    { big: "5 min", label: "To set up" },
     { big: "100%", label: "Your control" },
-    { big: "0", label: "Guesswork" },
-    { big: "1", label: "Clear goal" },
   ];
   return (
-    <section className="px-4 pb-16 sm:px-6">
-      <div className="mx-auto max-w-6xl border-t border-[#2d2619] pt-8">
-        <div className="grid max-w-xl grid-cols-3 gap-6">
+    <section className="px-4 pb-10 pt-2 sm:px-6 sm:pb-14">
+      <div className="mx-auto max-w-6xl border-t border-ink-700 pt-8">
+        <div className="grid max-w-xl grid-cols-3 gap-3 sm:gap-6">
           {items.map((s) => (
             <div key={s.label}>
-              <p className={`${POSTER} text-4xl sm:text-5xl`}>{s.big}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">{s.label}</p>
+              <p className={`${POSTER} text-[2rem] sm:text-5xl`}>{s.big}</p>
+              <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">{s.label}</p>
             </div>
           ))}
         </div>
@@ -284,62 +287,60 @@ function StatStrip() {
 
 function Band() {
   return (
-    <div className="bg-[#e9a23b] px-4 py-4 text-[#17130b] sm:px-6">
+    <div className="bg-gold px-4 py-4 text-on-gold sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-2">
         <p className="text-sm font-bold uppercase tracking-[0.04em]">
-          The campaign platform for businesses that back their word.
+          Rewards for customers who bring you customers.
         </p>
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-          Referrals&ensp;·&ensp;Engagement&ensp;·&ensp;Launches
+          New customers&ensp;·&ensp;Launches&ensp;·&ensp;Events
         </p>
       </div>
     </div>
   );
 }
 
-/* --------------------------------------------------------------- the path */
-
 const PATH = [
   {
     n: "01",
-    title: "Set the goal",
-    body: "Choose the action that turns attention into a measurable outcome — and the reward you'll honour for it.",
+    title: "Pick a campaign",
+    body: "Choose a ready-made one, like Bring a new customer, and set the reward you'll give.",
   },
   {
     n: "02",
-    title: "Review proof",
-    body: "See every submission — a link, a screenshot, a receipt — before it moves your campaign forward.",
+    title: "Check the proof",
+    body: "Customers send proof, like a photo at your counter, a link to their post or a payment receipt. You see every one.",
   },
   {
     n: "03",
-    title: "Release rewards",
-    body: "Approve the moments that matter. Each approval lands on Avalanche, and your capped budget only counts what you approved.",
+    title: "Give the reward",
+    body: "Approve the real ones. You give the reward yourself. Set a target. When you hit it, you decide the reward.",
   },
 ];
 
-function ClearPath() {
+function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
-      <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
         <div>
-          <p className={KICKER}>The clear path</p>
-          <h2 className={`${POSTER} mt-5 text-[clamp(2.6rem,7vw,4.5rem)]`}>
-            You set the
+          <p className={KICKER}>How it works</p>
+          <h2 className={`${POSTER} mt-5 text-[clamp(2.5rem,7vw,4.25rem)]`}>
+            You set the reward.
             <br />
-            standard.
+            You check the proof.
             <br />
-            <span className="text-[#6e6350]">We keep the receipts.</span>
+            <span className="text-mist-500">We keep count.</span>
           </h2>
         </div>
-        <ol className="min-w-0 border-t border-[#2d2619]">
+        <ol className="min-w-0 border-t border-ink-700">
           {PATH.map((s) => (
-            <li key={s.n} className="grid grid-cols-[3.5rem_1fr_auto] items-start gap-4 border-b border-[#2d2619] py-7">
-              <span className={`${POSTER} text-3xl text-[#e9a23b]`}>{s.n}</span>
+            <li key={s.n} className="grid grid-cols-[3.5rem_1fr_auto] items-start gap-4 border-b border-ink-700 py-7">
+              <span className={`${POSTER} text-3xl text-gold-text`}>{s.n}</span>
               <div className="min-w-0">
                 <h3 className="text-lg font-bold">{s.title}</h3>
                 <p className={`mt-1.5 text-sm leading-relaxed ${MUTED}`}>{s.body}</p>
               </div>
-              <Icon name="arrow-up-right" className="mt-1 size-4 text-[#e9a23b]" />
+              <Icon name="arrow-up-right" className="mt-1 size-4 text-gold-text" />
             </li>
           ))}
         </ol>
@@ -348,48 +349,77 @@ function ClearPath() {
   );
 }
 
-/* ----------------------------------------------------------- campaign cards */
+function SalonExample() {
+  const tiles = [
+    { k: "Campaign", v: "1", d: "run by the salon" },
+    { k: "New clients", v: "10", d: "from one campaign" },
+    { k: "The reward", v: "Salon picks", d: "cash, a t-shirt or merchandise, or a free treat" },
+  ];
+  return (
+    <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-dashed border-gold-line/70 bg-ink-800 lg:grid lg:grid-cols-[280px_1fr]">
+        <div className="relative h-44 lg:h-auto lg:min-h-[220px]">
+          <Image
+            src="/images/landing/usecase-salon.webp"
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 280px, 100vw"
+            className="object-cover object-[center_30%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-ink-800 max-lg:bg-gradient-to-t" />
+        </div>
+        <div className="p-6 sm:p-9 lg:p-10">
+          <span className="inline-flex rounded-full border border-dashed border-gold-line px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-gold-text">
+            Example
+          </span>
+          <h3 className={`${POSTER} mt-4 text-[clamp(1.8rem,4vw,2.5rem)]`}>
+            A salon gets 10 new clients from one campaign.
+          </h3>
+          <p className={`mt-3.5 max-w-xl text-[15px] leading-relaxed ${MUTED}`}>
+            Whoever brought them gets a reward the salon chooses: cash, a t-shirt or merchandise,
+            or a free treat.
+          </p>
+          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+            {tiles.map((t) => (
+              <div key={t.k} className="rounded-xl border border-ink-700 bg-ink-900 p-3 sm:p-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">{t.k}</p>
+                <p className={`${POSTER} mt-1.5 text-[1.35rem] leading-none sm:text-3xl`}>{t.v}</p>
+                <p className={`mt-1 text-[11px] leading-snug sm:text-xs ${MUTED}`}>{t.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const TEMPLATES = [
-  { title: "Verified Referral Campaign", note: "Friends through the door, proven" },
-  { title: "Customer Engagement Campaign", note: "Posts, reviews and visits that count" },
-  { title: "Product Launch Campaign", note: "A push with a number on it" },
+  {
+    title: "Bring a new customer",
+    note: "Your customers bring you someone new",
+    img: "/images/landing/usecase-cafe.webp",
+  },
+  {
+    title: "Posts and shares",
+    note: "Customers post about you or share your offer",
+    img: "/images/landing/usecase-salon.webp",
+  },
+  {
+    title: "Launch something new",
+    note: "People come to your launch or try it first",
+    img: "/images/landing/usecase-boutique.webp",
+  },
 ];
 
-/** Every card gets a picture — the campaign's own cover when it has one, these otherwise. */
-const CARD_IMGS = [
-  "/images/landing/usecase-cafe.webp",
-  "/images/landing/usecase-salon.webp",
-  "/images/landing/usecase-boutique.webp",
-];
-
-function PickYourMoment({ stats }: { stats: Stats | null }) {
-  const live = (stats?.pilots ?? []).slice(0, 3);
-  const cards = live.length
-    ? live.map((p, i) => ({
-        key: p.id,
-        href: `/c/${p.slug}`,
-        n: `0${i + 1}`,
-        title: p.title,
-        note: `Live now · ${p.orgName}`,
-        img: p.coverUrl || CARD_IMGS[i % CARD_IMGS.length],
-      }))
-    : TEMPLATES.map((t, i) => ({
-        key: t.title,
-        href: "/register",
-        n: `0${i + 1}`,
-        title: t.title,
-        note: t.note,
-        img: CARD_IMGS[i],
-      }));
-
+function PickYourMoment() {
   return (
     <section id="campaigns" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className={KICKER}>{live.length ? "Running right now" : "Start with a clear brief"}</p>
-            <h2 className={`${POSTER} mt-5 text-[clamp(2.6rem,7vw,4.5rem)]`}>
+            <p className={KICKER}>Ready-made campaigns</p>
+            <h2 className={`${POSTER} mt-5 text-[clamp(2.5rem,7vw,4.25rem)]`}>
               Pick your
               <br />
               moment.
@@ -397,152 +427,158 @@ function PickYourMoment({ stats }: { stats: Stats | null }) {
           </div>
           <Link
             href="/campaigns"
-            className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-[#e9a23b] underline underline-offset-8 hover:text-[#f4b254]"
+            className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold-text underline underline-offset-8"
           >
             See all campaigns <Icon name="arrow-up-right" className="size-3.5" />
           </Link>
         </div>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((c, i) => (
+          {TEMPLATES.map((c, i) => (
             <Link
-              key={c.key}
-              href={c.href}
-              className={`${CARD} group flex min-h-[18rem] min-w-0 flex-col justify-between p-5 transition hover:border-[#e9a23b]/60 ${
-                i === 1 ? "border-[#e9a23b]/50" : ""
+              key={c.title}
+              href="/register"
+              className={`${CARD} group flex min-h-[18rem] min-w-0 flex-col justify-between p-5 transition hover:border-gold/60 ${
+                i === 0 ? "border-gold/50" : ""
               }`}
             >
-              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-[#9d937f]">
-                {c.n} / Campaign
-                <Icon name="arrow-up-right" className="size-4 text-[#e9a23b] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </div>
-              <div className="relative mt-4 h-40 overflow-hidden rounded-xl border border-[#2d2619]">
-                {/* Campaign covers can live anywhere (uploads), so a plain img, not next/image. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={c.img}
-                  alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-mist-500">
+                0{i + 1} / Campaign
+                <Icon
+                  name="arrow-up-right"
+                  className="size-4 text-gold-text transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1b1710]/70 to-transparent" />
+              </div>
+              <div className="relative mt-4 h-40 overflow-hidden rounded-xl border border-ink-700">
+                <Image src={c.img} alt="" fill sizes="(min-width: 1024px) 30vw, 100vw" className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-850/70 to-transparent" />
               </div>
               <div className="min-w-0 pt-5">
-                <h3 className={`${POSTER} break-words text-3xl`}>{c.title}</h3>
-                <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#e9a23b]">{c.note}</p>
+                <h3 className={`${POSTER} text-3xl`}>{c.title}</h3>
+                <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-gold-text">{c.note}</p>
               </div>
             </Link>
           ))}
         </div>
-        {!live.length ? (
-          <p className={`mt-4 text-xs ${MUTED}`}>Your first campaign is free — we set it up with you.</p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------- the big CTA */
-
-function WhyItWorks({ stats }: { stats: Stats | null }) {
-  return (
-    <section id="why" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
-      <div className="mx-auto max-w-6xl">
-        <div className="grid overflow-hidden rounded-3xl border border-[#2d2619] lg:grid-cols-[1.2fr_minmax(0,0.8fr)]">
-          <div className="bg-[#17130b] p-7 sm:p-12">
-            <p className={KICKER}>Build it together</p>
-            <h2 className={`${POSTER} mt-5 max-w-xl text-[clamp(2.4rem,6vw,4rem)]`}>
-              Your first campaign deserves a real plan.
-            </h2>
-            <p className={`mt-5 max-w-md text-base leading-relaxed ${MUTED}`}>
-              Book a free 30-minute setup session. We will help you map the goal, the proof and
-              the reward without losing sight of your business.
-            </p>
-            <Link
-              href="/book"
-              className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-[#f1e9db] px-7 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-[#17130b] transition hover:bg-white"
-            >
-              Build my first campaign <Icon name="arrow-up-right" className="size-4" />
-            </Link>
-          </div>
-          <div className="relative overflow-hidden bg-[#e9a23b] p-7 text-[#17130b] sm:p-12">
-            <span className="absolute -right-16 -top-16 size-48 rounded-full border-[20px] border-[#f4b254]/60" />
-            <p className={`${POSTER} text-7xl`}>01</p>
-            <div className="mt-10 border-t border-[#17130b]/30 pt-6">
-              <p className="flex items-start gap-2 text-lg font-bold leading-snug">
-                <Icon name="check" className="mt-1 size-5 shrink-0" /> No vague numbers. No unclear payouts.
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-[#17130b]/75">
-                Every step is visible before your reward budget moves.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* The receipts, literally: live on-chain numbers under the promise. */}
-        <p className={`mt-6 text-center font-mono text-[11px] uppercase tracking-[0.16em] ${MUTED}`}>
-          Live on Avalanche · {num(stats?.chain?.approved)} approved actions · KES {num(stats?.chain?.issuedKes)} rewarded ·{" "}
-          {stats?.contract ? (
-            <a href={addressUrl(stats.contract)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-[#e9a23b]">
-              the contract
-            </a>
-          ) : (
-            "the contract"
-          )}
+        <p className={`mt-4 text-[13px] ${MUTED}`}>
+          Your first campaign is free. We can set it up with you on a 5-minute call.
         </p>
       </div>
     </section>
   );
 }
 
-/* --------------------------------------------------------------------- faq */
+function BuildTogether({ stats }: { stats: Stats | null }) {
+  const approved = stats?.chain?.approved;
+  return (
+    <section id="why" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid overflow-hidden rounded-3xl border border-ink-700 lg:grid-cols-[1.2fr_minmax(0,0.8fr)]">
+          <div className="bg-ink-800 p-7 sm:p-12">
+            <p className={KICKER}>Build it together</p>
+            <h2 className={`${POSTER} mt-5 max-w-xl text-[clamp(2.3rem,6vw,3.9rem)]`}>
+              Your first campaign deserves a real plan.
+            </h2>
+            <p className={`mt-5 max-w-md text-base leading-relaxed ${MUTED}`}>
+              Book a free 5-minute call. We&apos;ll help you pick the goal, the proof and the
+              reward. We can also run campaigns within your own community, with your members, on
+              your behalf. You track everything.
+            </p>
+            <Link href="/book" className={`${PILL_CREAM} mt-8`}>
+              Book a 5-minute call <Icon name="arrow-up-right" className="size-4" />
+            </Link>
+          </div>
+          <div className="relative overflow-hidden bg-gold p-7 text-on-gold sm:p-12">
+            <span className="absolute -right-16 -top-16 size-48 rounded-full border-[20px] border-[#f4b254]/60" />
+            <p className={`${POSTER} text-7xl`}>01</p>
+            <div className="mt-10 border-t border-on-gold/30 pt-6">
+              <p className="flex items-start gap-2 text-lg font-bold leading-snug">
+                <Icon name="check" className="mt-1 size-5 shrink-0" /> No vague numbers. No surprise costs.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-on-gold/75">
+                You see every step before any reward goes out.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className={`mt-6 text-center font-mono text-[11px] uppercase tracking-[0.16em] ${MUTED}`}>
+          {approved != null ? `${num(approved)} approved actions · ` : null}
+          every one approved by the business
+          {stats?.contract ? (
+            <>
+              {" · "}
+              <a
+                href={addressUrl(stats.contract)}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-4 hover:text-gold-text"
+              >
+                the record
+              </a>
+            </>
+          ) : null}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 const FAQ = [
   {
     q: "Is this crypto?",
-    a: "Not for you or your customers. They sign in with Google, X or email — no wallet, seed phrase or gas fees. Approvals are recorded on Avalanche in the background so the record can't be quietly changed.",
+    a: "No. You and your customers sign in with Google, X or email. There's nothing to install. We keep a record of every approval that can't be changed later.",
   },
   {
     q: "What does it cost?",
     a: (
       <>
-        Your first campaign is free, and setup is simple.{" "}
-        <Link href="/book" className="text-[#e9a23b] underline underline-offset-4">
-          Book a setup session
-        </Link>{" "}
-        if you&rsquo;d like a hand, and{" "}
-        <Link href="/pricing" className="text-[#e9a23b] underline underline-offset-4">
-          see the exact prices
-        </Link>{" "}
-        for what campaigns cost after that.
+        Your first campaign is free. After that you pay a small fee per campaign. No monthly fee
+        and no cut of your sales.{" "}
+        <Link href="/pricing" className="text-gold-text underline underline-offset-4">
+          See the prices
+        </Link>
+        .
       </>
     ),
   },
   {
     q: "What if the proof is fake?",
-    a: "Nothing is rewarded until you approve it. Customers attach proof — a link, a screenshot or a photo — and you approve or reject each one. Your reward budget is capped, so you can't overspend.",
+    a: "Nothing goes out until you check it. Customers send proof, and you approve the real ones.",
   },
   {
     q: "Who gives the reward?",
-    a: "You do: airtime, a voucher, a discount or a free product. Ubu-Tangaza tracks who earned what and enforces your cap. It never holds or sends your money.",
+    a: "You do. Airtime, a voucher or a discount. Set a target. When you hit it, you decide the reward.",
   },
   {
     q: "Can I run this for a product launch or an event?",
-    a: "Yes — a campaign is any push with a goal on it. People share, bring friends or show up; you approve what counts. Progress counts approved actions, not revenue, so we'll never promise you sales.",
+    a: "Yes. People can come to your launch or try something new. You check what counts.",
+  },
+  {
+    q: "Can you run it for us?",
+    a: "Yes. We can run campaigns within your own community, with your members, on your behalf, and you track everything.",
+    tag: true,
   },
 ];
 
 function Faq() {
   return (
-    <section className="border-t border-[#2d2619] px-4 py-16 sm:px-6 sm:py-20">
+    <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-3xl">
         <p className={KICKER}>Questions owners ask</p>
-        <div className="mt-6 border-t border-[#2d2619]">
+        <div className="mt-6 border-t border-ink-700">
           {FAQ.map((f) => (
-            <details key={f.q} className="group border-b border-[#2d2619] py-4">
+            <details key={f.q} className="group border-b border-ink-700 py-4" open={f.q === "Is this crypto?" || f.tag}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-bold">
-                {f.q}
-                <Icon name="plus" className="size-4 shrink-0 text-[#e9a23b] transition group-open:rotate-45" />
+                <span>
+                  {f.q}
+                  {f.tag ? (
+                    <span className="ml-2 inline-block rounded-md bg-gold px-2 py-0.5 align-middle font-mono text-[9px] font-bold uppercase tracking-[0.06em] text-on-gold">
+                      New
+                    </span>
+                  ) : null}
+                </span>
+                <Icon name="plus" className="size-4 shrink-0 text-gold-text transition group-open:rotate-45" />
               </summary>
               <p className={`mt-3 max-w-xl text-sm leading-relaxed ${MUTED}`}>{f.a}</p>
             </details>
@@ -553,10 +589,7 @@ function Faq() {
   );
 }
 
-/* ------------------------------------------------- floating photo layer */
-
 const PHOTOS = [
-  // Gold reward coins by the phone — swells gently as you scroll past the clear path.
   {
     src: "/images/landing/reward-coins.png",
     className: "right-[-6rem] top-[135vh] w-72 rotate-6 opacity-35 sm:right-[-3rem] lg:right-10",
@@ -577,11 +610,6 @@ const PHOTOS = [
   },
 ];
 
-/**
- * Photos drifting slowly behind the content as you scroll — decoration only, so they
- * sit in their own non-interactive layer and move via a single rAF-throttled scroll
- * listener writing transforms directly (no re-renders).
- */
 function FloatingPhotos() {
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -592,7 +620,6 @@ function FloatingPhotos() {
       raf = requestAnimationFrame(() => {
         const y = window.scrollY;
         for (const el of els) {
-          // Drift with the scroll; a photo with a zoom also swells and shrinks with it.
           const zoom = Number(el.dataset.zoom);
           const scale = zoom ? Math.min(1 + y * zoom, 1.35) : 1;
           el.style.transform = `translateY(${y * Number(el.dataset.speed)}px) scale(${scale})`;
@@ -616,7 +643,7 @@ function FloatingPhotos() {
             alt=""
             width={384}
             height={384}
-            className="h-auto w-full rounded-3xl shadow-2xl saturate-[0.9]"
+            className="h-auto w-full rounded-3xl shadow-2xl saturate-[0.9] light:[filter:sepia(0.35)_saturate(0.9)]"
           />
         </div>
       ))}
