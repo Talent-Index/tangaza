@@ -363,7 +363,7 @@ function Overview() {
                           ? `earned ${kesLabel(event.valueKES ?? 0)}`
                           : event.kind === "redeemed"
                             ? `claimed ${kesLabel(event.valueKES ?? 0)}`
-                            : "hit the budget cap"}
+                            : "reached the target"}
                     </span>
                     <span className="block text-[11px] text-mist-500">{timeAgo(event.timestamp)}</span>
                   </span>

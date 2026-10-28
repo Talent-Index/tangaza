@@ -69,7 +69,7 @@ function Liability() {
       <div>
         <h2 className="text-lg font-bold">On-chain reward budget</h2>
         <p className="mt-1 text-sm text-mist-500">
-          The KES credits minted on Avalanche for approved activity, against the budget cap
+          The KES credits minted on Avalanche for approved activity, against the target
           you set at registration.
         </p>
       </div>
@@ -91,10 +91,10 @@ function Liability() {
 
         <div className="flex flex-wrap gap-2">
           <Pill tone={headroom > 0 ? "good" : "bad"}>
-            {headroom > 0 ? `${kesLabel(headroom)} of headroom` : "Cap reached"}
+            {headroom > 0 ? `${kesLabel(headroom)} still available` : "Target reached"}
           </Pill>
           {ledger.data?.exhausted ? (
-            <Pill tone="warn">Budget exhausted — minting has stopped</Pill>
+            <Pill tone="warn">Target reached — new rewards have stopped</Pill>
           ) : null}
         </div>
       </div>
@@ -139,7 +139,7 @@ function Liability() {
           <h2 className="font-semibold">Why this can only shrink</h2>
           <p className="mt-2 text-sm leading-relaxed text-mist-400">
             A reward exists only because you approved a real activity, and it is worth a
-            fixed {kesLabel(500)}. When an advocate claims it, the reward is burned and{" "}
+            fixed {kesLabel(500)}. When an ambassador claims it, the reward is burned and{" "}
             <span className="text-mist-200">settled</span> goes up by the same amount — so
             outstanding falls. Nothing in the contract can mint a reward without an
             approval, and nothing can un-burn a claimed one.

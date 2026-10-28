@@ -615,8 +615,8 @@ function CostPreview({ draft, unit }: { draft: CampaignDraft; unit: string }) {
   return (
     <p className="rounded-xl border border-ink-700 bg-ink-900/40 px-3 py-2.5 text-sm leading-relaxed text-mist-300">
       <span className="font-semibold text-mist-100">If 10 people earn this:</span> that&rsquo;s{" "}
-      {actions} {unit} for you, and {cost}. Your on-chain budget caps the total — it can
-      never run past what you signed for, even if this takes off.
+      {actions} {unit} for you, and {cost}. Set a target. When you hit it, you decide the
+      reward, and it can never run past what you signed for.
     </p>
   );
 }
