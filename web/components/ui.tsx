@@ -55,11 +55,10 @@ export function Button({
   const base =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 sm:px-6";
   const styles = {
-    primary:
-      "bg-crimson-500 text-white hover:bg-crimson-400 shadow-[0_8px_24px_-8px_rgb(194_85_31/0.55)]",
-    light: "bg-[#f5f4ee] text-[#15140d] hover:bg-[#e8e6da]",
-    ghost: "border border-ink-600 text-mist-300 hover:border-ink-500 hover:text-mist-100",
-    danger: "border border-crimson-600 text-crimson-300 hover:bg-crimson-600/15",
+    primary: "bg-gold text-on-gold hover:bg-gold-hover shadow-[0_8px_24px_-8px_rgb(233_162_59/0.55)]",
+    light: "bg-mist-100 text-ink-950 hover:bg-ink-700",
+    ghost: "border border-ink-500 text-mist-100 hover:border-gold-line",
+    danger: "border border-danger-line bg-danger-bg text-danger-text hover:border-danger",
   }[variant];
 
   if (href && !disabled) {
@@ -93,7 +92,7 @@ export function Pill({
     neutral: "border-ink-600 text-mist-400",
     good: "border-jade-500/40 text-jade-400 bg-jade-500/10",
     warn: "border-amber-glow/40 text-amber-glow bg-amber-glow/10",
-    bad: "border-crimson-500/40 text-crimson-300 bg-crimson-500/10",
+    bad: "border-danger-line text-danger-text bg-danger-bg",
   }[tone];
 
   return (
@@ -234,7 +233,7 @@ export function EmptyState({
 
 export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-xl border border-crimson-500/40 bg-crimson-500/10 px-3 py-2 text-sm text-crimson-300">
+    <p className="rounded-xl border border-danger-line bg-danger-bg px-3 py-2 text-sm text-danger-text">
       {children}
     </p>
   );
@@ -260,7 +259,7 @@ export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <span className={`font-display font-bold tracking-tight ${className}`}>
       <span className="text-mist-100">Ubu-</span>
-      <span className="text-crimson-400">Tangaza</span>
+      <span className="text-gold-text">Tangaza</span>
     </span>
   );
 }

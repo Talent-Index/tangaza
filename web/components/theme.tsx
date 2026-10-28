@@ -26,7 +26,7 @@ function applyTheme(theme: Theme) {
   root.classList.toggle("light", theme === "light");
   root.style.colorScheme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", theme === "light" ? "#f3f1e9" : "#0b0b09");
+  if (meta) meta.setAttribute("content", theme === "light" ? "#f7f1e6" : "#131008");
 }
 
 function readStoredTheme(): Theme {
@@ -62,8 +62,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggle = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }, [setTheme, theme]);
+    // Read the class the boot script already painted. React state can still be
+    // the server default for a moment, and a click in that window must flip
+    // the theme the page is actually showing.
+    const current = document.documentElement.classList.contains("light") ? "light" : "dark";
+    setTheme(current === "dark" ? "light" : "dark");
+  }, [setTheme]);
 
   const value = useMemo(
     () => ({ theme, setTheme, toggle }),
@@ -81,18 +85,24 @@ export function useTheme() {
 
 /** Compact control for shell / profile. */
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { theme, toggle } = useTheme();
-  const next = theme === "dark" ? "light" : "dark";
+  const { toggle } = useTheme();
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
-      className={`grid size-9 place-items-center rounded-full border border-ink-600 bg-ink-850 text-sm text-mist-300 transition hover:border-ink-500 hover:text-mist-100 ${className}`}
+      className={`inline-flex h-9 items-center gap-1.5 rounded-full border border-ink-600 bg-ink-850 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-mist-100 transition hover:border-gold-line ${className}`}
     >
-      <span aria-hidden>{theme === "dark" ? "☀" : "☾"}</span>
+      <span className="theme-when-dark" aria-hidden>
+        ☀
+      </span>
+      <span className="theme-when-light" aria-hidden>
+        ☾
+      </span>
+      <span className="theme-when-dark">Dark</span>
+      <span className="theme-when-light">Light</span>
+      <span className="sr-only theme-when-dark">Switch to light mode</span>
+      <span className="sr-only theme-when-light">Switch to dark mode</span>
     </button>
   );
 }
