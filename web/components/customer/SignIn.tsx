@@ -297,7 +297,7 @@ export function SignIn({ kicker = "Ambassadors portal" }: { kicker?: string }) {
             </div>
             <button
               type="submit"
-              disabled={busy || !email.trim()}
+              disabled={busy}
               className="mt-3.5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.08em] text-on-gold transition hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-45"
             >
               {sending ? <Spinner /> : null}
