@@ -46,7 +46,7 @@ export default function BusinessWaitlistPage() {
           <BrandMark className="text-base sm:text-lg" />
         </Link>
         <Link href="/auth" className="shrink-0 text-xs text-mist-500 hover:text-mist-300">
-          Advocate sign in →
+          Ambassador sign-in →
         </Link>
       </header>
 

@@ -183,7 +183,7 @@ function CampaignTimelineCard({
           ) : null}
 
           <p className="text-xs text-mist-500">
-            {c.participantCount} advocate{c.participantCount === 1 ? "" : "s"} taking part
+            {c.participantCount} ambassador{c.participantCount === 1 ? "" : "s"} taking part
           </p>
         </div>
 

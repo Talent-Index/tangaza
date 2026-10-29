@@ -168,7 +168,7 @@ function Home({ address }: { address: string }) {
   return (
     <div className="animate-rise mx-auto max-w-3xl space-y-8">
       <header>
-        <p className={`${MONO} text-crimson-500 light:hidden`}>Advocate portal</p>
+        <p className={`${MONO} text-gold-text`}>Ambassadors</p>
         <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl light:mt-0">Hi, {first}</h1>
         <p className="mt-3 text-base text-mist-400">{sub}</p>
       </header>
@@ -271,7 +271,7 @@ function Home({ address }: { address: string }) {
         href={submitHref}
         className="flex items-center justify-center gap-3 bg-crimson-500 px-6 py-4 text-base font-bold text-white transition hover:bg-crimson-400 light:rounded-lg"
       >
-        <Icon name="send" /> Submit an activity
+        <Icon name="send" /> Send proof
       </Link>
     </div>
   );

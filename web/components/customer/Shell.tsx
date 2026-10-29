@@ -10,17 +10,12 @@ import { useCredentialEmail, useDisplayName } from "@/lib/hooks";
 const NAV = [
   { href: "/", label: "Home", icon: "◎" },
   { href: "/campaigns", label: "Campaigns", icon: "◈" },
-  { href: "/submit", label: "Submit", icon: "＋" },
-  { href: "/rewards", label: "Rewards", icon: "★" },
+  { href: "/submit", label: "Send proof", icon: "＋" },
+  { href: "/rewards", label: "My rewards", icon: "★" },
 ];
 
 // The desktop bar also carries account settings; on phones that lives behind the avatar.
-const DESKTOP_NAV = [
-  NAV[0],
-  NAV[1],
-  NAV[3],
-  { href: "/profile", label: "Settings", icon: "⚙" },
-];
+const DESKTOP_NAV = [NAV[0], NAV[1], NAV[2], NAV[3]];
 
 function navActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -48,7 +43,14 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-ink-700 bg-ink-850 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="truncate text-lg font-bold tracking-tight">Ubu-Tangaza</span>
+            <span className="min-w-0">
+              <span className="block truncate text-base font-bold tracking-tight">
+                Ubu-Tangaza<span className="text-gold-text">.</span>
+              </span>
+              <span className="block font-mono text-[9.5px] uppercase tracking-[0.2em] text-gold-text">
+                Ambassadors
+              </span>
+            </span>
           </Link>
 
           {account ? (
@@ -60,9 +62,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`border-b-2 py-1 text-[13px] font-semibold transition ${
+                    className={`inline-flex items-center gap-1.5 border-b-2 py-1 text-[12px] font-semibold uppercase tracking-[0.12em] transition ${
                       active
-                        ? "border-crimson-500 text-crimson-500"
+                        ? "border-gold-line text-mist-100"
                         : "border-transparent text-mist-400 hover:text-mist-100"
                     }`}
                   >
@@ -108,7 +110,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                   aria-current={active ? "page" : undefined}
                   className={`flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-2 text-[11px] font-medium transition ${
                     active
-                      ? "bg-crimson-500/15 text-crimson-500"
+                      ? "bg-gold/15 text-gold-text"
                       : "text-mist-500 hover:text-mist-300"
                   }`}
                 >

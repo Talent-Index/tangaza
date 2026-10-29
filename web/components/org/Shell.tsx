@@ -17,10 +17,10 @@ import {
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
 import { ThemeToggle } from "@/components/theme";
 import { useToast } from "@/components/toast";
-import { BrandMark, Spinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
 import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
-import { kesLabel, shortAddress } from "@/lib/format";
+import { shortAddress } from "@/lib/format";
 import {
   useMyApplications,
   useOrgAccess,
@@ -35,6 +35,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
   // Fed by the one queue poll that lives under WithOrgAccess, so the badge and the
   // Approvals page read the same list instead of polling twice.
   const [pendingCount, setPendingCount] = useState(0);
+  const [orgLabel, setOrgLabel] = useState("");
 
   // On phones the fixed bottom tab bar sits over the end of the page, so the page
   // reserves its height (h-14 plus the home-indicator inset) below the footer.
@@ -46,11 +47,12 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
     >
       <header className="border-b border-ink-700 bg-ink-850">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2 sm:px-6 md:pb-0 md:pt-3 lg:flex-nowrap lg:py-3">
-          <Link href="/org/overview" className="flex min-w-0 items-center gap-3">
-            <LogoMark />
-            <span className="text-lg font-bold tracking-tight">Ubu-Tangaza</span>
-            <span className="hidden text-sm font-semibold uppercase tracking-[0.22em] text-crimson-500 sm:inline">
-              Business
+          <Link href="/org/overview" className="flex min-w-0 flex-col">
+            <span className="text-base font-bold tracking-tight">
+              Ubu-Tangaza<span className="text-gold-text">.</span>
+            </span>
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-gold-text">
+              {orgLabel || "Business"}
             </span>
           </Link>
 
@@ -65,7 +67,11 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
 
       <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         {account ? (
-          <WithOrgAccess address={account.address} onPendingCount={setPendingCount}>
+          <WithOrgAccess
+            address={account.address}
+            onPendingCount={setPendingCount}
+            onOrgLabel={setOrgLabel}
+          >
             {children}
           </WithOrgAccess>
         ) : isRestoring ? (
@@ -77,15 +83,14 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
         )}
       </main>
 
-      <footer className="bg-[#111412] text-gray-300">
+      <footer className="border-t border-ink-700 bg-ink-800 text-mist-300">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <LogoMark />
-            <span className="text-lg font-bold tracking-tight text-white">Ubu-Tangaza</span>
-          </div>
-          <p className="max-w-md text-sm leading-relaxed text-gray-400">
-            A lightweight record of approved reward activity may be kept on Avalanche for
-            transparency. Your business and advocates do not need to manage crypto wallets.
+          <span className="text-lg font-bold tracking-tight text-mist-100">
+            Ubu-Tangaza<span className="text-gold-text">.</span>
+          </span>
+          <p className="max-w-md text-sm leading-relaxed text-mist-400">
+            Customers send proof. You approve the real ones and give the reward. A record of
+            each approval is kept so it can&apos;t be quietly changed later.
           </p>
         </div>
       </footer>
@@ -127,10 +132,10 @@ function DesktopNav({ pending }: { pending: number }) {
   }, [open]);
 
   const tab = (active: boolean) =>
-    `inline-flex shrink-0 items-center gap-1.5 border-b-2 py-3 text-[13px] font-medium transition ${
+    `inline-flex shrink-0 items-center gap-1.5 border-b-2 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] transition ${
       active
-        ? "border-crimson-500 text-crimson-500"
-        : "border-transparent text-mist-300 hover:text-mist-100"
+        ? "border-gold-line text-mist-100"
+        : "border-transparent text-mist-400 hover:text-mist-100"
     }`;
   const toolActive = TOOLS_NAV.some((i) => isOrgNavActive(pathname, i.href));
 
@@ -150,6 +155,7 @@ function DesktopNav({ pending }: { pending: number }) {
               aria-current={active ? "page" : undefined}
               className={tab(active)}
             >
+              <NavIcon name={item.icon} className="size-4" />
               {item.label}
               {isApprovals ? (
                 <>
@@ -170,7 +176,7 @@ function DesktopNav({ pending }: { pending: number }) {
             aria-controls="org-more-menu"
             className={tab(toolActive)}
           >
-            More
+            Budget &amp; tools
             <svg viewBox="0 0 12 12" className={`size-3 transition ${open ? "rotate-180" : ""}`} aria-hidden>
               <path d="m2.5 4.5 3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -207,47 +213,34 @@ function DesktopNav({ pending }: { pending: number }) {
   );
 }
 
-/** Dark rounded square with a teal dot — the business-side mark. */
-function LogoMark() {
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#111412]" aria-hidden>
-      <span className="size-3 rounded-full bg-teal-400" />
-    </span>
-  );
-}
-
 function OrgSignedOut() {
   return (
     <div className="relative grid place-items-center py-10 sm:py-16">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(194_85_31/0.12),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_40%,rgb(233_162_59/0.14),transparent_70%)]"
         aria-hidden
       />
       <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="min-w-0 rounded-md bg-ink-900 px-2.5 py-2 sm:px-3">
-            <BrandMark className="text-sm sm:text-base" />
-          </div>
+        <div className="mb-4 flex justify-end">
           <Link
             href="/auth"
-            className="shrink-0 text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
+            className="text-xs text-mist-400 underline underline-offset-4 hover:text-mist-200 sm:text-sm"
           >
-            Advocate portal →
+            Ambassador sign-in →
           </Link>
         </div>
         <div className="card px-4 py-7 sm:px-8 sm:py-8">
-          <p className="text-center text-sm text-mist-500">
-            Log in to approve advocacy and manage liability
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">
+            For businesses
           </p>
-          <h1 className="mt-3 text-center font-display text-2xl font-bold uppercase tracking-tight text-white sm:text-4xl">
-            Business portal.
+          <h1 className="poster mt-3 text-center text-4xl sm:text-5xl">
+            Sign in to check the proof.
           </h1>
-          <p className="mx-auto mt-4 max-w-sm text-center text-sm text-mist-500">
-            Review what your advocates did, approve the real ones, and watch reward liability
-            from a budget that can never grow.
+          <p className="mx-auto mt-4 max-w-sm text-center text-sm text-mist-400">
+            Customers send proof. You approve the real ones and give the reward.
           </p>
           <div className="mt-8">
-            <SignIn />
+            <SignIn kicker="Business portal" />
           </div>
         </div>
       </div>
@@ -308,10 +301,12 @@ function useOrgDisplayName(orgId: bigint | undefined) {
 function WithOrgAccess({
   address,
   onPendingCount,
+  onOrgLabel,
   children,
 }: {
   address: string;
   onPendingCount: (n: number) => void;
+  onOrgLabel: (name: string) => void;
   children: React.ReactNode;
 }) {
   const access = useOrgAccess(address);
@@ -319,6 +314,11 @@ function WithOrgAccess({
   const display = useOrgDisplayName(
     access.data?.kind === "approver" ? access.data.orgId : undefined
   );
+  const label = display.name ?? access.data?.orgName ?? "";
+  useEffect(() => {
+    onOrgLabel(label);
+    return () => onOrgLabel("");
+  }, [label, onOrgLabel]);
 
   if (access.loading && !access.data) {
     return (
@@ -416,9 +416,8 @@ function NoBusinessYet({
             </div>
             <h1 className="text-xl font-bold">{pending.name} is being registered</h1>
             <p className="mx-auto mt-3 max-w-sm text-sm text-mist-500">
-              Your pledge is signed and on file with a {kesLabel(pending.emissionCapKes)}{" "}
-              budget. The platform writes the registration on Avalanche — once it lands,
-              this page becomes your approvals queue. It refreshes itself.
+              Your pledge is signed and on file. The platform writes the registration — once it
+              lands, this page becomes where you check the proof. It refreshes itself.
             </p>
           </>
         ) : registered ? (
@@ -443,16 +442,15 @@ function NoBusinessYet({
             </div>
             <h1 className="text-xl font-bold">No business on this wallet</h1>
             <p className="mx-auto mt-3 max-w-sm text-sm text-mist-500">
-              Nothing on Avalanche names{" "}
-              <code className="tabular text-mist-300">{shortAddress(address)}</code> as an
-              approver. Register your business and its budget is written once, on-chain,
-              with this wallet holding approval rights.
+              Nothing here names{" "}
+              <code className="tabular text-mist-300">{shortAddress(address)}</code> as the
+              person who checks proof. Register your business, then pick a campaign.
             </p>
             <Link
               href="/register"
               className="mt-6 inline-block rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400"
             >
-              Register your business →
+              Start your free campaign →
             </Link>
           </>
         )}

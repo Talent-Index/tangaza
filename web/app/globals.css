@@ -1,42 +1,54 @@
 @import "tailwindcss";
 
-/* Ubu-Tangaza — (navy / accent blue).
-   Product stays advocacy rewards; chrome borrows MetroPorter professionalism.
-   Customer surface stays jargon-free: no "wallet", no "gas". Money in KES.
-   Dark is the default; html.light remaps the same ink/mist/crimson tokens. */
+/* Ubu-Tangaza. Dark is the default. html.light remaps the same tokens to the
+   cream palette, so screens re-skin without a second stylesheet.
+   Gold fills stay #e9a23b in both themes. Gold *text* uses --color-gold-text
+   (#e9a23b on charcoal, #8f5200 on cream) so it stays WCAG AA. */
 @theme {
-  /* Warm editorial system: near-black + paper, rust-orange accent, hairline
-     borders. Dark is the default; html.light remaps the same token names to
-     the paper variant, so every screen re-skins without a class rename. */
-  --color-ink-950: #0b0b09;
-  --color-ink-900: #111110;
-  --color-ink-850: #17170f;
-  --color-ink-800: #1c1c15;
-  --color-ink-700: #2b2b22;
-  --color-ink-600: #3c3c30;
-  --color-ink-500: #57564a;
+  --color-ink-950: #131008;
+  --color-ink-900: #141109;
+  --color-ink-850: #1b1710;
+  --color-ink-800: #17130b;
+  --color-ink-700: #2d2619;
+  --color-ink-600: #3a3122;
+  --color-ink-500: #443a28;
 
-  --color-mist-500: #8c8a7c;
-  --color-mist-400: #a9a798;
-  --color-mist-300: #d2d0c3;
-  --color-mist-100: #f5f4ee;
+  --color-mist-500: #9d937f;
+  --color-mist-400: #b7ac96;
+  --color-mist-300: #cfc4ae;
+  --color-mist-100: #f1e9db;
 
-  /* Accent: rust orange (kept as crimson-* class names so existing screens re-skin cleanly) */
-  --color-crimson-600: #9c3e18;
-  --color-crimson-500: #c2551f;
-  --color-crimson-400: #d97a3f;
-  --color-crimson-300: #e8a374;
+  /* Brand gold. crimson-* names stay so existing accent classes follow the new gold. */
+  --color-crimson-600: #c4842a;
+  --color-crimson-500: #e9a23b;
+  --color-crimson-400: #e9a23b;
+  --color-crimson-300: #f4b254;
 
-  --color-jade-500: #1f9d63;
-  --color-jade-400: #3fc686;
-  --color-amber-glow: #d9a441;
+  --color-gold: #e9a23b;
+  --color-gold-hover: #f4b254;
+  --color-on-gold: #17130b;
+  --color-gold-text: #e9a23b;
+  --color-gold-line: #e9a23b;
+
+  --color-jade-500: #2e8a43;
+  --color-jade-400: #7fc98b;
+  --color-amber-glow: #e9a23b;
+
+  --color-ok: #7fc98b;
+  --color-ok-bg: #17241a;
+  --color-ok-line: #2e4d33;
+  --color-danger: #a8431c;
+  --color-danger-text: #f6d3c2;
+  --color-danger-bg: #2a1610;
+  --color-danger-line: #6b3a2a;
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-poster: var(--font-anton), Impact, sans-serif;
 
-  --radius-card: 0.75rem;
+  --radius-card: 1rem;
 }
 
 /* `light:` lets one piece of markup differ between the dark (default) and light
@@ -53,26 +65,39 @@ html {
 html.light {
   color-scheme: light;
 
-  --color-ink-950: #f3f1e9;
-  --color-ink-900: #f8f6f0;
-  --color-ink-850: #ffffff;
-  --color-ink-800: #ece8dc;
-  --color-ink-700: #ddd8c8;
-  --color-ink-600: #c7c1ac;
-  --color-ink-500: #a39c85;
+  --color-ink-950: #f7f1e6;
+  --color-ink-900: #fffdf8;
+  --color-ink-850: #fffaf2;
+  --color-ink-800: #fbf5ea;
+  --color-ink-700: #e6dac5;
+  --color-ink-600: #d9cbb2;
+  --color-ink-500: #cdbb9c;
 
-  --color-mist-500: #6b6858;
-  --color-mist-400: #55523f;
-  --color-mist-300: #2c2a1f;
-  --color-mist-100: #15140d;
+  --color-mist-500: #6b604c;
+  --color-mist-400: #5c5040;
+  --color-mist-300: #4a3f2e;
+  --color-mist-100: #1e1810;
 
-  --color-crimson-600: #7c3113;
-  --color-crimson-500: #a8451c;
-  --color-crimson-400: #c2551f;
-  --color-crimson-300: #d97a3f;
+  /* Fills stay the bright gold. Text and outlines step down so they clear AA on cream. */
+  --color-crimson-600: #8f5200;
+  --color-crimson-500: #e9a23b;
+  --color-crimson-400: #8f5200;
+  --color-crimson-300: #8f5200;
 
-  --color-jade-500: #157a4c;
-  --color-jade-400: #1a9159;
+  --color-on-gold: #1e1810;
+  --color-gold-text: #8f5200;
+  --color-gold-line: #b8701a;
+
+  --color-jade-500: #2e8a43;
+  --color-jade-400: #276b35;
+
+  --color-ok: #276b35;
+  --color-ok-bg: #e6f3e7;
+  --color-ok-line: #b5d8bb;
+  --color-danger: #a8431c;
+  --color-danger-text: #7a2e14;
+  --color-danger-bg: #fcebe3;
+  --color-danger-line: #eec3b0;
 }
 
 body {
@@ -90,31 +115,29 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(70rem 45rem at 50% -15%, rgb(30 122 239 / 0.18), transparent 65%),
-    radial-gradient(40rem 30rem at 100% 100%, rgb(30 122 239 / 0.08), transparent 60%);
+  background: radial-gradient(60rem 30rem at 50% -10%, rgb(233 162 59 / 0.08), transparent 65%);
 }
 
 html.light .app-glow::before {
-  background:
-    radial-gradient(70rem 45rem at 50% -15%, rgb(30 122 239 / 0.1), transparent 65%),
-    radial-gradient(40rem 30rem at 100% 100%, rgb(30 122 239 / 0.06), transparent 60%);
+  background: radial-gradient(60rem 30rem at 50% -10%, rgb(233 162 59 / 0.16), transparent 65%);
 }
 
 @utility card {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--color-ink-800) 88%, white 12%),
-    var(--color-ink-850)
-  );
-  border: 1px solid color-mix(in oklab, var(--color-ink-600) 70%, white 8%);
+  background: var(--color-ink-850);
+  border: 1px solid var(--color-ink-700);
   border-radius: var(--radius-card);
 }
 
 html.light .card {
-  background: var(--color-ink-850);
-  border-color: var(--color-ink-700);
-  box-shadow: 0 1px 2px rgb(10 20 40 / 0.04);
+  box-shadow: 0 1px 2px rgb(90 60 20 / 0.06), 0 8px 24px -16px rgb(90 60 20 / 0.18);
+}
+
+@utility poster {
+  font-family: var(--font-poster);
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  font-weight: 400;
 }
 
 @utility tabular {
@@ -221,16 +244,43 @@ html.light .card {
 }
 
 ::selection {
-  background: var(--color-crimson-500);
-  color: white;
+  background: var(--color-gold);
+  color: var(--color-on-gold);
 }
 
-/* Light-mode accent for the public site and advocate portal: the design's daylight
-   direction uses crimson actions where the dark look uses rust-orange. Scoped to
-   .skin so the business portal keeps its own accent. */
-html.light .skin {
-  --color-crimson-600: #8f1733;
-  --color-crimson-500: #b01f3d;
-  --color-crimson-400: #c2354f;
-  --color-crimson-300: #a81c38;
+/* Bright gold as a fill needs dark labels. White on #e9a23b fails WCAG. */
+.bg-crimson-500.text-white,
+.bg-crimson-400.text-white,
+.bg-crimson-600.text-white,
+.bg-gold.text-white,
+a.bg-crimson-500,
+button.bg-crimson-500,
+a.bg-gold,
+button.bg-gold {
+  color: var(--color-on-gold);
+}
+
+/* --color-crimson-500 stays the gold fill in both themes, so text that uses it
+   would be #e9a23b on cream (1.9:1). Force the AA gold for those labels. */
+html.light .text-crimson-500,
+html.light .hover\:text-crimson-500:hover,
+html.light .group:hover .group-hover\:text-crimson-300,
+html.light .group:hover .group-hover\:text-crimson-400,
+html.light .stroke-crimson-500 {
+  color: var(--color-gold-text);
+  stroke: var(--color-gold-text);
+}
+
+html.light .border-crimson-500,
+html.light .hover\:border-crimson-500:hover,
+html.light .focus\:border-crimson-500:focus,
+html.light .border-b-crimson-500 {
+  border-color: var(--color-gold-line);
+}
+
+/* The boot script paints the theme before React. These hide the unused glyph
+   so the toggle does not flash the wrong mode. */
+html.light .theme-when-dark,
+html:not(.light) .theme-when-light {
+  display: none;
 }

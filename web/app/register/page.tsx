@@ -70,12 +70,17 @@ function SignedOut() {
           <p className="text-sm text-mist-500">Sign in with the account that will approve activities</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Sign in</h1>
           <div className="mt-8">
-            <SignIn />
+            <SignIn kicker="For businesses" />
           </div>
           <p className="mt-8 text-center text-sm text-mist-500">
-            Joining as an advocate?{" "}
-            <Link href="/auth" className="text-mist-200 underline underline-offset-4 hover:text-white">
-              Open the advocate portal
+            Taking part in a campaign?{" "}
+            <Link href="/auth" className="text-mist-100 underline underline-offset-4 hover:text-gold-text">
+              Sign in here
+            </Link>
+            <br />
+            Need help?{" "}
+            <Link href="/book" className="text-gold-text underline underline-offset-4">
+              Book a 5-minute call
             </Link>
           </p>
         </div>
@@ -98,21 +103,19 @@ function SignedOut() {
               <span className="absolute left-1/2 top-8 h-24 w-44 -translate-x-1/2 rounded-2xl border border-ink-600 bg-ink-700" />
               <span className="absolute left-1/2 top-16 h-24 w-36 -translate-x-1/2 rounded-2xl border border-crimson-500/40 bg-ink-850" />
             </div>
-            <p className="mt-12 text-[11px] font-semibold uppercase tracking-[0.2em] text-crimson-400">
-              Register portal
+            <p className="mt-12 font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">
+              For businesses
             </p>
-            <h2 className="mt-4 max-w-md font-display text-4xl font-bold leading-tight tracking-tight">
-              Reward the people who talk about you.
+            <h2 className="poster mt-4 max-w-md text-5xl">
+              Reward the people who bring you <span className="text-gold-text">new customers.</span>
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-mist-400">
-              Say what you&rsquo;ll give back and let your community earn it. Nothing to
-              pay up front — a built-in guardrail, written once on Avalanche, means what
-              you owe can never run past it. Not by us, not by you. That&rsquo;s the
-              whole promise.
+              Choose what you&apos;ll give and let your customers earn it. Nothing to pay
+              today. Set a target. When you hit it, you decide the reward.
             </p>
           </div>
 
-          <p className="text-center text-xs text-mist-500">No fees — ever</p>
+          <p className="text-center text-sm font-bold text-ok">Your first campaign is free</p>
         </div>
       </aside>
     </div>

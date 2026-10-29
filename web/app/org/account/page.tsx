@@ -147,11 +147,11 @@ function AccountSettings() {
             <SectionTitle>Portal</SectionTitle>
             <Card className="space-y-3">
               <p className="text-sm text-mist-400">
-                Switch between the business dashboard and the advocate experience with the
-                same wallet.
+                Switch between the business dashboard and the ambassador experience with the
+                same sign-in.
               </p>
               <Button href="/" variant="ghost" className="w-full">
-                Open advocate portal →
+                Open ambassador home →
               </Button>
               <Button href="/org/overview" variant="ghost" className="w-full">
                 Back to business overview →

@@ -615,8 +615,8 @@ function CostPreview({ draft, unit }: { draft: CampaignDraft; unit: string }) {
   return (
     <p className="rounded-xl border border-ink-700 bg-ink-900/40 px-3 py-2.5 text-sm leading-relaxed text-mist-300">
       <span className="font-semibold text-mist-100">If 10 people earn this:</span> that&rsquo;s{" "}
-      {actions} {unit} for you, and {cost}. Your on-chain budget caps the total — it can
-      never run past what you signed for, even if this takes off.
+      {actions} {unit} for you, and {cost}. Set a target. When you hit it, you decide the
+      reward, and it can never run past what you signed for.
     </p>
   );
 }
@@ -725,8 +725,9 @@ export function RewardStep({
     <fieldset className="min-w-0 space-y-4 border-0 p-0">
       <legend className="sr-only">Reward</legend>
       <p className="text-sm text-mist-400">
-        What will you give people who take part? You hand it over yourself — Tangaza tracks
-        who has earned it and what you still owe.
+        What will you give people who bring you customers? You give it yourself. We keep
+        track of who earned it and what you still owe. Set a target. When you hit it, you
+        decide the reward.
       </p>
 
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Reward type">
