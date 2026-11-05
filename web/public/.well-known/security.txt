@@ -1,0 +1,5 @@
+# RFC 9116 — https://www.rfc-editor.org/rfc/rfc9116
+Contact: mailto:hello@ubutangaza.biz
+Expires: 2027-10-23T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://www.ubutangaza.biz/.well-known/security.txt
