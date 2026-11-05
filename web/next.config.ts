@@ -21,6 +21,30 @@ const securityHeaders = [
   { key: "X-XSS-Protection", value: "0" },
 ];
 
+// Report-Only CSP: the browser enforces NOTHING — it only logs violations to
+// the console. Shipped this way so wallet login, RPC and embeds can't break.
+// Watch the console across a real wallet connect + checkout flow, add any
+// origins that get reported, then switch the key to "Content-Security-Policy"
+// to enforce. Drafted from the external origins the client currently uses.
+const cspReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://*.thirdweb.com https://platform.twitter.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://api.qrserver.com https://*.thirdweb.com https://pbs.twimg.com",
+  "connect-src 'self' https://*.thirdweb.com wss://*.thirdweb.com https://api.avax.network https://api.avax-test.network https://glacier-api.avax.network https://*.walletconnect.com wss://*.walletconnect.com",
+  "frame-src 'self' https://*.thirdweb.com https://embedded-wallet.thirdweb.com https://platform.twitter.com https://syndication.twitter.com",
+  "worker-src 'self' blob:",
+].join("; ");
+
+securityHeaders.push({
+  key: "Content-Security-Policy-Report-Only",
+  value: cspReportOnly,
+});
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
