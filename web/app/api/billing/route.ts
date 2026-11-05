@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPaymentIntent, getBillingStatus, payInstructions } from "@/lib/billing";
+import {
+  createPaymentIntent,
+  ensureMinisendSession,
+  getBillingStatus,
+  payInstructions,
+} from "@/lib/billing";
 import { ORG_ACTIONS } from "@/lib/org-action";
 import { requireApprover } from "@/lib/verify";
 
@@ -53,7 +58,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const intent = await createPaymentIntent(String(orgId));
+    let intent = await createPaymentIntent(String(orgId));
+    // MiniSend (when on): attach a live hosted checkout. If MiniSend is down the
+    // checkout still opens — the business just gets the manual amount + reference.
+    try {
+      intent = await ensureMinisendSession(intent.code, `${req.nextUrl.origin}/org/billing`);
+    } catch (err) {
+      console.error("[billing] MiniSend session", err);
+    }
     return NextResponse.json({ intent, instructions: payInstructions() }, { status: 201 });
   } catch (err) {
     return NextResponse.json(
