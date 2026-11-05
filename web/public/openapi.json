@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Proof-of-advocacy rewards on Avalanche Fuji. Reads are public; writes are authorized by on-chain receipts, not API keys — see /agents.md. Contract: 0x04AE7084ba8f52BEb6186885FD1A091f7d602086 (verified)."
   },
-  "servers": [{ "url": "https://ubu-tangaza.vercel.app" }],
+  "servers": [{ "url": "https://www.ubutangaza.biz" }],
   "paths": {
     "/api/campaigns": {
       "get": {

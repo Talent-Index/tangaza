@@ -12,11 +12,11 @@ to the verified contract and referencing the receipt. There are no API keys.
 
 ## Machine interfaces
 
-- [MCP server](https://ubu-tangaza.vercel.app/api/mcp): Model Context Protocol
+- [MCP server](https://www.ubutangaza.biz/api/mcp): Model Context Protocol
   (streamable HTTP). Read-only tools over live platform data: campaigns, engagement
   types, leaderboards, business directory, reward tiers.
-- [OpenAPI spec](https://ubu-tangaza.vercel.app/openapi.json): the public REST API.
-- [Agent guide](https://ubu-tangaza.vercel.app/agents.md): how an agent reads,
+- [OpenAPI spec](https://www.ubutangaza.biz/openapi.json): the public REST API.
+- [Agent guide](https://www.ubutangaza.biz/agents.md): how an agent reads,
   submits on-chain, and files activities — with the exact verification rules the
   server applies.
 
@@ -34,10 +34,10 @@ to the verified contract and referencing the receipt. There are no API keys.
 
 ## Human surfaces
 
-- [Advocate app](https://ubu-tangaza.vercel.app/): sign in with Google/X/email
+- [Advocate app](https://www.ubutangaza.biz/): sign in with Google/X/email
   (seedless wallet) or Core/MetaMask.
-- [Business portal](https://ubu-tangaza.vercel.app/org): approvals, liability,
+- [Business portal](https://www.ubutangaza.biz/org): approvals, liability,
   clients, settings.
-- [Business registration](https://ubu-tangaza.vercel.app/register): wallet-signed
+- [Business registration](https://www.ubutangaza.biz/register): wallet-signed
   pledge; the platform registers the org on-chain.
 - [Source repository](https://github.com/Talent-Index/tangaza)
