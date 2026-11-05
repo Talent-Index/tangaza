@@ -12,11 +12,12 @@ import { client, contract } from "./client";
 
 const DEPLOY_BLOCK = BigInt(process.env.NEXT_PUBLIC_DEPLOY_BLOCK ?? "0");
 
-// Public RPCs cap eth_getLogs ranges. Avalanche's rejects anything over 1000, and
-// thirdweb falls back to exactly that RPC whenever Insight is unavailable — 2000 here
-// meant every event reader broke the moment Insight blinked (and npm run verify, which
-// always runs without an Origin header, broke every time). 900 works on both paths.
-const WINDOW = 900n;
+// Public RPCs cap eth_getLogs ranges. Avalanche's MAINNET endpoint rejects anything over
+// 100 blocks (Fuji's allowed 1000), and thirdweb falls back to exactly that RPC whenever
+// Insight is unavailable — a bigger window here meant every event reader broke the moment
+// Insight blinked (and npm run verify, which always runs without an Origin header, broke
+// every time). 100 works on both paths; it only costs speed on the fallback scan.
+const WINDOW = 100n;
 
 // Safety net for an unset NEXT_PUBLIC_DEPLOY_BLOCK. Fuji is millions of blocks deep,
 // so scanning from genesis in 2000-block windows means thousands of sequential RPC

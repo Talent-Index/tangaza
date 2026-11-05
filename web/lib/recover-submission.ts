@@ -16,11 +16,13 @@ import { accountHasCode } from "./warmup";
  * timeout, we simply look at the chain: if the submission with this exact proof hash
  * is already there, use it instead of sending a duplicate.
  *
- * Windows of ≤900 blocks because the public Fuji RPC rejects ranges over 1000, and
- * this must work on the RPC fallback path, not just via Insight.
+ * Windows of 100 blocks because that is all Avalanche's PUBLIC mainnet RPC allows for
+ * eth_getLogs (Fuji's allowed 1000) and this must work on the RPC fallback path, not
+ * just via Insight. 18 windows ≈ 1,800 blocks ≈ an hour of C-Chain blocks — a stuck
+ * op resolves well within it — and only the recovery path pays for the extra calls.
  */
-const WINDOW = 900n;
-const LOOKBACK_WINDOWS = 2; // ~1 hour of Fuji blocks — a stuck op resolves well within it
+const WINDOW = 100n;
+const LOOKBACK_WINDOWS = 18;
 
 export async function findSubmissionOnChain(p: {
   orgId: bigint;

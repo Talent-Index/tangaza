@@ -118,9 +118,15 @@ const TRANSFER = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 );
 
-/** getLogs window per request (public RPCs commonly cap ~2048) and chunks per run. */
-const CHUNK_BLOCKS = 2000n;
-const MAX_CHUNKS = 10;
+/**
+ * getLogs window per request and chunks per run. Avalanche's PUBLIC mainnet RPC rejects
+ * any range over 100 blocks (measured 2026-11-05; Fuji's allowed 1000), and lib/rpc.ts
+ * defaults to that endpoint — so 100 is the only window that works everywhere. 40 chunks
+ * = 4,000 blocks per run, comfortably more than an hour of C-Chain blocks, so the hourly
+ * cron keeps up; a provider RPC (AVALANCHE_RPC_URL) just makes each run cheaper.
+ */
+const CHUNK_BLOCKS = 100n;
+const MAX_CHUNKS = 40;
 /** First run starts this far behind the tip instead of reading all of history. */
 const FIRST_RUN_LOOKBACK = 5000n;
 
