@@ -1,6 +1,6 @@
 # Ubu-Tangaza
 
-> Proof-of-advocacy rewards on Avalanche C-Chain (Fuji). Businesses reward real
+> Proof-of-advocacy rewards on Avalanche C-Chain (mainnet). Businesses reward real
 > advocacy — referrals, posts, events — from a budget written once on-chain that can
 > never be raised. Advocates submit activities from their own wallets (each transaction
 > pays a tiny AVAX gas fee); businesses approve on-chain; every 20 approved activities
@@ -22,9 +22,9 @@ to the verified contract and referencing the receipt. There are no API keys.
 
 ## On-chain
 
-- Contract: TangazaRewards at 0x04AE7084ba8f52BEb6186885FD1A091f7d602086
-  (Avalanche Fuji, chain id 43113), source verified:
-  https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086#code
+- Contract: TangazaRewards at 0xCaB8Ff6a00479dAB55D89e8916Da5D3C626AA97C
+  (Avalanche C-Chain mainnet, chain id 43114), source verified:
+  https://snowtrace.io/address/0xCaB8Ff6a00479dAB55D89e8916Da5D3C626AA97C#code
 - Key functions: submitActivity(orgId, activityType, proofHash) — open to any caller,
   msg.sender is the identity; approveActivityBatch — restricted to each org's
   registered approver; redeem(creditId, rewardType) — credit holder only.
