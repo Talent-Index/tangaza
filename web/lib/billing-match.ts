@@ -2,11 +2,12 @@ import "server-only";
 import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import { confirmPaymentIntent } from "./billing";
 import { sql } from "./db";
+import { getCheckoutSession, minisendEnabled, type CheckoutEvent } from "./minisend";
 import { RPC_URL } from "./rpc";
 import { VIEM_CHAIN } from "./viem-chain";
 
 /**
- * Automatic payment matching — billing Phase 2.
+ * Automatic payment matching — billing Phase 2 (M-Pesa, on-chain) and 3 (MiniSend).
  *
  * Attribution was designed for this moment: every open checkout owns a reference code
  * AND a unique amount, so an incoming payment can be matched with no memo at all.
@@ -14,6 +15,10 @@ import { VIEM_CHAIN } from "./viem-chain";
  * (wrong amount, overpayment, a stranger's transfer) is recorded as an unmatched
  * payment for a human to resolve in /admin/billing, never guessed at. Money that can't
  * be attributed with certainty must not quietly become somebody's credit.
+ *
+ * MiniSend is the one rail that attributes by construction: each hosted checkout is a
+ * session we created for one intent, so its signed webhook matches by session id, and
+ * the same strictness applies to the amount it reports.
  *
  * Both tables are created by db/022_billing_match.sql and lazily here, matching the
  * project's migrations-by-hand convention.
@@ -47,7 +52,7 @@ function ensureTables(): Promise<void> {
 }
 
 async function recordUnmatched(p: {
-  source: "mpesa" | "onchain";
+  source: "mpesa" | "onchain" | "minisend";
   ref: string;
   amount: number;
   payer?: string;
@@ -216,6 +221,80 @@ async function scan(): Promise<ScanResult> {
   }
 
   return { enabled: true, scannedTo: (from - 1n).toString(), matched, unmatched };
+}
+
+/* ------------------------------------------------------------------ MiniSend */
+
+/**
+ * A `checkout.completed` webhook (already signature-verified by the route). Matched by
+ * OUR session id first; the echoed external_id is only a fallback for an intent whose
+ * session write was lost. A short payment — MiniSend's own `amount_matched: false`,
+ * or received < expected — is never credited: it lands in unmatched_payments with
+ * the session as the ref, which also keeps webhook retries idempotent.
+ */
+export async function matchBillingMinisend(e: CheckoutEvent): Promise<boolean> {
+  await ensureTables();
+  const expected = e.amount_expected_usdc ?? e.amount_usdc ?? null;
+  const received = e.amount_received_usdc ?? e.amount_usdc ?? null;
+  const short =
+    e.amount_matched === false ||
+    (expected !== null && received !== null && received + 1e-9 < expected);
+  // What the receipt line shows: the M-Pesa payout code when settling to KES, else the tx.
+  const ref = e.receipt || e.deposit_tx_hash || e.session_id;
+
+  const bySession = (await sql`
+    select code, status from payment_intents where minisend_session_id = ${e.session_id} limit 1`) as Array<{
+    code: string;
+    status: string;
+  }>;
+  let hit = bySession[0] ?? null;
+  if (!hit && e.external_id) {
+    const byCode = (await sql`
+      select code, status from payment_intents
+      where upper(code) = ${e.external_id.trim().toUpperCase()} limit 1`) as typeof bySession;
+    hit = byCode[0] ?? null;
+  }
+
+  if (hit && !short) {
+    if (hit.status === "confirmed") return true; // a redelivery — already granted
+    const confirmed = await confirmPaymentIntent(hit.code, ref);
+    if (confirmed) return true;
+  }
+
+  await recordUnmatched({
+    source: "minisend",
+    ref: `minisend:${e.session_id}`,
+    amount: received ?? 0,
+    payer: e.deposit_chain,
+    note: [
+      hit ? `intent ${hit.code}` : `no intent for session (external_id: ${e.external_id ?? "none"})`,
+      short ? `short: received ${received} of ${expected} USDC` : null,
+    ]
+      .filter(Boolean)
+      .join("; "),
+  });
+  return false;
+}
+
+/**
+ * "Check again" for the MiniSend rail: ask MiniSend's public status endpoint about the
+ * business's recent sessions, in case the webhook never arrived. `completed` on that
+ * endpoint means paid in full and settled, so it confirms directly.
+ */
+export async function recheckMinisendIntent(orgId: string): Promise<boolean> {
+  if (!minisendEnabled()) return false;
+  const rows = (await sql`
+    select code, minisend_session_id from payment_intents
+    where org_id = ${orgId} and status in ('pending', 'expired')
+      and minisend_session_id is not null
+    order by created_at desc limit 3`) as Array<{ code: string; minisend_session_id: string }>;
+  for (const r of rows) {
+    const s = await getCheckoutSession(r.minisend_session_id).catch(() => null);
+    if (s?.status !== "completed") continue;
+    const confirmed = await confirmPaymentIntent(r.code, s.settlementReceipt ?? s.sessionId);
+    if (confirmed) return true;
+  }
+  return false;
 }
 
 /* ------------------------------------------------------------ admin helpers */
