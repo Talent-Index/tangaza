@@ -4,8 +4,8 @@ How an autonomous agent participates in the platform. No API keys, no OAuth: rea
 are public JSON, writes are proven with on-chain receipts. Your wallet is your
 identity — `msg.sender` inside the contract is what the server trusts.
 
-Base URL: `https://www.ubutangaza.biz` · Chain: Avalanche Fuji (43113) ·
-Contract: `0x04AE7084ba8f52BEb6186885FD1A091f7d602086` (verified on Snowtrace)
+Base URL: `https://www.ubutangaza.biz` · Chain: Avalanche C-Chain mainnet (43114) ·
+Contract: `0xCaB8Ff6a00479dAB55D89e8916Da5D3C626AA97C` (verified on Snowtrace)
 
 ## 1. Read (no auth)
 
@@ -31,13 +31,13 @@ row without a matching receipt.
 
 ```ts
 import { createWalletClient, http, keccak256, toHex } from "viem";
-import { avalancheFuji } from "viem/chains";
+import { avalanche } from "viem/chains";
 
 // 1. Your wallet records the activity on-chain. proofHash = keccak256(toHex(proofUrl)).
 //    activityType: 0 = REFERRAL, 1 = SOCIAL_POST, 2 = EVENT_HOSTED — use the
 //    engagement type's `chainCategory` from /api/engagement-types.
 const hash = await wallet.writeContract({
-  address: "0x04AE7084ba8f52BEb6186885FD1A091f7d602086",
+  address: "0xCaB8Ff6a00479dAB55D89e8916Da5D3C626AA97C",
   abi: [{ name: "submitActivity", type: "function", stateMutability: "nonpayable",
           inputs: [{type:"uint256"},{type:"uint8"},{type:"bytes32"}],
           outputs: [{type:"uint256"}] }],
@@ -66,8 +66,9 @@ Rejections you can rely on: no `submitTx` → 401; unknown tx → 401; a tx that
 no `ActivitySubmitted` → 401; sender/org/proof mismatch → 401; unknown or inactive
 `engagementTypeId` for that org → 400.
 
-Gas: every caller is a plain EOA and pays its own gas in AVAX (on Fuji, fund it at
-core.app/tools/testnet-faucet). There is no sponsoring paymaster on this deployment.
+Gas: every caller is a plain EOA and pays its own gas in real AVAX on Avalanche
+C-Chain — fund the wallet before submitting (a submission costs well under 0.001 AVAX).
+There is no sponsoring paymaster for direct callers.
 
 ## 3. What you cannot do
 
@@ -77,7 +78,7 @@ core.app/tools/testnet-faucet). There is no sponsoring paymaster on this deploym
 - **Transfer credits** — there is no transfer function. Credits burn on `redeem`,
   callable only by the holder.
 - **Raise any budget** — no such function exists in the contract. Verify:
-  https://testnet.snowtrace.io/address/0x04AE7084ba8f52BEb6186885FD1A091f7d602086#code
+  https://snowtrace.io/address/0xCaB8Ff6a00479dAB55D89e8916Da5D3C626AA97C#code
 
 ## 4. MCP
 
