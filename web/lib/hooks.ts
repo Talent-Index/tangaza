@@ -405,7 +405,7 @@ export function useJoinedCampaigns(address?: string) {
   );
 }
 
-/** Upcoming and past campaigns for the timeline discovery page. */
+/** Live, not-yet-started, and previous campaigns for the home and the campaigns page. */
 export function useDiscoverCampaigns() {
   return useAsync<CampaignWithOrg[]>(
     async () => {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { CampaignGroups } from "@/components/customer/CampaignGroups";
 import { CustomerShell } from "@/components/customer/Shell";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { SessionRestoreScreen } from "@/components/customer/SessionRestore";
@@ -11,7 +12,13 @@ import { MILESTONE_ACTIVITIES } from "@/lib/chain";
 import { isConfigured } from "@/lib/client";
 import { timeAgo } from "@/lib/format";
 import { firstNameFrom } from "@/lib/greeting";
-import { useDisplayName, useMyCommunities, usePendingActivities } from "@/lib/hooks";
+import {
+  useDiscoverCampaigns,
+  useDisplayName,
+  useJoinedCampaigns,
+  useMyCommunities,
+  usePendingActivities,
+} from "@/lib/hooks";
 import { useAdvocateSession } from "@/lib/session";
 import type { PendingActivity } from "@/lib/types";
 
@@ -128,6 +135,12 @@ function Home({ address }: { address: string }) {
   const communities = useMyCommunities(address);
   // No status filter: one poll returns every submission, newest first, in all three states.
   const activity = usePendingActivities({ advocate: address });
+  const discover = useDiscoverCampaigns();
+  const joined = useJoinedCampaigns(address);
+  const leadIds = useMemo(
+    () => new Set((joined.data ?? []).map((c) => c.id)),
+    [joined.data]
+  );
 
   const [showAll, setShowAll] = useState(false);
 
@@ -172,6 +185,15 @@ function Home({ address }: { address: string }) {
         <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl light:mt-0">Hi, {first}</h1>
         <p className="mt-3 text-base text-mist-400">{sub}</p>
       </header>
+
+      <CampaignGroups
+        campaigns={discover.data ?? undefined}
+        loading={discover.loading}
+        error={discover.error}
+        leadIds={leadIds}
+        columns="stack"
+        previousEmpty="Closed campaigns and campaigns past their end date show up here, including ones you joined."
+      />
 
       {/* Progress: a bar in the dark look, a ring in the light one. */}
       {next ? (
