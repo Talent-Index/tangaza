@@ -38,7 +38,7 @@ export function CampaignTimeline({
     const shown =
       tab === "upcoming"
         ? list
-            .filter(isCampaignUpcoming)
+            .filter((c) => isCampaignLive(c) || isCampaignUpcoming(c))
             .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
         : list
             .filter(isCampaignPast)

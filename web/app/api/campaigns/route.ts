@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (params.get("discover") === "true") {
+    // Live, not-yet-started, and previous (closed or ended). The client splits them.
     const campaigns = await listAllCampaignsDiscover();
     return NextResponse.json({ campaigns });
   }
