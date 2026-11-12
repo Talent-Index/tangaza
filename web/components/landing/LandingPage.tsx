@@ -3,11 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { CampaignGroups } from "@/components/customer/CampaignGroups";
 import { FeedbackFab, FeedbackSection } from "@/components/feedback/Feedback";
 import { Icon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteChrome";
 import { ThemeToggle } from "@/components/theme";
 import { addressUrl } from "@/lib/chain";
+import { useDiscoverCampaigns } from "@/lib/hooks";
 
 interface Stats {
   awaiting: number | null;
@@ -71,6 +73,7 @@ export function LandingPage() {
         <Band />
         <HowItWorks />
         <SalonExample />
+        <RealCampaigns />
         <PickYourMoment />
         <BuildTogether stats={stats} />
         <Faq />
@@ -412,13 +415,29 @@ const TEMPLATES = [
   },
 ];
 
+function RealCampaigns() {
+  const campaigns = useDiscoverCampaigns();
+  return (
+    <section id="campaigns" className="scroll-mt-16 px-4 pb-10 sm:px-6 sm:pb-14">
+      <div className="mx-auto max-w-6xl">
+        <CampaignGroups
+          campaigns={campaigns.data ?? undefined}
+          loading={campaigns.loading}
+          error={campaigns.error}
+          previousEmpty="When a business closes a campaign, or its end date passes, it stays here. You can still open it and see what the reward was."
+        />
+      </div>
+    </section>
+  );
+}
+
 function PickYourMoment() {
   return (
-    <section id="campaigns" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
+    <section id="for-businesses" className="scroll-mt-16 px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className={KICKER}>Ready-made campaigns</p>
+            <p className={KICKER}>For businesses</p>
             <h2 className={`${POSTER} mt-5 text-[clamp(2.5rem,7vw,4.25rem)]`}>
               Pick your
               <br />
@@ -426,7 +445,7 @@ function PickYourMoment() {
             </h2>
           </div>
           <Link
-            href="/campaigns"
+            href="#campaigns"
             className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold-text underline underline-offset-8"
           >
             See all campaigns <Icon name="arrow-up-right" className="size-3.5" />
