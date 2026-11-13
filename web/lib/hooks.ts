@@ -371,6 +371,10 @@ export interface Campaign {
   /** Approved actions one person needs to earn it. */
   rewardThreshold?: number;
   rewardRepeats: boolean;
+  /** Set only on records from the Fuji testnet pilot (lib/testnet-archive.ts). */
+  network?: "testnet";
+  /** Testnet record of a campaign that was started again on mainnet under the same slug. */
+  continuesOnMainnet?: boolean;
 }
 
 export interface CampaignWithOrg extends Campaign {

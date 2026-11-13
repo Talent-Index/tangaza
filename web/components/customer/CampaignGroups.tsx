@@ -165,6 +165,8 @@ function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
   const target = targetFact(c);
   const reward = rewardFact(c);
   const initials = businessInitials(c.orgName);
+  const testnet = c.network === "testnet";
+  const href = testnet ? `/testnet/${c.slug}` : `/c/${c.slug}`;
 
   return (
     <article
@@ -178,7 +180,15 @@ function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
           aria-hidden
           className="absolute inset-0 bg-[linear-gradient(180deg,rgba(19,16,8,0.45)_0%,rgba(19,16,8,0)_35%,rgba(19,16,8,0)_55%,rgba(19,16,8,0.8)_100%)]"
         />
-        <div className="absolute left-4 top-4 z-[1]">
+        <div className="absolute left-4 top-4 z-[1] flex flex-wrap gap-2">
+          {testnet ? (
+            <span
+              className="inline-flex rounded-full bg-[rgba(19,16,8,0.75)] px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-gold"
+              title="Ran on the Avalanche Fuji testnet during the pilot"
+            >
+              Testnet
+            </span>
+          ) : null}
           {live ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-ok-bg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ok">
               <span
@@ -224,19 +234,19 @@ function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
             <AmbassadorDots count={c.participantCount} />
             <span>
               {c.participantCount === 0 ? (
-                "No Ambassadors taking part yet"
+                testnet ? "No Ambassadors took part" : "No Ambassadors taking part yet"
               ) : (
                 <>
                   <b className="font-bold text-mist-100">
                     {c.participantCount === 1 ? "1 Ambassador" : `${c.participantCount} Ambassadors`}
                   </b>{" "}
-                  taking part
+                  {testnet ? "took part" : "taking part"}
                 </>
               )}
             </span>
           </p>
           <Link
-            href={`/c/${c.slug}`}
+            href={href}
             className={`inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-full px-5 py-3 font-mono text-[12px] font-semibold uppercase tracking-[0.12em] no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:ml-auto sm:w-auto ${
               ended
                 ? "border border-ink-600 bg-transparent text-mist-300 hover:border-ink-500 hover:text-mist-100 light:border-ink-700"
