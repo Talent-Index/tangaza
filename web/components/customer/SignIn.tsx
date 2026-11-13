@@ -56,7 +56,14 @@ const SOCIAL_HINTS = {
  * The tradeoff: <AutoConnect /> in app/providers.tsx now has to restore the session on
  * reload, because that came free with ConnectButton.
  */
-export function SignIn({ kicker = "Ambassadors portal" }: { kicker?: string }) {
+export function SignIn({
+  kicker = "Ambassadors portal",
+  embedded = false,
+}: {
+  kicker?: string;
+  /** Hides the kicker and the extra top gap when the page already has its own heading. */
+  embedded?: boolean;
+}) {
   /**
    * No accountAbstraction here, on purpose: a browser wallet connects as itself. The
    * address the app acts as is the extension's own, transactions pop the extension,
@@ -251,10 +258,10 @@ export function SignIn({ kicker = "Ambassadors portal" }: { kicker?: string }) {
         </form>
       ) : (
         <>
-          {kicker ? (
+          {!embedded && kicker ? (
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">{kicker}</p>
           ) : null}
-          <div className="mt-4 flex flex-col gap-2.5">
+          <div className={`${embedded ? "" : "mt-4 "}flex flex-col gap-2.5`}>
             <ProviderRow
               mark={<GoogleMark />}
               title="Continue with Google"
