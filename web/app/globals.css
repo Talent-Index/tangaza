@@ -228,6 +228,97 @@ html.light .card {
   animation: fade-up 0.6s ease-out both;
 }
 
+/* Sign-in page. Interaction motion stays under 600ms. The glow and the
+   megaphone are slower on purpose — they are ambient, not a transition.
+   Everything is gated on no-preference so reduced motion shows the page still. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes auth-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes auth-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(6%, 8%, 0) scale(1.08);
+    }
+  }
+
+  @keyframes auth-wiggle {
+    0%,
+    72%,
+    100% {
+      transform: rotate(0deg);
+    }
+    80% {
+      transform: rotate(-8deg);
+    }
+    88% {
+      transform: rotate(6deg);
+    }
+    94% {
+      transform: rotate(-3deg);
+    }
+  }
+
+  /* `backwards` only hides the element during the delay. When the animation
+     ends — or never runs — the element keeps its normal opacity. `both` held
+     a transform afterwards, and a full-page capture then dropped the card. */
+  .auth-rise {
+    animation: auth-rise 0.48s ease-out backwards;
+  }
+  .auth-d1 { animation-delay: 40ms; }
+  .auth-d2 { animation-delay: 120ms; }
+  .auth-d3 { animation-delay: 200ms; }
+  .auth-d4 { animation-delay: 280ms; }
+  .auth-d5 { animation-delay: 360ms; }
+
+  .auth-drift {
+    animation: auth-drift 16s ease-in-out infinite;
+  }
+  .auth-drift-late {
+    animation: auth-drift 20s ease-in-out infinite reverse;
+  }
+
+  .auth-wiggle {
+    transform-origin: 40% 70%;
+    animation: auth-wiggle 3.4s ease-in-out infinite;
+  }
+
+  .auth-lift {
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+  .auth-lift:hover {
+    transform: translateY(-3px);
+  }
+
+  .auth-page main button:not(.auth-no-lift):not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Reduced motion, and any capture that never starts the entrance: the card
+   stays put. The global duration cut does not clear a delay, so cancel it. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-rise,
+  .auth-wiggle,
+  .auth-drift,
+  .auth-drift-late {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
