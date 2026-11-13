@@ -16,8 +16,8 @@ import {
 } from "@/components/org/nav";
 import { OrgProfileMenu } from "@/components/org/ProfileMenu";
 import { ThemeToggle } from "@/components/theme";
-import { useToast } from "@/components/toast";
-import { Spinner } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
+import { useOrgSignOut } from "@/lib/org-sign-out";
 import { ORG_ID, addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
 import { shortAddress } from "@/lib/format";
@@ -356,20 +356,10 @@ function WithOrgAccess({
    */
   if (!access.data) {
     return (
-      <div className="mx-auto max-w-md space-y-4 py-24 text-center">
-        <p className="text-sm font-semibold text-mist-100">Couldn&rsquo;t verify your business</p>
-        <p className="text-sm text-mist-500">
-          {access.error ?? "The network didn't answer in time."} Nothing is shown until we can
-          confirm which business this account approves for.
-        </p>
-        <button
-          type="button"
-          onClick={access.refresh}
-          className="inline-flex min-h-10 items-center rounded-full bg-crimson-500 px-5 text-sm font-semibold text-white transition hover:bg-crimson-400"
-        >
-          Try again
-        </button>
-      </div>
+      <CouldntVerifyBusiness
+        message={access.error ?? "The network didn't answer in time."}
+        onRetry={access.refresh}
+      />
     );
   }
 
@@ -388,6 +378,37 @@ function WithOrgAccess({
   );
 }
 
+/** Shown when the org walk fails and we refuse to guess which business this account runs. */
+function CouldntVerifyBusiness({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  const signOut = useOrgSignOut();
+  return (
+    <div className="mx-auto max-w-md space-y-4 py-24 text-center">
+      <p className="text-sm font-semibold text-mist-100">Couldn&rsquo;t verify your business</p>
+      <p className="text-sm text-mist-500">
+        {message} Nothing is shown until we can confirm which business this account approves for.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex min-h-10 items-center rounded-full bg-crimson-500 px-5 text-sm font-semibold text-white transition hover:bg-crimson-400"
+        >
+          Try again
+        </button>
+        <Button type="button" variant="danger" onClick={signOut}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * What a wallet with no on-chain business sees.
  *
@@ -403,6 +424,7 @@ function NoBusinessYet({
   address: string;
   applications: ApplicationSummary[];
 }) {
+  const signOut = useOrgSignOut();
   const pending = applications.find((a) => a.status === "signed");
   const registered = applications.find((a) => a.status === "registered");
 
@@ -459,6 +481,11 @@ function NoBusinessYet({
           login mints its own account, so if you pledged with a different one, sign out
           and back in with that.
         </p>
+        <div className="mt-4">
+          <Button type="button" variant="danger" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
       </div>
     </div>
   );
