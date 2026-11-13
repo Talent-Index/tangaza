@@ -88,7 +88,7 @@ const RECORDS: TestnetRecord[] = [
     "participantCount": 1,
     "approvedCount": 1,
     "kind": "campaign",
-    "orgName": "Nancy Bakes"
+    "orgName": "Daniel"
   },
   {
     "slug": "builders-on-avalanche",
@@ -99,7 +99,7 @@ const RECORDS: TestnetRecord[] = [
     "participantCount": 1,
     "approvedCount": 1,
     "kind": "campaign",
-    "orgName": "Nancy Bakes"
+    "orgName": "Daniel"
   },
   {
     "slug": "launch-week",
@@ -132,7 +132,7 @@ const RECORDS: TestnetRecord[] = [
     "participantCount": 10,
     "approvedCount": 4,
     "kind": "campaign",
-    "orgName": "Nancy Bakes"
+    "orgName": "Daniel"
   }
 ];
 
