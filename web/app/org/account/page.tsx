@@ -1,12 +1,12 @@
 "use client";
 
-import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
+import { useActiveAccount } from "thirdweb/react";
 import { initialsFrom } from "@/lib/identity";
 import { useBusinessDetails, useCredentialEmail, useDisplayName } from "@/lib/hooks";
+import { useOrgSignOut } from "@/lib/org-sign-out";
 import { describeLocation, describeSocials } from "@/lib/types";
 import { OrgShell, useOrgAccessContext } from "@/components/org/Shell";
 import { ThemeToggle, useTheme } from "@/components/theme";
-import { useToast } from "@/components/toast";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { addressUrl } from "@/lib/chain";
 import { CONTRACT_ADDRESS } from "@/lib/client";
@@ -22,9 +22,7 @@ export default function OrgAccountPage() {
 
 function AccountSettings() {
   const account = useActiveAccount();
-  const wallet = useActiveWallet();
-  const { disconnect } = useDisconnect();
-  const { success } = useToast();
+  const signOut = useOrgSignOut();
   const { theme, setTheme } = useTheme();
   const { orgId, orgName, isApprover } = useOrgAccessContext();
   const details = useBusinessDetails(orgId);
@@ -33,11 +31,6 @@ function AccountSettings() {
 
   if (!account) return null;
   const initials = initialsFrom(name, email);
-
-  function signOut() {
-    if (wallet) disconnect(wallet);
-    success("Signed out");
-  }
 
   return (
     <div className="animate-rise space-y-6 md:space-y-8">
