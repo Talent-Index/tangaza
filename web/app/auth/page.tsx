@@ -154,7 +154,7 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <aside className="auth-lift auth-rise auth-d3 card hidden p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)] light:shadow-[0_18px_40px_-24px_rgba(90,60,20,0.28)] md:block sm:p-7">
+          <aside className="auth-lift card max-md:hidden p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)] light:shadow-[0_18px_40px_-24px_rgba(90,60,20,0.28)] sm:p-7">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <FadeSwap

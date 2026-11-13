@@ -270,8 +270,11 @@ html.light .card {
     }
   }
 
+  /* `backwards` only hides the element during the delay. When the animation
+     ends — or never runs — the element keeps its normal opacity. `both` held
+     a transform afterwards, and a full-page capture then dropped the card. */
   .auth-rise {
-    animation: auth-rise 0.48s ease-out both;
+    animation: auth-rise 0.48s ease-out backwards;
   }
   .auth-d1 { animation-delay: 40ms; }
   .auth-d2 { animation-delay: 120ms; }
@@ -300,6 +303,19 @@ html.light .card {
 
   .auth-page main button:not(.auth-no-lift):not(:disabled):hover {
     transform: translateY(-2px);
+  }
+}
+
+/* Reduced motion, and any capture that never starts the entrance: the card
+   stays put. The global duration cut does not clear a delay, so cancel it. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-rise,
+  .auth-wiggle,
+  .auth-drift,
+  .auth-drift-late {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
