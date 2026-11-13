@@ -80,6 +80,21 @@ export default function AuthPage() {
           <p className="mt-4 max-w-md text-base leading-relaxed text-mist-300 sm:text-lg">
             New here or coming back? Sign in to join campaigns, send proof and track your rewards.
           </p>
+          <p className="relative z-10 mt-4 text-center text-sm leading-loose text-mist-500">
+            Run a business?{" "}
+            <Link href="/register" className="font-bold text-gold-text underline underline-offset-4">
+              Start your free campaign
+            </Link>
+            <br />
+            <Link href="/org" className="underline underline-offset-4 hover:text-mist-100">
+              Sign in as a business
+            </Link>
+            <br />
+            Need help?{" "}
+            <Link href="/book" className="font-bold text-gold-text underline underline-offset-4">
+              Book a 5-minute call
+            </Link>
+          </p>
           <ul className="mt-6 hidden flex-col gap-3 text-[15px] sm:flex">
             {[
               "Join campaigns from shops you like",
@@ -105,21 +120,6 @@ export default function AuthPage() {
           <div className="card relative z-10 p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)] sm:p-8">
             <SignIn />
           </div>
-          <p className="relative z-10 mt-4 text-center text-sm leading-loose text-mist-500">
-            Run a business?{" "}
-            <Link href="/register" className="font-bold text-gold-text underline underline-offset-4">
-              Start your free campaign
-            </Link>
-            <br />
-            <Link href="/org" className="underline underline-offset-4 hover:text-mist-100">
-              Sign in as a business
-            </Link>
-            <br />
-            Need help?{" "}
-            <Link href="/book" className="font-bold text-gold-text underline underline-offset-4">
-              Book a 5-minute call
-            </Link>
-          </p>
         </div>
       </main>
     </div>
