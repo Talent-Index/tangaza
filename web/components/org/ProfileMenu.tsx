@@ -92,7 +92,7 @@ export function OrgProfileMenu() {
             href="/org/account"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-mist-200 transition hover:bg-ink-800 hover:text-mist-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-mist-100 transition hover:bg-ink-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           >
             Account &amp; settings
           </Link>
