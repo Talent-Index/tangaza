@@ -31,14 +31,14 @@ export const CAMPAIGN_RECIPES: CampaignRecipe[] = [
   {
     id: "bring-a-friend",
     icon: "🤝",
-    title: "Bring a friend",
-    outcome: "Regulars share their link; every friend who joins is counted to them.",
-    gives: "Starts at a KES 200 voucher per 2 friends — change it on the next screen.",
+    title: "Bring a new customer",
+    outcome: "Your customers bring you someone new. You approve each new customer who comes in or pays.",
+    gives: "Suggested reward: airtime for each new customer. You can change it.",
     draft: {
       goalType: "community",
       goalTarget: "20",
       goalLabel: "friends brought",
-      title: "Bring a friend",
+      title: "Bring a new customer",
       blurb:
         "Know someone who'd love this place? Bring them along — every friend you bring counts, and we'll thank you for it.",
       rewardKind: "voucher",
@@ -51,8 +51,8 @@ export const CAMPAIGN_RECIPES: CampaignRecipe[] = [
     id: "slow-days",
     icon: "📅",
     title: "Fill quiet days",
-    outcome: "People book ahead for the days you choose; each booking is counted.",
-    gives: "Starts at 10% off per booking — change it on the next screen.",
+    outcome: "Get more people in on your slow days. Book ahead, and there's something in it for them.",
+    gives: "Suggested reward: a discount from the shop. You can change it.",
     draft: {
       goalType: "bookings",
       goalTarget: "15",
@@ -68,8 +68,8 @@ export const CAMPAIGN_RECIPES: CampaignRecipe[] = [
     id: "launch",
     icon: "🚀",
     title: "Launch something new",
-    outcome: "Your community pushes the new thing; sign-ups are counted to whoever brought them.",
-    gives: "Starts at a free taste of the new thing per 3 sign-ups.",
+    outcome: "Get people to try your new product or service and tell others about it.",
+    gives: "Suggested reward: gifts from the shop. You can change it.",
     draft: {
       goalType: "launch",
       goalTarget: "30",
@@ -85,8 +85,8 @@ export const CAMPAIGN_RECIPES: CampaignRecipe[] = [
     id: "talked-about",
     icon: "📣",
     title: "Get talked about",
-    outcome: "Customers post about you with proof; every approved post is counted.",
-    gives: "Starts at KES 100 airtime per 5 posts — change it on the next screen.",
+    outcome: "Customers post about you or share your offer. You check each post.",
+    gives: "Suggested reward: airtime. You can change it.",
     draft: {
       goalType: "awareness",
       goalTarget: "25",
@@ -120,11 +120,9 @@ export function RecipePicker({
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
             New campaign
           </p>
-          <h2 className="mt-1 text-lg font-bold leading-snug sm:text-xl">
-            What do you want more of?
-          </h2>
-          <p className="mt-1 text-sm text-mist-400">
-            Pick one and it&rsquo;s ready to launch — you just set what you&rsquo;ll give.
+          <h2 className="poster mt-2 text-4xl sm:text-5xl">Pick a ready-made campaign.</h2>
+          <p className="mt-2 text-sm text-mist-400">
+            Pick one. We fill in the details, you choose the reward.
           </p>
         </div>
         <button

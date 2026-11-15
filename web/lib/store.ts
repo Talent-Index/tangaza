@@ -1656,7 +1656,12 @@ export async function listAllActiveCampaigns(): Promise<CampaignWithOrg[]> {
     .filter((c) => !isObviouslyTestCampaign(c));
 }
 
-/** All campaigns on the platform — upcoming and past — for the campaigns timeline. */
+/**
+ * Every campaign on the platform — live, not yet started, and previous — for the
+ * public home and the signed-in lists. Closed campaigns stay in the result: the
+ * business ends one by setting active to false, and Previous is where that row goes.
+ * Live-only reads use listAllActiveCampaigns.
+ */
 export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
   const rows = (await sql`
     select c.*, coalesce(nullif(o.display_name, ''), o.name) as org_name,
@@ -1677,7 +1682,6 @@ export async function listAllCampaignsDiscover(): Promise<CampaignWithOrg[]> {
       where campaign_id is not null and status in ('approved', 'pending')
       group by campaign_id
     ) sc on sc.campaign_id = c.id
-    where c.active
     group by c.id, o.name, o.display_name
     order by c.starts_at desc`) as Array<Record<string, unknown>>;
   return rows

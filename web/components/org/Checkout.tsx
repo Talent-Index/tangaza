@@ -9,12 +9,17 @@ import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /**
  * Campaign-credit checkout. The first 2 campaigns are free; after that a campaign
- * costs a credit, bought by M-Pesa against an exact amount + reference code minted by
- * the server (/api/billing). Nothing here knows a price — every number is served.
+ * costs a credit, bought against a reference code minted by the server (/api/billing).
+ * Nothing here knows a price — every number is served.
  *
- * Attribution is the exact amount AND the reference, so the panel's whole job is to
- * make those two things impossible to get wrong: the amount is the headline, the code
- * is one tap to copy, and "I've paid" opens WhatsApp with both prefilled.
+ * Two ways to pay, chosen by the server (billing.rails):
+ *   MiniSend — the intent carries a hosted checkout link; the business pays by M-Pesa
+ *   or USDC on MiniSend's page and the webhook unlocks this panel. The link outlives
+ *   nothing: MiniSend sessions last 30 minutes, so an expired one is re-minted by the
+ *   same signed POST that opened the checkout.
+ *   Manual — exact amount + reference, so the panel's whole job is to make those two
+ *   things impossible to get wrong: the amount is the headline, the code is one tap to
+ *   copy, and "I've paid" opens WhatsApp with both prefilled.
  */
 
 export interface BillingView {
@@ -27,17 +32,32 @@ export interface BillingView {
   paymentRequired: boolean;
   pendingIntent: IntentView | null;
   receipts: IntentView[];
+  /** Which payment rails the server has switched on. */
+  rails: { minisend: boolean };
 }
 
 export interface IntentView {
   code: string;
   credits: number;
   amountKes: number;
+  /** The USD price the hosted checkout charges; null until a price is known. */
+  amountUsd: number | null;
   status: string;
   matchedRef: string | null;
   expiresAt: string;
   createdAt: string;
+  /** MiniSend hosted checkout, only while its 30-minute session is still live. */
+  checkoutUrl: string | null;
+  checkoutExpiresAt: string | null;
 }
+
+const fmtWhen = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 export function useBilling(orgId: bigint) {
   const [data, setData] = useState<{ billing: BillingView; instructions: string | null } | null>(
@@ -112,12 +132,21 @@ export function CheckoutPanel({
   const { success, error: toastError } = useToast();
   const intent = billing.pendingIntent;
 
-  // While a checkout is open, watch for the concierge confirming the payment.
+  // While a checkout is open, watch for the payment landing (webhook or concierge).
   useEffect(() => {
     if (!intent) return;
     const t = setInterval(() => void onRefresh(), 20_000);
     return () => clearInterval(t);
   }, [intent, onRefresh]);
+
+  // Back from MiniSend (?session_id=…&status=…): the URL status is a hint, not proof,
+  // so ask the server to check the session rather than trusting the query string.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!new URLSearchParams(window.location.search).has("session_id")) return;
+    void recheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
 
   async function start() {
     if (!account) return;
@@ -153,7 +182,7 @@ export function CheckoutPanel({
     }
   }
 
-  /** "Check again": kick the on-chain watcher, then pull fresh status. */
+  /** "Check again": kick the on-chain watcher and the MiniSend status check, then pull fresh status. */
   async function recheck() {
     try {
       await fetch("/api/billing/recheck", {
@@ -219,35 +248,60 @@ export function CheckoutPanel({
 
       {intent ? (
         <>
-          <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4">
-            <p className="text-sm text-mist-400">Pay exactly</p>
-            <p className="mt-1 text-3xl font-black tabular-nums">
-              KES {intent.amountKes.toLocaleString("en-GB")}
-            </p>
-            <p className="mt-3 text-sm text-mist-400">Reference</p>
-            <div className="mt-1 flex items-center gap-2">
-              <code className="rounded-lg bg-ink-850 px-3 py-2 text-base font-bold tracking-wider text-crimson-300">
-                {intent.code}
-              </code>
-              <Button type="button" variant="ghost" onClick={copyCode}>
-                {copied ? "Copied ✓" : "Copy"}
-              </Button>
+          {intent.checkoutUrl ? (
+            <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4">
+              <p className="text-sm text-mist-400">One campaign credit</p>
+              <p className="mt-1 text-3xl font-black tabular-nums">
+                USD {(intent.amountUsd ?? 0).toFixed(2)}
+                <span className="ml-2 text-base font-semibold text-mist-400">
+                  ≈ KES {intent.amountKes.toLocaleString("en-GB")}
+                </span>
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-mist-500">
+                Pay by M-Pesa or USDC on the next screen — the M-Pesa amount is set there at
+                today&rsquo;s rate. Your reference is{" "}
+                <code className="font-bold text-crimson-300">{intent.code}</code>. This link
+                is good until {fmtWhen(intent.checkoutExpiresAt ?? intent.expiresAt)}.
+              </p>
+              <a
+                href={intent.checkoutUrl}
+                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-crimson-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-crimson-400 sm:w-auto sm:px-6"
+              >
+                Pay now →
+              </a>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-mist-500">
-              {instructions ??
-                "We'll send the M-Pesa payment details on WhatsApp — tap “I’ve paid / get details” below."}{" "}
-              The exact amount matters: it's how your payment finds you. Valid until{" "}
-              {new Date(intent.expiresAt).toLocaleString("en-GB", {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              .
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4">
+              <p className="text-sm text-mist-400">Pay exactly</p>
+              <p className="mt-1 text-3xl font-black tabular-nums">
+                KES {intent.amountKes.toLocaleString("en-GB")}
+              </p>
+              <p className="mt-3 text-sm text-mist-400">Reference</p>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="rounded-lg bg-ink-850 px-3 py-2 text-base font-bold tracking-wider text-crimson-300">
+                  {intent.code}
+                </code>
+                <Button type="button" variant="ghost" onClick={copyCode}>
+                  {copied ? "Copied ✓" : "Copy"}
+                </Button>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-mist-500">
+                {billing.rails.minisend
+                  ? "Your payment link has expired — get a fresh one below, or pay manually."
+                  : (instructions ??
+                    "We'll send the M-Pesa payment details on WhatsApp — tap “I’ve paid / get details” below.")}{" "}
+                The exact amount matters: it's how your payment finds you. Valid until{" "}
+                {fmtWhen(intent.expiresAt)}.
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {billing.rails.minisend && !intent.checkoutUrl ? (
+              <Button type="button" onClick={start} disabled={starting || !account}>
+                {starting ? <Spinner className="size-4" /> : "Get a fresh payment link"}
+              </Button>
+            ) : null}
             {CONTACT.whatsapp ? (
               <a
                 href={`${CONTACT.whatsapp}?text=${encodeURIComponent(paidMsg)}`}
@@ -263,8 +317,9 @@ export function CheckoutPanel({
             </Button>
           </div>
           <p className="text-xs text-mist-500">
-            Once the payment lands it&rsquo;s matched to your reference or exact amount and
-            this unlocks itself — usually within minutes.
+            {intent.checkoutUrl
+              ? "Once you've paid, this unlocks itself — usually within a minute. If it doesn't, tap Check again."
+              : "Once the payment lands it’s matched to your reference or exact amount and this unlocks itself — usually within minutes."}
           </p>
         </>
       ) : billing.nextPriceKes !== null ? (
@@ -274,7 +329,8 @@ export function CheckoutPanel({
               KES {billing.nextPriceKes.toLocaleString("en-GB")}
             </p>
             <p className="mt-1 text-sm text-mist-400">
-              One campaign credit · paid by M-Pesa · you get a receipt here
+              One campaign credit · {billing.rails.minisend ? "M-Pesa or USDC" : "paid by M-Pesa"} ·
+              you get a receipt here
             </p>
           </div>
           {error ? <ErrorNote>{error}</ErrorNote> : null}

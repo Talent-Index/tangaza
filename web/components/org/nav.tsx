@@ -14,15 +14,15 @@ export const PRIMARY_NAV: OrgNavItem[] = [
   { href: "/org/overview", label: "Overview", icon: "overview" },
   { href: "/org/campaigns", label: "Campaigns", icon: "campaigns" },
   { href: "/org", label: "Approvals", icon: "approvals" },
-  { href: "/org/clients", label: "Clients", icon: "clients" },
+  { href: "/org/clients", label: "Customers", icon: "clients" },
 ];
 
 /** Set-and-forget configuration. On desktop it sits in the bar; on phones behind "More". */
-export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Rewards", icon: "rewards" };
+export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Actions & levels", icon: "rewards" };
 
 /** Budget and side tools — the "Budget & tools" group. */
 export const TOOLS_NAV: OrgNavItem[] = [
-  { href: "/org/liability", label: "Liability", icon: "liability" },
+  { href: "/org/liability", label: "What you owe", icon: "liability" },
   { href: "/org/referrals", label: "Referrals", icon: "pilot" },
   { href: "/org/billing", label: "Billing", icon: "billing" },
 ];

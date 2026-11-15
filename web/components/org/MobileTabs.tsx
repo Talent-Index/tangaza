@@ -13,6 +13,7 @@ import {
   isOrgNavActive,
   type OrgNavItem,
 } from "@/components/org/nav";
+import { useOrgSignOut } from "@/lib/org-sign-out";
 
 /**
  * Phone navigation: a fixed bottom bar with the four weekly destinations and a "More"
@@ -178,8 +179,45 @@ function MoreSheet({ pathname, onClose }: { pathname: string; onClose: () => voi
             <SheetLink item={ACCOUNT_NAV} pathname={pathname} />
           </ul>
         </div>
+        <div className="mt-2 border-t border-ink-700 pt-2">
+          <ul>
+            <SignOutRow onDone={onClose} />
+          </ul>
+        </div>
       </div>
     </div>
+  );
+}
+
+function SignOutRow({ onDone }: { onDone: () => void }) {
+  const signOut = useOrgSignOut();
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => {
+          onDone();
+          signOut();
+        }}
+        className="flex min-h-12 w-full items-center gap-3 rounded-lg px-2 text-left text-[15px] font-medium text-danger-text transition hover:bg-ink-800"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-5 shrink-0"
+          aria-hidden
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <path d="M16 17l5-5-5-5" />
+          <path d="M21 12H9" />
+        </svg>
+        <span>Sign out</span>
+      </button>
+    </li>
   );
 }
 

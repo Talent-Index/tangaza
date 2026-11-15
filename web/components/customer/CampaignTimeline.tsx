@@ -1,205 +1,104 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import {
-  formatCampaignTime,
-  groupCampaignsByDay,
-  isCampaignLive,
-  isCampaignPast,
-  isCampaignUpcoming,
-} from "@/lib/campaigns";
+import Image from "next/image";
+import { useMemo } from "react";
+import { CampaignGroups } from "@/components/customer/CampaignGroups";
+import { isCampaignLive } from "@/lib/campaigns";
 import type { CampaignWithOrg } from "@/lib/hooks";
-import { EmptyState, Spinner } from "@/components/ui";
-
-type Tab = "upcoming" | "past";
 
 export function CampaignTimeline({
   campaigns,
   loading,
+  error,
+  leadIds,
 }: {
   campaigns: CampaignWithOrg[] | undefined;
   loading: boolean;
+  error?: string | null;
+  /** Joined campaigns are listed first inside each group. */
+  leadIds?: ReadonlySet<string>;
 }) {
-  const [tab, setTab] = useState<Tab>("upcoming");
-
-  const filtered = useMemo(() => {
+  const { liveNow, businesses } = useMemo(() => {
     const list = campaigns ?? [];
-    if (tab === "upcoming") {
-      return list
-        .filter(isCampaignUpcoming)
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-    }
-    return list
-      .filter(isCampaignPast)
-      .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-  }, [campaigns, tab]);
-
-  const groups = useMemo(
-    () => groupCampaignsByDay(filtered, tab === "upcoming" ? "asc" : "desc"),
-    [filtered, tab]
-  );
+    const live = list.filter(isCampaignLive);
+    return {
+      liveNow: live.length,
+      businesses: new Set(live.map((c) => c.orgId)).size,
+    };
+  }, [campaigns]);
 
   if (loading && !campaigns) {
     return (
-      <div className="grid place-items-center py-24">
-        <Spinner className="size-6" />
-      </div>
+      <CampaignGroups
+        campaigns={undefined}
+        loading
+        previousEmpty=""
+      />
     );
   }
 
   return (
-    <div className="animate-rise space-y-6 md:space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black md:text-3xl">Campaigns</h1>
-          <p className="mt-1 text-sm text-mist-500">
-            Browse what businesses are running — join live pushes or revisit past ones.
-          </p>
-        </div>
+    <div className="animate-rise">
+      <Hero liveNow={liveNow} businesses={businesses} />
 
-        <div
-          className="flex shrink-0 rounded-full border border-ink-700 bg-ink-850 p-1"
-          role="tablist"
-          aria-label="Campaign timeframe"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "upcoming"}
-            onClick={() => setTab("upcoming")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              tab === "upcoming"
-                ? "bg-ink-700 text-mist-100"
-                : "text-mist-500 hover:text-mist-300"
-            }`}
-          >
-            Upcoming
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "past"}
-            onClick={() => setTab("past")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              tab === "past"
-                ? "bg-ink-700 text-mist-100"
-                : "text-mist-500 hover:text-mist-300"
-            }`}
-          >
-            Past
-          </button>
-        </div>
-      </header>
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={tab === "upcoming" ? "◈" : "◎"}
-          title={tab === "upcoming" ? "No upcoming campaigns" : "No past campaigns"}
-          body={
-            tab === "upcoming"
-              ? "When a business launches a push, it will show up here."
-              : "Closed or ended campaigns will appear here once they wrap up."
-          }
+      <div className="mt-8 sm:mt-9">
+        <CampaignGroups
+          campaigns={campaigns}
+          loading={false}
+          error={error}
+          leadIds={leadIds}
+          previousEmpty="Closed campaigns and campaigns past their end date show up here, including ones you joined."
         />
-      ) : (
-        <div className="space-y-10">
-          {groups.map((group) => (
-            <section key={group.key}>
-              <p className="mb-3 text-xs font-semibold text-mist-400 md:hidden">{group.label}</p>
+      </div>
 
-              <div className="grid md:grid-cols-[minmax(0,7rem)_1fr] md:gap-x-6">
-                <div className="relative hidden pt-1 md:block">
-                  <p className="text-sm font-semibold leading-snug text-mist-400">{group.label}</p>
-                  <div
-                    className="absolute top-2 h-[calc(100%+2.5rem)] w-px bg-ink-600"
-                    style={{ left: "calc(100% + 1.25rem)" }}
-                    aria-hidden
-                  />
-                  <div
-                    className="absolute top-2.5 size-2 rounded-full bg-ink-500"
-                    style={{ left: "calc(100% + 1.125rem)" }}
-                    aria-hidden
-                  />
-                </div>
-
-                <ul className="min-w-0 space-y-3 md:space-y-4">
-                  {group.items.map((c) => (
-                    <li key={c.id}>
-                      <CampaignTimelineCard campaign={c} tab={tab} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
+      <p className="pt-12 text-[13px] text-mist-500">Ubu-Tangaza · ubutangaza.biz</p>
     </div>
   );
 }
 
-function CampaignTimelineCard({
-  campaign: c,
-  tab,
-}: {
-  campaign: CampaignWithOrg;
-  tab: Tab;
-}) {
-  const live = isCampaignLive(c);
-  const ended = tab === "past" || !c.active;
-
+function Hero({ liveNow, businesses }: { liveNow: number; businesses: number }) {
   return (
-    <article className="rounded-xl border border-ink-700 bg-ink-850 p-4 transition hover:border-ink-600 md:p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {live ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-jade-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-jade-400">
-                <span className="size-1.5 rounded-full bg-jade-400" aria-hidden />
-                Live
-              </span>
-            ) : ended ? (
-              <span className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mist-500">
-                Ended
-              </span>
-            ) : (
-              <span className="rounded-full bg-crimson-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-crimson-300">
-                Upcoming
-              </span>
-            )}
-            <span className="text-xs text-mist-500">{formatCampaignTime(c.startsAt)}</span>
-          </div>
-
-          <div>
-            <p className="text-xs text-mist-500">{c.orgName}</p>
-            <h2 className="mt-0.5 break-words text-base font-bold leading-snug md:text-lg">
-              {c.title}
-            </h2>
-          </div>
-
-          {c.blurb ? (
-            <p className="line-clamp-2 break-words text-sm text-mist-500">{c.blurb}</p>
-          ) : null}
-
-          <p className="text-xs text-mist-500">
-            {c.participantCount} advocate{c.participantCount === 1 ? "" : "s"} taking part
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3 md:flex-col md:items-end">
-          <Link
-            href={`/c/${c.slug}`}
-            className={`inline-flex min-h-10 items-center justify-center rounded-full px-5 text-sm font-semibold transition ${
-              live
-                ? "bg-mist-100 text-ink-950 hover:opacity-90"
-                : "border border-ink-600 text-mist-300 hover:border-ink-500 hover:text-mist-100"
-            }`}
-          >
-            {live ? "Enter campaign" : tab === "past" ? "View campaign" : "Join campaign"}
-          </Link>
-        </div>
+    <section className="relative overflow-hidden rounded-[24px] border border-ink-600 bg-ink-800 light:border-ink-700 sm:min-h-[250px]">
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-full opacity-45 sm:w-[58%] sm:opacity-100">
+        <Image
+          src="/images/landing/phone-constellation.png"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 640px) 58vw, 100vw"
+          className="object-cover object-[center_45%]"
+        />
       </div>
-    </article>
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-ink-800)_25%,transparent),var(--color-ink-800)_92%)] sm:bg-[linear-gradient(90deg,var(--color-ink-800)_0%,color-mix(in_srgb,var(--color-ink-800)_95%,transparent)_42%,color-mix(in_srgb,var(--color-ink-800)_30%,transparent)_70%,transparent_100%)]"
+      />
+
+      <div className="relative z-10 px-[22px] pb-1 pt-[30px] sm:px-12 sm:pb-11 sm:pt-11">
+        <p className="flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-gold-text">
+          <span className="h-px w-7 bg-gold" aria-hidden />
+          For Ambassadors
+        </p>
+        <h1 className="poster mt-3.5 text-[3.625rem] sm:text-[5.75rem]">Campaigns</h1>
+        <p className="mt-3 max-w-[470px] text-[15px] leading-relaxed text-mist-300 sm:text-[17px]">
+          Browse what businesses are running. Join a live campaign, bring a new customer, and the
+          business decides your reward.
+        </p>
+      </div>
+
+      <div className="relative z-10 flex gap-2.5 px-[22px] pb-[22px] pt-4 sm:px-12 sm:pb-8 lg:absolute lg:bottom-[34px] lg:right-10 lg:px-0 lg:pb-0 lg:pt-0">
+        <Stat label="Live now" value={liveNow} />
+        <Stat label="Businesses" value={businesses} />
+      </div>
+    </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-w-0 flex-1 rounded-[14px] border border-ink-600 bg-ink-850 px-3 py-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.35)] light:border-ink-700 light:shadow-[0_18px_40px_rgba(90,60,20,0.12)] sm:min-w-[130px] sm:flex-none sm:px-4 sm:py-3">
+      <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-mist-500">{label}</p>
+      <p className="poster text-[1.5rem] leading-tight sm:text-[1.875rem]">{value}</p>
+    </div>
   );
 }

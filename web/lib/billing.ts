@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "./db";
+import { createCheckoutSession, minisendEnabled } from "./minisend";
 
 /**
  * Campaign credits and payment intents — see db/021_billing.sql for the model.
@@ -8,6 +9,11 @@ import { sql } from "./db";
  * (the UI shows what this module returns, never its own numbers), the paywall is one
  * atomic UPDATE, and a payment is matched to a business by a short reference code AND
  * a unique KES amount, so a ramp that drops the memo still attributes cleanly.
+ *
+ * With MINISEND_API_KEY set an intent also carries a MiniSend hosted checkout (db/023):
+ * the business pays by M-Pesa or USDC on MiniSend's page and the webhook confirms the
+ * intent by session id — the code + amount then only serve as the receipt and the
+ * manual fallback.
  */
 
 export const FREE_CAMPAIGNS = 2;
@@ -58,6 +64,12 @@ function ensureTables(): Promise<void> {
     // may share one; confirming/expiring a row leaves the index and recycles the slot.
     await sql`create unique index if not exists payment_intents_pending_amount_idx
               on payment_intents (amount_kes) where status = 'pending'`;
+    // db/023: the MiniSend hosted-checkout session an intent may carry.
+    await sql`alter table payment_intents add column if not exists minisend_session_id text`;
+    await sql`alter table payment_intents add column if not exists minisend_checkout_url text`;
+    await sql`alter table payment_intents add column if not exists minisend_expires_at timestamptz`;
+    await sql`create unique index if not exists payment_intents_minisend_session_idx
+              on payment_intents (minisend_session_id) where minisend_session_id is not null`;
   })().catch((err) => {
     ready = null; // let the next request retry
     throw err;
@@ -126,21 +138,34 @@ export interface IntentView {
   code: string;
   credits: number;
   amountKes: number;
+  /** The USD price a hosted checkout charges (the micro-offset stripped). */
+  amountUsd: number | null;
   status: string;
   matchedRef: string | null;
   expiresAt: string;
   createdAt: string;
+  /** MiniSend hosted checkout — only while its session is still live, else null. */
+  checkoutUrl: string | null;
+  checkoutExpiresAt: string | null;
 }
 
 function intentView(r: Record<string, unknown>): IntentView {
+  const sessionExpiry = r.minisend_expires_at ? new Date(r.minisend_expires_at as string) : null;
+  const sessionLive = Boolean(
+    r.minisend_checkout_url && sessionExpiry && sessionExpiry.getTime() > Date.now()
+  );
   return {
     code: String(r.code),
     credits: Number(r.credits),
     amountKes: Number(r.amount_kes),
+    // unique_amount = price + a micro-offset under 0.001, so 2dp rounding is the price.
+    amountUsd: r.unique_amount == null ? null : Math.round(Number(r.unique_amount) * 100) / 100,
     status: String(r.status),
     matchedRef: (r.matched_ref as string | null) ?? null,
     expiresAt: new Date(r.expires_at as string).toISOString(),
     createdAt: new Date(r.created_at as string).toISOString(),
+    checkoutUrl: sessionLive ? String(r.minisend_checkout_url) : null,
+    checkoutExpiresAt: sessionLive && sessionExpiry ? sessionExpiry.toISOString() : null,
   };
 }
 
@@ -157,6 +182,8 @@ export interface BillingStatus {
   pendingIntent: IntentView | null;
   /** Confirmed payments, newest first — the business's receipts. */
   receipts: IntentView[];
+  /** Which payment rails are switched on, so the UI can word the checkout honestly. */
+  rails: { minisend: boolean };
 }
 
 export async function getBillingStatus(orgId: string): Promise<BillingStatus> {
@@ -180,6 +207,7 @@ export async function getBillingStatus(orgId: string): Promise<BillingStatus> {
     paymentRequired: price !== null && row.campaign_credits <= 0,
     pendingIntent: intents.filter((i) => i.status === "pending").map(intentView)[0] ?? null,
     receipts: intents.filter((i) => i.status === "confirmed").map(intentView),
+    rails: { minisend: minisendEnabled() },
   };
 }
 
@@ -258,6 +286,42 @@ export async function createPaymentIntent(orgId: string): Promise<IntentView> {
     if (rows[0]) return intentView(rows[0]);
   }
   throw new Error("Could not allocate a payment reference — try again");
+}
+
+/**
+ * Give a pending intent a live MiniSend checkout, reusing one that still has a minute
+ * to run — every session is a real object on MiniSend's side and they allow 30 a
+ * minute. Not called from the unauthenticated GET for the same reason: only the
+ * approver-signed checkout POST mints sessions. A no-op when MiniSend is off.
+ */
+export async function ensureMinisendSession(code: string, redirectUrl: string): Promise<IntentView> {
+  await ensureTables();
+  const rows = (await sql`
+    select * from payment_intents where upper(code) = ${code.trim().toUpperCase()} limit 1`) as Array<
+    Record<string, unknown>
+  >;
+  if (!rows[0]) throw new Error("No such payment intent");
+  const view = intentView(rows[0]);
+  if (view.status !== "pending" || !minisendEnabled()) return view;
+  if (view.checkoutExpiresAt && Date.parse(view.checkoutExpiresAt) - Date.now() > 60_000) {
+    return view;
+  }
+  if (!view.amountUsd || view.amountUsd <= 0) throw new Error("Intent has no USD price");
+
+  const session = await createCheckoutSession({
+    amountUsd: view.amountUsd,
+    externalId: view.code,
+    description: `Ubu-Tangaza campaign credit · ${view.code}`,
+    redirectUrl,
+  });
+  const updated = (await sql`
+    update payment_intents set
+      minisend_session_id   = ${session.sessionId},
+      minisend_checkout_url = ${session.checkoutUrl},
+      minisend_expires_at   = ${session.expiresAt}
+    where id = ${rows[0].id as number}
+    returning *`) as Array<Record<string, unknown>>;
+  return intentView(updated[0] ?? rows[0]);
 }
 
 /**

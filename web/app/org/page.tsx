@@ -26,7 +26,7 @@ import { awaitAccountDeployed, awaitApprovalOnChain, findApprovalOnChain } from 
 import { useTwoPhaseSend } from "@/lib/send-two-phase";
 import { isDeploymentStall, isWarmingUp, waitForAccountReady } from "@/lib/warmup";
 import { contract, isConfigured } from "@/lib/client";
-import { advocateName, kesLabel } from "@/lib/format";
+import { advocateName } from "@/lib/format";
 import { useCampaigns, useOrg } from "@/lib/hooks";
 import type { PendingActivity } from "@/lib/types";
 
@@ -189,17 +189,15 @@ function Approvals() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-black">Approvals</h1>
-          <p className="mt-1 text-sm text-mist-500">
-            You sign each approval in your wallet, and that signature is what writes it
-            to Avalanche. Gas comes from your balance — fractions of a cent each.
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">Approvals</p>
+          <h1 className="poster mt-3 text-5xl sm:text-6xl">Check the proof.</h1>
+          <p className="mt-3 max-w-xl text-base text-mist-400">
+            Customers send proof. You approve the real ones and give the reward.
           </p>
         </div>
         {remaining !== null ? (
-          <Pill tone={remaining > 0 ? "neutral" : "bad"}>
-            {remaining > 0
-              ? `${kesLabel(remaining)} of budget left to award`
-              : "Budget fully committed"}
+          <Pill tone="neutral">
+            Set a target. When you hit it, you decide the reward.
           </Pill>
         ) : null}
       </div>
@@ -243,8 +241,8 @@ function Approvals() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="✅"
-          title="Queue is clear"
-          body="Every submitted action has been reviewed. New submissions land here instantly."
+          title="Nothing to check right now."
+          body="New proof will show up here."
         />
       ) : (
         <div className="space-y-3">

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBillingStatus, payInstructions } from "@/lib/billing";
-import { runOnchainMatch } from "@/lib/billing-match";
+import { recheckMinisendIntent, runOnchainMatch } from "@/lib/billing-match";
 
 /**
- * Run the on-chain payment watcher.
+ * Run the on-chain payment watcher (and, per business, the MiniSend status check).
  *
  *   POST { orgId } – the "I've paid / check again" button: scan (throttled to one scan
- *                    per 30s per instance, so pressing it eagerly is harmless), then
- *                    return that business's fresh billing status.
+ *                    per 30s per instance, so pressing it eagerly is harmless), ask
+ *                    MiniSend about this business's open sessions in case a webhook was
+ *                    missed, then return that business's fresh billing status.
  *   GET            – the cron backstop (vercel.json, hourly). If CRON_SECRET is set,
  *                    the Authorization header must carry it — Vercel sends
  *                    `Bearer <CRON_SECRET>` on scheduled invocations.
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
   }
   try {
     const scan = await runOnchainMatch();
+    await recheckMinisendIntent(String(body.orgId));
     const billing = await getBillingStatus(String(body.orgId));
     return NextResponse.json({ billing, instructions: payInstructions(), scan });
   } catch (err) {

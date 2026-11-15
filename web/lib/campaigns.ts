@@ -1,13 +1,50 @@
 import type { Campaign } from "@/lib/hooks";
 
+/**
+ * Live, not-yet-started, and previous.
+ *
+ * Live: the business still has it open, it has started, and it has no end date or
+ * the end date is still ahead. Not-yet-started: open, and the start is in the
+ * future. Previous: the business closed it, or the end date has passed. An
+ * open-ended campaign stays live after its start date; the start day is not an
+ * end.
+ */
 export function isCampaignUpcoming(c: Campaign): boolean {
   if (!c.active) return false;
-  if (c.endsAt && new Date(c.endsAt).getTime() < Date.now()) return false;
-  return true;
+  const now = Date.now();
+  if (c.endsAt && new Date(c.endsAt).getTime() <= now) return false;
+  return new Date(c.startsAt).getTime() > now;
 }
 
 export function isCampaignPast(c: Campaign): boolean {
-  return !isCampaignUpcoming(c);
+  if (!c.active) return true;
+  return Boolean(c.endsAt && new Date(c.endsAt).getTime() <= Date.now());
+}
+
+export function isCampaignLive(c: Campaign): boolean {
+  const now = Date.now();
+  const start = new Date(c.startsAt).getTime();
+  const end = c.endsAt ? new Date(c.endsAt).getTime() : null;
+  return c.active && start <= now && (end === null || end > now);
+}
+
+/** Live campaigns first, then ones that have not started, soonest start first. */
+export function openCampaigns<T extends Campaign>(list: T[]): T[] {
+  return list
+    .filter((c) => isCampaignLive(c) || isCampaignUpcoming(c))
+    .sort((a, b) => {
+      const aLater = isCampaignUpcoming(a) ? 1 : 0;
+      const bLater = isCampaignUpcoming(b) ? 1 : 0;
+      if (aLater !== bLater) return aLater - bLater;
+      return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+    });
+}
+
+/** Closed or ended campaigns, most recently started first. */
+export function previousCampaigns<T extends Campaign>(list: T[]): T[] {
+  return list
+    .filter(isCampaignPast)
+    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 }
 
 export function formatCampaignDayLabel(iso: string): string {
@@ -62,13 +99,6 @@ export function groupCampaignsByDay<T extends Campaign>(
         : new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
     ),
   }));
-}
-
-export function isCampaignLive(c: Campaign): boolean {
-  const now = Date.now();
-  const start = new Date(c.startsAt).getTime();
-  const end = c.endsAt ? new Date(c.endsAt).getTime() : null;
-  return c.active && start <= now && (end === null || end > now);
 }
 
 /* ------------------------------------------------------------------- goals */

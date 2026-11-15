@@ -46,19 +46,19 @@ export const metadata: Metadata = {
     template: "%s | Ubu-Tangaza",
   },
   description:
-    "Create a campaign, set the target, and reward customers for engaging with it — referrals, posts, visits. Proof behind every action, and a reward budget you control.",
+    "Your regulars already tell people about you. Reward them when they bring you a new customer. You check the proof, then you give the reward.",
   openGraph: {
     siteName: "Ubu-Tangaza",
     type: "website",
     locale: "en_KE",
-    title: "Ubu-Tangaza — referral and reward campaigns for your business",
+    title: "Ubu-Tangaza — get your customers to bring you new customers",
     description:
-      "Your customers already bring you customers. See it, prove it, and reward it — with a reward budget that can never be overspent.",
+      "They bring you a new customer or come to your launch, send proof, and you check it. Only then do they get their airtime, voucher or discount.",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b09",
+  themeColor: "#131008",
   width: "device-width",
   initialScale: 1,
 };

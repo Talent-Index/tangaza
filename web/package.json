@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "sync:abi": "node scripts/sync-abi.mjs",
     "verify": "node --env-file=.env.local scripts/verify-reads.mjs"

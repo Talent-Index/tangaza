@@ -650,8 +650,8 @@ function CampaignDetailPanel({
             </ul>
           )}
           <p className="mt-3 text-xs text-mist-500">
-            Advocates join at <code className="tabular text-mist-400">/c/{c.slug}</code>, submit
-            proof on Submit, and the business approves what is real.
+            Ambassadors join at <code className="tabular text-mist-400">/c/{c.slug}</code>, send
+            proof, and you check what is real.
           </p>
         </div>
 
