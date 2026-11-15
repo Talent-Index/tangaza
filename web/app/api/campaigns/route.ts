@@ -23,6 +23,7 @@ import { ORG_ACTIONS } from "@/lib/org-action";
 import { IS_MAINNET } from "@/lib/rpc";
 import { testnetCampaigns } from "@/lib/testnet-archive";
 import { CURRENCY_CODES, PAYOUT_KIND_IDS, isGoalType, type GoalType } from "@/lib/types";
+import { isObviouslyTestCampaign } from "@/lib/public-display";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,7 +72,9 @@ export async function GET(req: NextRequest) {
 
   if (slug) {
     const campaign = await getCampaignBySlug(slug);
-    if (!campaign) {
+    // Obvious placeholders stay in the database (the business can still delete them)
+    // but they are not a public campaign page.
+    if (!campaign || isObviouslyTestCampaign(campaign)) {
       return NextResponse.json({ error: `No campaign "${slug}"` }, { status: 404 });
     }
     const joined =

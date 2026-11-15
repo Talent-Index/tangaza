@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "./db";
+import { isObviouslyTestFeedback } from "./public-display";
 
 /**
  * Public feedback: left on /feedback, shown on the homepage.
@@ -42,12 +43,14 @@ export async function listFeedback(limit = 12): Promise<FeedbackEntry[]> {
     where hidden = false
     order by created_at desc
     limit ${limit}`) as Array<Record<string, unknown>>;
-  return rows.map((r) => ({
-    id: r.id as string,
-    name: (r.name as string) ?? null,
-    message: r.message as string,
-    createdAt: new Date(r.created_at as string).toISOString(),
-  }));
+  return rows
+    .map((r) => ({
+      id: r.id as string,
+      name: (r.name as string) ?? null,
+      message: r.message as string,
+      createdAt: new Date(r.created_at as string).toISOString(),
+    }))
+    .filter((entry) => !isObviouslyTestFeedback(entry));
 }
 
 export async function createFeedback(input: { name?: string; message: string }): Promise<FeedbackEntry> {

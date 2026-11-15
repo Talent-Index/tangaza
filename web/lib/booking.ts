@@ -1,12 +1,14 @@
 /**
- * Setup-session scheduling rules, shared by the booking page and the API so the two
+ * Intro-call scheduling rules, shared by the booking page and the API so the two
  * can never disagree about what a valid slot is.
  *
  * Everything is defined in East Africa Time (UTC+3, no daylight saving) and stored as
  * UTC instants. Change the constants below to change availability.
+ * A booking row stores only the start time. The length of the call is this constant,
+ * including the calendar file's end time.
  */
 export const EAT_OFFSET_MIN = 180;
-export const SESSION_MINUTES = 30;
+export const SESSION_MINUTES = 5;
 export const OPEN_HOUR = 9; // first slot starts 09:00 EAT
 export const CLOSE_HOUR = 17; // last slot ends 17:00 EAT
 export const DAYS_AHEAD = 30;

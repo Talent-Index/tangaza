@@ -12,12 +12,12 @@ export function LegalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="marketing light mx-auto min-h-dvh w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <header className="mb-10 flex items-center justify-between gap-3">
         <Link href="/">
           <BrandMark className="text-base sm:text-lg" />
         </Link>
-        <nav className="flex gap-4 text-xs text-mist-500">
+        <nav className="flex gap-4 text-base text-[#3a382c]">
           <Link href="/pricing" className="hover:text-mist-300">
             Pricing
           </Link>
@@ -30,8 +30,8 @@ export function LegalShell({
         </nav>
       </header>
       <main>
-        <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">{title}</h1>
-        <p className="mt-2 text-xs text-mist-500">Last updated {updated}</p>
+        <h1 className="text-4xl font-bold leading-tight tracking-tight">{title}</h1>
+        <p className="mt-2 text-base text-[#4a4638]">Last updated {updated}</p>
         <div className="mt-10 space-y-8">{children}</div>
       </main>
     </div>

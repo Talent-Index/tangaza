@@ -12,11 +12,14 @@ import {
   PROOF_KINDS,
   REWARD_CURRENCIES,
   formatReward,
+  matchingRewardPreset,
   type EngagementType,
   type ProofKind,
+  type RewardPreset,
 } from "@/lib/types";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 import { RewardsDue } from "@/components/org/RewardsDue";
+import { RewardPresets } from "@/components/org/RewardPresets";
 
 /**
  * Who deserves a reward, campaign by campaign — and, folded below it, the activities
@@ -321,6 +324,25 @@ const EMPTY_TIER = {
   rewardKind: "cash",
 };
 
+function applyTierPreset(
+  setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_TIER>>,
+  preset: RewardPreset | null,
+) {
+  setForm((f) => {
+    if (!preset) {
+      if (f.rewardKind === "other") return f;
+      return { ...f, rewardKind: "other", amount: "", perk: "" };
+    }
+    return {
+      ...f,
+      rewardKind: preset.kind,
+      amount: preset.amount === "" ? "" : Number(preset.amount),
+      currency: preset.amount ? preset.currency : f.currency,
+      perk: preset.label,
+    };
+  });
+}
+
 function TierEditor({ orgId }: { orgId: bigint }) {
   const tiers = useTiers(undefined, orgId);
   const engagements = useEngagementTypes(orgId);
@@ -525,6 +547,23 @@ function TierEditor({ orgId }: { orgId: bigint }) {
           <Button type="submit" disabled={saving || !form.name.trim() || !form.perk.trim()}>
             {saving ? "…" : editingId ? "Save" : "Add"}
           </Button>
+
+          <div className="sm:col-span-6">
+            <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
+              Preset reward
+            </p>
+            <RewardPresets
+              selectedId={
+                matchingRewardPreset({
+                  kind: form.rewardKind,
+                  note: form.perk,
+                  amount: form.amount === "" ? "" : String(form.amount),
+                  currency: form.currency,
+                })?.id ?? (form.rewardKind === "other" ? "custom" : null)
+              }
+              onPick={(preset) => applyTierPreset(setForm, preset)}
+            />
+          </div>
 
           {/* The reward this level unlocks — cash or an incentive, any currency, off-chain. */}
           <select

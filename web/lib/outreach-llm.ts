@@ -105,7 +105,7 @@ ${notes.slice(0, 12_000)}
 Write the message goal-first:
 1. One sentence showing you understand what THEY are trying to achieve, using their own terms from VISION or GOALS. If both are NOT FOUND, use the most specific true thing in the notes and do not invent a mission.
 2. One or two sentences on the outcome for them, drawing on FIT. Describe the result, not product features.
-3. One low-pressure ask: a 30-minute call about their goal. Booking link: ${BOOKING_URL}
+3. One low-pressure ask: a free 5-minute intro call about their goal. Mention that the idea is explained in the first minute. Booking link: ${BOOKING_URL}
 If FIT is UNCLEAR or the notes are thin, write a shorter, curious note that asks about their goals instead of claiming a fit.
 Under 150 words, plain and warm, signed "${SENDER}". Subject under 8 words.
 Fill publicEmail only with an address that appears in the notes; otherwise leave it empty.
