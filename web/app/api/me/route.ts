@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
-import { getAdvocateProfile, setAdvocateDisplayName } from "@/lib/store";
+import { resumeAmbassadorPayouts } from "@/lib/payments/hooks";
+import { normalizeKenyanPhone } from "@/lib/payments/phone";
+import { getAdvocateProfile, setAdvocateDisplayName, setAdvocateMpesaPhone } from "@/lib/store";
 
 /**
  * What an advocate has told us about themselves — their name and, if they linked one,
@@ -34,10 +36,11 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
 
-  const { orgId, address, displayName } = body as {
+  const { orgId, address, displayName, mpesaPhone } = body as {
     orgId?: string;
     address?: string;
     displayName?: string | null;
+    mpesaPhone?: string | null;
   };
 
   if (!orgId) {
@@ -48,8 +51,25 @@ export async function PUT(req: NextRequest) {
   }
 
   // Empty clears it, which falls the display back to the handle or the pseudonym.
-  const name = typeof displayName === "string" ? displayName.trim().slice(0, 60) : "";
-  const profile = await setAdvocateDisplayName(String(orgId), address, name || null);
+  let profile = await getAdvocateProfile(String(orgId), address);
+  if (displayName !== undefined) {
+    const name = typeof displayName === "string" ? displayName.trim().slice(0, 60) : "";
+    profile = await setAdvocateDisplayName(String(orgId), address, name || null);
+  }
+
+  if (mpesaPhone !== undefined) {
+    const raw = typeof mpesaPhone === "string" ? mpesaPhone.trim() : "";
+    const phone = raw ? normalizeKenyanPhone(raw) : null;
+    if (raw && !phone) {
+      return NextResponse.json({ error: "Enter a Kenyan M-Pesa number, like 07XX XXX XXX." }, { status: 400 });
+    }
+    profile = await setAdvocateMpesaPhone(String(orgId), address, phone);
+    try {
+      await resumeAmbassadorPayouts(address);
+    } catch (err) {
+      console.error("[payments] could not resume payouts:", err instanceof Error ? err.message : "error");
+    }
+  }
 
   return NextResponse.json({ profile });
 }

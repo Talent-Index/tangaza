@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
+import { settleApprovedCashReward } from "@/lib/payments/hooks";
 import { createActivity, decideActivity, getActivity, listActivities } from "@/lib/store";
 import { verifyApprovalReceipt, verifySubmissionReceipt } from "@/lib/verify";
 import type { PendingStatus } from "@/lib/types";
@@ -205,6 +206,22 @@ export async function PATCH(req: NextRequest) {
     // Either the id is unknown, or it was already decided — the update is guarded on
     // status = 'pending' so a retry cannot approve the same submission twice.
     return NextResponse.json({ error: `No pending activity ${id}` }, { status: 404 });
+  }
+
+  if (status === "approved" && activity.campaignId) {
+    try {
+      await settleApprovedCashReward({
+        orgId: activity.orgId,
+        campaignId: activity.campaignId,
+        advocate: activity.advocate,
+      });
+    } catch (err) {
+      // The approval already happened. A payout problem is reported, not rolled back.
+      console.error(
+        "[payments] cash reward was not started:",
+        err instanceof Error ? err.message : "error"
+      );
+    }
   }
 
   return NextResponse.json({ activity });
