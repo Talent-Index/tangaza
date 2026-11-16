@@ -22,6 +22,7 @@ export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Actions 
 
 /** Budget and side tools — the "Budget & tools" group. */
 export const TOOLS_NAV: OrgNavItem[] = [
+  { href: "/org/funding", label: "Fund campaign", icon: "fund" },
   { href: "/org/liability", label: "What you owe", icon: "liability" },
   { href: "/org/referrals", label: "Referrals", icon: "pilot" },
   { href: "/org/billing", label: "Billing", icon: "billing" },
@@ -64,6 +65,7 @@ const ICONS = {
   pilot: ["M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z", "M4 22v-7"],
   account: ["M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"],
   billing: ["M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z", "M2 10h20", "M6 15h4"],
+  fund: ["M3 7h18v12H3z", "M3 11h18", "M16 15h3"],
   more: ["M5 12h.01", "M12 12h.01", "M19 12h.01"],
   close: ["M18 6 6 18", "M6 6l12 12"],
 } as const;
