@@ -29,7 +29,14 @@ import {
 } from "@/lib/hooks";
 import type { OrgAccess } from "@/lib/reads";
 
-export function OrgShell({ children }: { children: React.ReactNode }) {
+export function OrgShell({
+  children,
+  signedOut,
+}: {
+  children: React.ReactNode;
+  /** Shown instead of the sign-in wall. Used when a screen must stay visible in test mode. */
+  signedOut?: React.ReactNode;
+}) {
   const account = useActiveAccount();
   const isRestoring = useIsAutoConnecting();
   // Fed by the one queue poll that lives under WithOrgAccess, so the badge and the
@@ -79,7 +86,7 @@ export function OrgShell({ children }: { children: React.ReactNode }) {
             <Spinner className="size-6" />
           </div>
         ) : (
-          <OrgSignedOut />
+          signedOut ?? <OrgSignedOut />
         )}
       </main>
 

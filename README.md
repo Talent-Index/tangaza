@@ -231,7 +231,33 @@ psql "$DATABASE_URL" -f db/001_init.sql              # schema
 psql "$DATABASE_URL" -f db/002_example_engagements.sql   # optional demo data
 ```
 
-Both files are idempotent — re-running them is safe.
+Both files are idempotent — re-running them is safe. So is every later file in
+`web/db/`, including `024_campaign_funding_and_payouts.sql` (campaign deposits and
+Ambassador cash payouts). The app also applies `024` on first use.
+
+### Campaign funding and Ambassador payouts (sandbox only)
+
+A business funds a campaign reward balance with an M-Pesa prompt through [Qadi](https://docs.qadi.io).
+When the business approves a new customer and the reward is cash, the site pays the
+Ambassador's M-Pesa number through [Autopay](https://www.autopayke.com/developers), from a
+USDC balance on Avalanche. Qadi is the fallback payout if Autopay refuses the payment
+before any money moves. This release never turns live payments on: `PAYMENTS_MODE` must
+stay `sandbox` (the default), and live keys are refused.
+
+Set these on the server only (Vercel project env, not `NEXT_PUBLIC_`):
+
+| Variable | Purpose |
+|---|---|
+| `PAYMENTS_MODE` | `sandbox`. Anything else stops payments. |
+| `QADI_API_KEY` | Sandbox key `sk_test_…` from https://sandbox.qadi.io |
+| `QADI_BASE_URL` | `https://sandboxapi.qadi.io` |
+| `QADI_WEBHOOK_SECRET` | Signing secret for `POST /api/payments/qadi/webhook` |
+| `AUTOPAY_API_KEY` | Sandbox key `apk_test_…` from https://console.autopayke.com |
+| `AUTOPAY_BASE_URL` | `https://api.autopayke.com` (the key prefix selects sandbox) |
+| `AUTOPAY_WEBHOOK_SECRET` | Signing secret for `POST /api/payments/autopay/webhook` |
+
+Leave the keys blank to use the practice flow. No key is written into the client bundle
+or into logs. The TangazaRewards contract is not called by this flow.
 
 ```bash
 npm run dev     # http://localhost:3000

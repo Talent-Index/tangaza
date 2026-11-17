@@ -22,6 +22,7 @@ export const ORG_ACTIONS = {
   mpesaConfig: "mpesa.config",
   rewardGive: "reward.give",
   billingIntent: "billing.intent",
+  campaignFund: "campaign.fund",
 } as const;
 
 export type OrgAction = (typeof ORG_ACTIONS)[keyof typeof ORG_ACTIONS];

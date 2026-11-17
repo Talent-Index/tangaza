@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "./db";
+import { maskKenyanPhone } from "./payments/phone";
 import type {
   AdvocateXLink,
   CampaignFunnel,
@@ -414,6 +415,8 @@ export interface AdvocateProfile {
   displayName?: string;
   xUsername?: string;
   xLinkStatus?: XLinkStatus;
+  /** Masked. The full number is never returned on this public read. */
+  mpesaPhoneMasked?: string;
 }
 
 /** What an advocate has told us about themselves. */
@@ -423,13 +426,14 @@ export async function getAdvocateProfile(
 ): Promise<AdvocateProfile> {
   const addr = address.toLowerCase();
   const rows = (await sql`
-    select a.display_name, l.x_username, l.status as x_link_status
+    select a.display_name, a.phone, l.x_username, l.status as x_link_status
     from advocates a
     left join advocate_x_links l on l.org_id = a.org_id and l.address = a.address
     where a.org_id = ${orgId} and a.address = ${addr}`) as Array<Record<string, unknown>>;
 
   const r = rows[0];
   let displayName = (r?.display_name as string) ?? undefined;
+  let phone = (r?.phone as string) ?? undefined;
   if (!displayName) {
     // The name may have been saved while scoped to a different business — a person
     // has one name, wherever they typed it.
@@ -438,12 +442,19 @@ export async function getAdvocateProfile(
                             order by last_active_at desc limit 1`) as Array<Record<string, unknown>>;
     displayName = (any[0]?.display_name as string) ?? undefined;
   }
+  if (!phone) {
+    const anyPhone = (await sql`select phone from advocates
+                                 where address = ${addr} and phone is not null and phone <> ''
+                                 order by last_active_at desc limit 1`) as Array<Record<string, unknown>>;
+    phone = (anyPhone[0]?.phone as string) ?? undefined;
+  }
 
   return {
     address: addr,
     displayName,
     xUsername: (r?.x_username as string) ?? undefined,
     xLinkStatus: (r?.x_link_status as XLinkStatus) ?? undefined,
+    mpesaPhoneMasked: maskKenyanPhone(phone) ?? undefined,
   };
 }
 
@@ -469,6 +480,21 @@ export async function setAdvocateDisplayName(
   // one business and an address-derived pseudonym to the next.
   await sql`update advocates set display_name = ${displayName}
             where address = ${addr} and org_id != ${orgId}`;
+  return getAdvocateProfile(orgId, addr);
+}
+
+/** The M-Pesa number a cash reward is sent to. One number follows the person across businesses. */
+export async function setAdvocateMpesaPhone(
+  orgId: string,
+  address: string,
+  phone: string | null
+): Promise<AdvocateProfile> {
+  const addr = address.toLowerCase();
+  await sql`insert into advocates (org_id, address, phone)
+            values (${orgId}, ${addr}, ${phone})
+            on conflict (org_id, address) do update
+              set phone = ${phone}, last_active_at = now()`;
+  await sql`update advocates set phone = ${phone} where address = ${addr}`;
   return getAdvocateProfile(orgId, addr);
 }
 

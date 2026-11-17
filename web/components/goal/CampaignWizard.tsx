@@ -14,6 +14,7 @@ import {
   type EngagementType,
   type GoalType,
 } from "@/lib/types";
+import { normalizeKenyanPhone } from "@/lib/payments/phone";
 import { GoalPicker } from "./GoalPicker";
 
 /** Everything the four steps edit. Strings stay strings until the page builds the request. */
@@ -39,6 +40,10 @@ export interface CampaignDraft {
   /** Approved actions one person needs to earn it. */
   rewardThreshold: string;
   rewardRepeats: boolean;
+  /** Whole shillings to add after launch. Empty skips funding. */
+  fundAmount: string;
+  /** M-Pesa number that approves the prompt. */
+  fundPhone: string;
 }
 
 export const EMPTY_DRAFT: CampaignDraft = {
@@ -57,6 +62,8 @@ export const EMPTY_DRAFT: CampaignDraft = {
   rewardNote: "",
   rewardThreshold: "1",
   rewardRepeats: false,
+  fundAmount: "",
+  fundPhone: "",
 };
 
 export function draftFromCampaign(c: Campaign): CampaignDraft {
@@ -79,6 +86,8 @@ export function draftFromCampaign(c: Campaign): CampaignDraft {
     rewardNote: c.rewardNote ?? "",
     rewardThreshold: String(c.rewardThreshold ?? 1),
     rewardRepeats: c.rewardRepeats,
+    fundAmount: "",
+    fundPhone: "",
   };
 }
 
@@ -138,7 +147,16 @@ function suggestedTypeIds(goal: GoalType | undefined, types: EngagementType[]): 
   return types.filter((t) => t.active && cats.includes(t.chainCategory)).map((t) => t.id);
 }
 
-const STEPS = ["Goal", "What you’re pushing", "What people do", "Reward", "Review & launch"] as const;
+const STEPS = ["Goal", "What you’re pushing", "What people do", "Reward", "Fund campaign", "Review & launch"] as const;
+
+function fundStepReady(draft: CampaignDraft): boolean {
+  if (draft.rewardKind !== "cash") return true;
+  if (!draft.fundAmount.trim() && !draft.fundPhone.trim()) return true;
+  const amount = Number(draft.fundAmount);
+  const amountOk = Number.isInteger(amount) && amount >= 1 && amount <= 1_000_000;
+  const phoneOk = !draft.fundPhone.trim() || Boolean(normalizeKenyanPhone(draft.fundPhone));
+  return amountOk && phoneOk;
+}
 
 const MONO = "font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500";
 const INPUT =
@@ -185,8 +203,8 @@ export function CampaignWizard({
   const rewardOk =
     !draft.rewardKind ||
     (!Number.isNaN(parseRewardAmount(draft.rewardAmount)) && parseThreshold(draft.rewardThreshold) !== null);
-  const stepOk = [targetOk, Boolean(draft.title.trim()) && offerUrlOk, true, rewardOk, false];
-  stepOk[4] = stepOk[0] && stepOk[1] && stepOk[3];
+  const stepOk = [targetOk, Boolean(draft.title.trim()) && offerUrlOk, true, rewardOk, fundStepReady(draft), false];
+  stepOk[5] = stepOk[0] && stepOk[1] && stepOk[3] && stepOk[4];
 
   function go(n: number) {
     // Entering "how people can help" for the first time: lean on the goal, still editable.
@@ -221,7 +239,7 @@ export function CampaignWizard({
     }));
   }
 
-  if (launched) return <Launched campaign={launched} onDone={onDone} />;
+  if (launched) return <Launched campaign={launched} fundAmount={draft.fundAmount} onDone={onDone} />;
 
   const last = step === STEPS.length - 1;
 
@@ -251,7 +269,7 @@ export function CampaignWizard({
         </button>
       </div>
 
-      <ol className="grid grid-cols-5 gap-1.5" aria-label="Steps">
+      <ol className="grid grid-cols-6 gap-1.5" aria-label="Steps">
         {STEPS.map((label, i) => {
           const reachable = i <= furthest;
           return (
@@ -458,7 +476,9 @@ export function CampaignWizard({
         <RewardStep draft={draft} setDraft={setDraft} available={rewardsAvailable} unit={draft.goalLabel.trim() || goalMeta(draft.goalType)?.unit} />
       ) : null}
 
-      {step === 4 ? <Review draft={draft} types={types} goalsOn={goalsOn} editing={editing} onJump={go} /> : null}
+      {step === 4 ? <FundStep draft={draft} setDraft={setDraft} /> : null}
+
+      {step === 5 ? <Review draft={draft} types={types} goalsOn={goalsOn} editing={editing} onJump={go} /> : null}
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
@@ -532,6 +552,16 @@ function Review({
       ) : (
         "Nothing named"
       ),
+    },
+    {
+      label: "Fund campaign",
+      step: 4,
+      value:
+        draft.rewardKind === "cash"
+          ? draft.fundAmount.trim()
+            ? `KES ${Number(draft.fundAmount).toLocaleString("en-KE")} from M-Pesa after launch`
+            : "Not funded yet — you can fund it after launch"
+          : "Only cash rewards are paid from the balance",
     },
     {
       label: "Reward",
@@ -627,7 +657,15 @@ function CostPreview({ draft, unit }: { draft: CampaignDraft; unit: string }) {
  * message ready to forward, the same message to paste anywhere, and a printable poster
  * for the counter — with the bare link last, not first.
  */
-function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => void }) {
+function Launched({
+  campaign: c,
+  fundAmount,
+  onDone,
+}: {
+  campaign: Campaign;
+  fundAmount: string;
+  onDone: () => void;
+}) {
   const url = typeof window !== "undefined" ? `${window.location.origin}/c/${c.slug}` : `/c/${c.slug}`;
   const [copied, setCopied] = useState(false);
 
@@ -688,11 +726,75 @@ function Launched({ campaign: c, onDone }: { campaign: Campaign; onDone: () => v
         <Button href={`/c/${c.slug}`} variant="ghost" className="w-full sm:w-auto">
           View public page
         </Button>
+        {c.rewardKind === "cash" ? (
+          <Button
+            href={`/org/funding?campaign=${c.id}${fundAmount.trim() ? `&amount=${encodeURIComponent(fundAmount.trim())}` : ""}`}
+            className="w-full sm:w-auto"
+          >
+            Fund campaign
+          </Button>
+        ) : null}
         <Button type="button" variant="ghost" onClick={onDone} className="w-full sm:w-auto">
           Done
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Step 5: how the business puts shillings behind a cash reward. Optional until launch. */
+function FundStep({
+  draft,
+  setDraft,
+}: {
+  draft: CampaignDraft;
+  setDraft: React.Dispatch<React.SetStateAction<CampaignDraft>>;
+}) {
+  if (draft.rewardKind !== "cash") {
+    return (
+      <p className="text-sm text-mist-400">
+        This reward is not cash, so you give it yourself. Funding is only for a cash reward
+        paid to an Ambassador&rsquo;s M-Pesa number after you approve a new customer.
+      </p>
+    );
+  }
+  const amountOk = !draft.fundAmount.trim() || (Number.isInteger(Number(draft.fundAmount)) && Number(draft.fundAmount) >= 1);
+  const phoneOk = !draft.fundPhone.trim() || Boolean(normalizeKenyanPhone(draft.fundPhone));
+  return (
+    <fieldset className="min-w-0 space-y-4 border-0 p-0">
+      <legend className="sr-only">Fund campaign</legend>
+      <p className="text-sm text-mist-400">
+        Cash rewards are paid from this campaign&rsquo;s balance. After you launch, you get an
+        M-Pesa prompt and the balance updates when the payment is confirmed. You can skip this
+        and fund later.
+      </p>
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+        <label className="block min-w-0">
+          <span className={MONO}>Amount to add (KES)</span>
+          <input
+            inputMode="numeric"
+            value={draft.fundAmount}
+            onChange={(e) => setDraft({ ...draft, fundAmount: e.target.value.replace(/[^\d]/g, "").slice(0, 7) })}
+            placeholder="5000"
+            aria-invalid={!amountOk}
+            className={`${INPUT} mt-1`}
+          />
+        </label>
+        <label className="block min-w-0">
+          <span className={MONO}>Your M-Pesa number</span>
+          <input
+            inputMode="tel"
+            autoComplete="tel"
+            value={draft.fundPhone}
+            onChange={(e) => setDraft({ ...draft, fundPhone: e.target.value })}
+            placeholder="07XX XXX XXX"
+            aria-invalid={!phoneOk}
+            className={`${INPUT} mt-1`}
+          />
+        </label>
+      </div>
+      {!phoneOk ? <p className="text-xs text-crimson-300">Enter a Kenyan M-Pesa number.</p> : null}
+    </fieldset>
   );
 }
 

@@ -25,6 +25,7 @@ import { advocateName, kes, kesLabel, shortAddress, timeAgo } from "@/lib/format
 import { isCampaignLive } from "@/lib/campaigns";
 import { useAdvocateLabels, useCampaigns, useOrg, useOrgLedger, type Campaign } from "@/lib/hooks";
 import { goalMeta } from "@/lib/types";
+import { FundingOverviewLink } from "@/components/payments/FundingScreen";
 import { ORG_ACTIONS, signOrgAction } from "@/lib/org-action";
 
 /* ------------------------------------------------------------------ screen 7 */
@@ -215,6 +216,9 @@ function Overview() {
           Approved customers, rewards you have given, and what you still owe. Set a target.
           When you hit it, you decide the reward.
         </p>
+        <div className="mt-6">
+          <FundingOverviewLink orgId={String(orgId)} />
+        </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <OverviewStat

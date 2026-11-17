@@ -29,6 +29,7 @@ import {
   type RewardTier,
 } from "@/lib/hooks";
 import type { CreditState } from "@/lib/reads";
+import { RewardPayouts } from "@/components/payments/RewardPayouts";
 import { formatReward, rewardLabel } from "@/lib/types";
 
 /* ------------------------------------------------------------------ screen 4 */
@@ -55,9 +56,12 @@ export default function RewardsPage() {
           {account ? (
             <Rewards address={account.address} />
           ) : (
-            <div className="pt-16 text-center">
-              <p className="mb-6 text-mist-400">Sign in to see your rewards.</p>
-              <SignIn />
+            <div className="space-y-8">
+              <RewardPayouts />
+              <div className="pt-4 text-center">
+                <p className="mb-6 text-mist-400">Sign in to see rewards from businesses you help.</p>
+                <SignIn />
+              </div>
             </div>
           )}
         </div>
@@ -117,11 +121,12 @@ function Rewards({ address }: { address: string }) {
 
   return (
     <div className="animate-rise space-y-8">
+      <RewardPayouts address={address} />
       <div>
-        <h1 className="text-2xl font-black md:text-3xl">Your rewards</h1>
+        <h2 className="text-2xl font-black md:text-3xl">Reward ladders</h2>
         <p className="mt-1 text-sm text-mist-500">
-          Each business sets its own rewards. Every activity they approve moves you along
-          their ladder — unlocked rewards are honoured by the business directly.
+          Each business sets its own rewards. Every new customer they approve moves you
+          along their ladder.
         </p>
       </div>
 
