@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "sync:abi": "node scripts/sync-abi.mjs",
     "verify": "node --env-file=.env.local scripts/verify-reads.mjs",
-    "test:payments": "node --experimental-strip-types --loader ./lib/payments/resolve-ts.mjs --test lib/payments/payments.test.ts"
+    "test:payments": "node --experimental-strip-types --loader ./lib/payments/resolve-ts.mjs --test lib/payments/payments.test.ts",
+    "test:auth": "node --experimental-strip-types --loader ./lib/payments/resolve-ts.mjs --test lib/auth-role.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

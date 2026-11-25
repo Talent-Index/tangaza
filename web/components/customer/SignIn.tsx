@@ -59,10 +59,13 @@ const SOCIAL_HINTS = {
 export function SignIn({
   kicker = "Ambassadors portal",
   embedded = false,
+  onBeforeConnect,
 }: {
   kicker?: string;
   /** Hides the kicker and the extra top gap when the page already has its own heading. */
   embedded?: boolean;
+  /** Called before a sign-in starts, including ones that leave the page. */
+  onBeforeConnect?: () => void;
 }) {
   /**
    * No accountAbstraction here, on purpose: a browser wallet connects as itself. The
@@ -119,20 +122,23 @@ export function SignIn({
    * configured in-app wallet from lib/client.ts (embedded EOA — no smart account,
    * no sponsorship; it pays its own gas from the faucet drip).
    */
-  const connectWith = (options: Parameters<(typeof wallets)[0]["connect"]>[0]) =>
-    connect(async () => {
+  const connectWith = (options: Parameters<(typeof wallets)[0]["connect"]>[0]) => {
+    onBeforeConnect?.();
+    return connect(async () => {
       const wallet = wallets[0];
       await wallet.connect(options);
       success("Signed in");
       return wallet;
     });
+  };
 
   /**
    * Connecting a browser wallet — as itself. What the extension shows is what the
    * app acts as, and what pays.
    */
   const connectExternal = useCallback(
-    (entry: (typeof EXTERNAL_WALLETS)[number]) =>
+    (entry: (typeof EXTERNAL_WALLETS)[number]) => {
+      onBeforeConnect?.();
       void connect(async () => {
         await entry.wallet.connect({ client, chain: CHAIN });
         success(`Signed in with ${entry.label}`);
@@ -142,12 +148,14 @@ export function SignIn({
           err instanceof Error ? err.message : `Could not connect ${entry.label}`;
         setEmailError(msg);
         toastError(msg);
-      }),
-    [connect, success, toastError]
+      });
+    },
+    [connect, onBeforeConnect, success, toastError]
   );
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
+    onBeforeConnect?.();
     setEmailError(null);
     setSending(true);
     try {

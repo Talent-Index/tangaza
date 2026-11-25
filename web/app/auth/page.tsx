@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { SignIn } from "@/components/customer/SignIn";
 import { Icon, type IconName } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme";
+import {
+  AUTH_PENDING_KEY,
+  AUTH_ROLE_KEY,
+  destinationFor,
+  parseAuthRole,
+  type AuthRole,
+} from "@/lib/auth-role";
 
-type Role = "ambassador" | "business";
+type Role = AuthRole;
 
 const COPY: Record<
   Role,
@@ -64,22 +71,80 @@ const CHIPS: { icon: IconName; label: string }[] = [
   { icon: "clipboard", label: "First campaign free" },
 ];
 
+function readStoredRole(): Role {
+  try {
+    return parseAuthRole(sessionStorage.getItem(AUTH_ROLE_KEY));
+  } catch {
+    return "ambassador";
+  }
+}
+
+function storeRole(role: Role) {
+  try {
+    sessionStorage.setItem(AUTH_ROLE_KEY, role);
+  } catch {
+    // private mode
+  }
+}
+
+function markPendingSignIn() {
+  try {
+    sessionStorage.setItem(AUTH_PENDING_KEY, "1");
+  } catch {
+    // private mode
+  }
+}
+
+function takePendingSignIn(): boolean {
+  try {
+    const pending = sessionStorage.getItem(AUTH_PENDING_KEY) === "1";
+    if (pending) sessionStorage.removeItem(AUTH_PENDING_KEY);
+    return pending;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * One sign-in page for both sides. Ambassadors still land on the home campaign
- * list. A business sign-in continues into the business portal, the same place
- * /org already sends a signed-in business.
+ * list. A business sign-in continues into the business portal.
+ *
+ * Google and X leave the page and come back. The chosen tab is stored before
+ * that round trip, and the redirect waits for it. An account that was already
+ * signed in can still switch to Business without being sent home first.
  */
 export default function AuthPage() {
   const account = useActiveAccount();
   const router = useRouter();
   const [role, setRole] = useState<Role>("ambassador");
-  const roleRef = useRef<Role>("ambassador");
-  roleRef.current = role;
+  const [roleReady, setRoleReady] = useState(false);
 
   useEffect(() => {
-    if (!account) return;
-    router.replace(roleRef.current === "business" ? "/org" : "/");
-  }, [account, router]);
+    const stored = readStoredRole();
+    setRole(stored);
+    setRoleReady(true);
+  }, []);
+
+  const chooseRole = useCallback((next: Role) => {
+    setRole(next);
+    storeRole(next);
+  }, []);
+
+  const rememberAndGo = useCallback(() => {
+    storeRole(role);
+    markPendingSignIn();
+  }, [role]);
+
+  useEffect(() => {
+    if (!roleReady || !account) return;
+    if (!takePendingSignIn()) return;
+    router.replace(destinationFor(role));
+  }, [account, role, roleReady, router]);
+
+  useEffect(() => {
+    if (!roleReady || !account || role !== "business") return;
+    router.replace(destinationFor("business"));
+  }, [account, role, roleReady, router]);
 
   return (
     <div className="auth-page relative min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
@@ -139,14 +204,14 @@ export default function AuthPage() {
             </div>
 
             <div className="auth-rise auth-d2 card relative z-10 mt-6 p-5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)] light:shadow-[0_18px_40px_-24px_rgba(90,60,20,0.28)] sm:p-7">
-              <RoleTabs role={role} onChange={setRole} />
+              <RoleTabs role={role} onChange={chooseRole} />
               <div
                 role="tabpanel"
                 id="auth-panel"
                 aria-labelledby={`auth-tab-${role}`}
                 className="mt-5"
               >
-                <SignIn embedded />
+                <SignIn embedded onBeforeConnect={rememberAndGo} />
               </div>
               <div className="md:hidden">
                 <FadeSwap role={role} render={(id) => <BenefitIcons copy={COPY[id]} />} />
