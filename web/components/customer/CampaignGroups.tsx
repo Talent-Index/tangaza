@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  isCampaignLive,
-  isCampaignPast,
-  isCampaignUpcoming,
+  isCampaignLiveAt,
+  isCampaignPastAt,
+  isCampaignUpcomingAt,
   openCampaigns,
   previousCampaigns,
 } from "@/lib/campaigns";
@@ -33,6 +33,7 @@ export function CampaignGroups({
   leadIds,
   previousEmpty,
   columns = "grid",
+  renderedAt,
 }: {
   campaigns: CampaignWithOrg[] | undefined;
   loading: boolean;
@@ -41,7 +42,18 @@ export function CampaignGroups({
   leadIds?: ReadonlySet<string>;
   previousEmpty: string;
   columns?: "grid" | "stack";
+  /**
+   * When the server built this list's HTML. The first render in the browser sorts the
+   * cards by that clock so it matches the HTML exactly (which can be a few minutes
+   * old); right after, the real time takes over.
+   */
+  renderedAt?: number;
 }) {
+  const [now, setNow] = useState(() => renderedAt ?? Date.now());
+  useEffect(() => {
+    setNow(Date.now());
+  }, [campaigns]);
+
   if (loading && !campaigns) {
     return (
       <div className="grid place-items-center py-16">
@@ -57,8 +69,8 @@ export function CampaignGroups({
   }
 
   const list = campaigns ?? [];
-  const live = leadWith(openCampaigns(list), leadIds);
-  const previous = leadWith(previousCampaigns(list), leadIds);
+  const live = leadWith(openCampaigns(list, now), leadIds);
+  const previous = leadWith(previousCampaigns(list, now), leadIds);
   const grid =
     columns === "grid"
       ? "grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-6"
@@ -76,7 +88,7 @@ export function CampaignGroups({
         {live.length > 0 ? (
           <div className={grid}>
             {live.map((c) => (
-              <CampaignCard key={c.id} campaign={c} />
+              <CampaignCard key={c.id} campaign={c} now={now} />
             ))}
           </div>
         ) : null}
@@ -93,7 +105,7 @@ export function CampaignGroups({
         {previous.length > 0 ? (
           <div className={grid}>
             {previous.map((c) => (
-              <CampaignCard key={c.id} campaign={c} />
+              <CampaignCard key={c.id} campaign={c} now={now} />
             ))}
           </div>
         ) : null}
@@ -157,10 +169,10 @@ function CampaignSection({
   );
 }
 
-function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
-  const live = isCampaignLive(c);
-  const upcoming = isCampaignUpcoming(c);
-  const ended = isCampaignPast(c);
+function CampaignCard({ campaign: c, now }: { campaign: CampaignWithOrg; now: number }) {
+  const live = isCampaignLiveAt(c, now);
+  const upcoming = isCampaignUpcomingAt(c, now);
+  const ended = isCampaignPastAt(c, now);
   const blurb = c.blurb ? publicCopy(c.blurb) : "";
   const target = targetFact(c);
   const reward = rewardFact(c);
@@ -207,7 +219,7 @@ function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
             </span>
           )}
         </div>
-        <DateMark campaign={c} />
+        <DateMark campaign={c} now={now} />
         <div className="absolute bottom-4 left-5 z-[1] flex items-center gap-2.5 text-[#f1e9db]">
           <span className="grid size-[34px] place-items-center rounded-full bg-gold text-[13px] font-extrabold text-on-gold">
             {initials}
@@ -268,8 +280,8 @@ function CampaignCard({ campaign: c }: { campaign: CampaignWithOrg }) {
 }
 
 /** Open-ended campaigns read "Since Thu 5 Nov". A bounded campaign keeps the calendar day. */
-function DateMark({ campaign }: { campaign: CampaignWithOrg }) {
-  if (!campaign.endsAt && !isCampaignUpcoming(campaign)) {
+function DateMark({ campaign, now }: { campaign: CampaignWithOrg; now: number }) {
+  if (!campaign.endsAt && !isCampaignUpcomingAt(campaign, now)) {
     return (
       <div className="absolute right-4 top-4 z-[1] max-w-[9.5rem] rounded-xl bg-ink-850 px-3 py-1.5 text-right leading-tight text-mist-100">
         <span className="block font-mono text-[9.5px] uppercase tracking-[0.12em] text-mist-500">Since</span>

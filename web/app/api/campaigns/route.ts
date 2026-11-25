@@ -11,7 +11,6 @@ import {
   hasJoinedCampaign,
   joinCampaign,
   listAllActiveCampaigns,
-  listAllCampaignsDiscover,
   listJoinedCampaigns,
   peekShareCode,
   listCampaigns,
@@ -20,8 +19,7 @@ import {
 import { FREE_CAMPAIGNS, chargeForCampaign, refundCampaignCharge } from "@/lib/billing";
 import { requireApprover } from "@/lib/verify";
 import { ORG_ACTIONS } from "@/lib/org-action";
-import { IS_MAINNET } from "@/lib/rpc";
-import { testnetCampaigns } from "@/lib/testnet-archive";
+import { loadDiscoverCampaigns } from "@/lib/discover";
 import { CURRENCY_CODES, PAYOUT_KIND_IDS, isGoalType, type GoalType } from "@/lib/types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -109,12 +107,9 @@ export async function GET(req: NextRequest) {
 
   if (params.get("discover") === "true") {
     // Live, not-yet-started, and previous (closed or ended). The client splits them.
-    // On mainnet the Fuji pilot's campaigns ride along as closed testnet records; on
-    // Fuji they are already real rows, so adding them there would list them twice.
-    const campaigns = await listAllCampaignsDiscover();
-    return NextResponse.json({
-      campaigns: IS_MAINNET ? [...campaigns, ...testnetCampaigns()] : campaigns,
-    });
+    // The home and /campaigns pages render the same list on the server, so it is built
+    // in one place (lib/discover.ts) and the two cannot drift.
+    return NextResponse.json({ campaigns: await loadDiscoverCampaigns() });
   }
 
   if (params.get("all") === "true") {

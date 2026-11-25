@@ -9,7 +9,7 @@ import { Icon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteChrome";
 import { ThemeToggle } from "@/components/theme";
 import { addressUrl } from "@/lib/chain";
-import { useDiscoverCampaigns } from "@/lib/hooks";
+import { useDiscoverCampaigns, type CampaignWithOrg } from "@/lib/hooks";
 
 interface Stats {
   awaiting: number | null;
@@ -61,23 +61,39 @@ const PILL_CREAM =
 
 const num = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("en-KE"));
 
-export function LandingPage() {
+// The salon photo is used twice, beside the salon example and on a campaign card.
+const SALON_ALT = "A hairdresser combing a client's hair in a salon";
+
+/**
+ * `initialCampaigns` is the campaign list the server loaded for this render. With it the
+ * campaign cards, and their links to each campaign's page, are in the page's HTML.
+ */
+export function LandingPage({
+  initialCampaigns,
+  renderedAt,
+}: {
+  initialCampaigns?: CampaignWithOrg[];
+  /** When the server built this HTML; the campaign cards sort by it on first render. */
+  renderedAt?: number;
+}) {
   const stats = useStats();
   return (
     <div className="relative min-h-dvh overflow-x-clip bg-ink-950 text-mist-100">
       <FloatingPhotos />
       <div className="relative z-10">
         <Header />
-        <Hero />
-        <StatStrip />
-        <Band />
-        <HowItWorks />
-        <SalonExample />
-        <RealCampaigns />
-        <PickYourMoment />
-        <BuildTogether stats={stats} />
-        <Faq />
-        <FeedbackSection />
+        <main>
+          <Hero />
+          <StatStrip />
+          <Band />
+          <HowItWorks />
+          <SalonExample />
+          <RealCampaigns initial={initialCampaigns} renderedAt={renderedAt} />
+          <PickYourMoment />
+          <BuildTogether stats={stats} />
+          <Faq />
+          <FeedbackSection />
+        </main>
         <SiteFooter />
       </div>
       <FeedbackFab />
@@ -334,6 +350,10 @@ function HowItWorks() {
             <br />
             <span className="text-mist-500">We keep count.</span>
           </h2>
+          <p className={`mt-5 max-w-md text-base leading-relaxed ${MUTED}`}>
+            A referral and customer rewards campaign for a small business in Kenya, in three
+            steps.
+          </p>
         </div>
         <ol className="min-w-0 border-t border-ink-700">
           {PATH.map((s) => (
@@ -364,7 +384,7 @@ function SalonExample() {
         <div className="relative h-44 lg:h-auto lg:min-h-[220px]">
           <Image
             src="/images/landing/usecase-salon.webp"
-            alt=""
+            alt={SALON_ALT}
             fill
             sizes="(min-width: 1024px) 280px, 100vw"
             className="object-cover object-[center_30%]"
@@ -402,21 +422,24 @@ const TEMPLATES = [
     title: "Bring a new customer",
     note: "Your customers bring you someone new",
     img: "/images/landing/usecase-cafe.webp",
+    alt: "Two friends laughing over pizza at a cafe table",
   },
   {
     title: "Posts and shares",
     note: "Customers post about you or share your offer",
     img: "/images/landing/usecase-salon.webp",
+    alt: SALON_ALT,
   },
   {
     title: "Launch something new",
     note: "People come to your launch or try it first",
     img: "/images/landing/usecase-boutique.webp",
+    alt: "Two women looking at a white shirt in a clothing shop",
   },
 ];
 
-function RealCampaigns() {
-  const campaigns = useDiscoverCampaigns();
+function RealCampaigns({ initial, renderedAt }: { initial?: CampaignWithOrg[]; renderedAt?: number }) {
+  const campaigns = useDiscoverCampaigns(initial);
   return (
     <section id="campaigns" className="scroll-mt-16 px-4 pb-10 sm:px-6 sm:pb-14">
       <div className="mx-auto max-w-6xl">
@@ -424,6 +447,7 @@ function RealCampaigns() {
           campaigns={campaigns.data ?? undefined}
           loading={campaigns.loading}
           error={campaigns.error}
+          renderedAt={renderedAt}
           previousEmpty="When a business closes a campaign, or its end date passes, it stays here. You can still open it and see what the reward was."
         />
       </div>
@@ -443,9 +467,13 @@ function PickYourMoment() {
               <br />
               moment.
             </h2>
+            <p className={`mt-5 max-w-md text-base leading-relaxed ${MUTED}`}>
+              Ready-made campaigns for a small business: reward a referral, a post or a visit
+              to your launch.
+            </p>
           </div>
           <Link
-            href="#campaigns"
+            href="/campaigns"
             className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold-text underline underline-offset-8"
           >
             See all campaigns <Icon name="arrow-up-right" className="size-3.5" />
@@ -469,7 +497,7 @@ function PickYourMoment() {
                 />
               </div>
               <div className="relative mt-4 h-40 overflow-hidden rounded-xl border border-ink-700">
-                <Image src={c.img} alt="" fill sizes="(min-width: 1024px) 30vw, 100vw" className="object-cover" />
+                <Image src={c.img} alt={c.alt} fill sizes="(min-width: 1024px) 30vw, 100vw" className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink-850/70 to-transparent" />
               </div>
               <div className="min-w-0 pt-5">
@@ -545,6 +573,10 @@ function BuildTogether({ stats }: { stats: Stats | null }) {
 
 const FAQ = [
   {
+    q: "What is Ubu-Tangaza?",
+    a: "Ubu-Tangaza is a referral program and customer rewards tool for small businesses in Kenya. Your customers bring you new customers or come to your launch, send proof, and you approve the reward.",
+  },
+  {
     q: "Is this crypto?",
     a: "No. You and your customers sign in with Google, X or email. There's nothing to install. We keep a record of every approval that can't be changed later.",
   },
@@ -584,7 +616,7 @@ function Faq() {
   return (
     <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-3xl">
-        <p className={KICKER}>Questions owners ask</p>
+        <h2 className={KICKER}>Questions owners ask</h2>
         <div className="mt-6 border-t border-ink-700">
           {FAQ.map((f) => (
             <details key={f.q} className="group border-b border-ink-700 py-4" open={f.q === "Is this crypto?" || f.tag}>

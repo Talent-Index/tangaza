@@ -10,40 +10,56 @@ import type { Campaign } from "@/lib/hooks";
  * end.
  */
 export function isCampaignUpcoming(c: Campaign): boolean {
+  return isCampaignUpcomingAt(c, Date.now());
+}
+
+export function isCampaignPast(c: Campaign): boolean {
+  return isCampaignPastAt(c, Date.now());
+}
+
+export function isCampaignLive(c: Campaign): boolean {
+  return isCampaignLiveAt(c, Date.now());
+}
+
+/*
+ * The same three questions against a given clock. Pages whose HTML is built on the
+ * server ask with the server's render time on the browser's first render, so both
+ * produce the same cards; the one-argument forms above stay safe to hand to
+ * Array.filter (which would otherwise pass the index as the clock).
+ */
+export function isCampaignUpcomingAt(c: Campaign, now: number): boolean {
   if (!c.active) return false;
-  const now = Date.now();
   if (c.endsAt && new Date(c.endsAt).getTime() <= now) return false;
   return new Date(c.startsAt).getTime() > now;
 }
 
-export function isCampaignPast(c: Campaign): boolean {
+export function isCampaignPastAt(c: Campaign, now: number): boolean {
   if (!c.active) return true;
-  return Boolean(c.endsAt && new Date(c.endsAt).getTime() <= Date.now());
+  return Boolean(c.endsAt && new Date(c.endsAt).getTime() <= now);
 }
 
-export function isCampaignLive(c: Campaign): boolean {
-  const now = Date.now();
+export function isCampaignLiveAt(c: Campaign, now: number): boolean {
   const start = new Date(c.startsAt).getTime();
   const end = c.endsAt ? new Date(c.endsAt).getTime() : null;
   return c.active && start <= now && (end === null || end > now);
 }
 
 /** Live campaigns first, then ones that have not started, soonest start first. */
-export function openCampaigns<T extends Campaign>(list: T[]): T[] {
+export function openCampaigns<T extends Campaign>(list: T[], now: number = Date.now()): T[] {
   return list
-    .filter((c) => isCampaignLive(c) || isCampaignUpcoming(c))
+    .filter((c) => isCampaignLiveAt(c, now) || isCampaignUpcomingAt(c, now))
     .sort((a, b) => {
-      const aLater = isCampaignUpcoming(a) ? 1 : 0;
-      const bLater = isCampaignUpcoming(b) ? 1 : 0;
+      const aLater = isCampaignUpcomingAt(a, now) ? 1 : 0;
+      const bLater = isCampaignUpcomingAt(b, now) ? 1 : 0;
       if (aLater !== bLater) return aLater - bLater;
       return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
     });
 }
 
 /** Closed or ended campaigns, most recently started first. */
-export function previousCampaigns<T extends Campaign>(list: T[]): T[] {
+export function previousCampaigns<T extends Campaign>(list: T[], now: number = Date.now()): T[] {
   return list
-    .filter(isCampaignPast)
+    .filter((c) => isCampaignPastAt(c, now))
     .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 }
 

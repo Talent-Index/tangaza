@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme";
 import { CONTACT } from "@/lib/contact";
+import { SITE_NAME, SITE_NAME_ONE_WORD, X_PROFILE } from "@/lib/seo";
 
 
 export function SiteHeader() {
@@ -46,10 +47,18 @@ export function SiteFooter() {
             you give the reward.
           </p>
           <p className="mt-3 text-xs text-mist-500">Nairobi, Kenya</p>
+          {/* People type the name as one word, as in the web address. Saying so in plain
+              text gives a search for that spelling something on the page to match. */}
+          <p className="mt-1 text-xs text-mist-500">
+            {SITE_NAME} (also written {SITE_NAME_ONE_WORD})
+          </p>
         </div>
         <div className="flex flex-col gap-2 text-sm text-mist-400 md:items-end">
           <Link href="/#how" className="hover:text-mist-100">
             How it works
+          </Link>
+          <Link href="/campaigns" className="hover:text-mist-100">
+            Campaigns
           </Link>
           <Link href="/pricing" className="hover:text-mist-100">
             Pricing
@@ -59,6 +68,10 @@ export function SiteFooter() {
           </Link>
           <a href={`mailto:${CONTACT.email}`} className="hover:text-mist-100">
             {CONTACT.email}
+          </a>
+          {/* rel="me" tells search engines the X profile and this site are the same business. */}
+          <a href={X_PROFILE} target="_blank" rel="me noopener" className="hover:text-mist-100">
+            {SITE_NAME} on X
           </a>
         </div>
       </div>
