@@ -2,7 +2,18 @@ import type { Metadata, Viewport } from "next";
 import { Anton, DM_Sans, Fraunces, JetBrains_Mono, Syne } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { CONTACT } from "@/lib/contact";
 import { RPC_URL } from "@/lib/rpc";
+import {
+  SHARE_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_URL,
+  X_HANDLE,
+  X_PROFILE,
+} from "@/lib/seo";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 import { Providers } from "./providers";
 
@@ -12,10 +23,15 @@ const body = DM_Sans({
   display: "swap",
 });
 
+// Syne (the BrandMark and the headings on the sign-in, waitlist and legal screens) and
+// Fraunces (campaign page headings) appear on neither the landing page nor /pricing, so
+// they are not preloaded: a preload is fetched on every page whether or not the font is
+// used there. They still load, fallback first, on the screens that do use them.
 const display = Syne({
   subsets: ["latin"],
   variable: "--font-syne",
   display: "swap",
+  preload: false,
 });
 
 // The landing's poster type: one heavy condensed weight, used nowhere else.
@@ -30,6 +46,7 @@ const serif = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
+  preload: false,
 });
 
 const mono = JetBrains_Mono({
@@ -39,22 +56,88 @@ const mono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
+const HOME_TITLE = `${SITE_NAME} | ${SITE_TAGLINE}`;
+
+// Ownership checks for Google Search Console and Bing Webmaster Tools: set the variable
+// to the code each one gives you and redeploy. Unset means no tag at all.
+const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+const bingVerification = process.env.BING_SITE_VERIFICATION?.trim();
+
+// No `alternates.canonical` here on purpose: a canonical in the root layout is inherited
+// by every page and would point them all at one URL. Each page sets its own through
+// pageMetadata() in lib/seo.ts.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.ubutangaza.biz"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Ubu-Tangaza | Grow your business through trackable campaigns",
-    template: "%s | Ubu-Tangaza",
+    default: HOME_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Your regulars already tell people about you. Reward them when they bring you a new customer. You check the proof, then you give the reward.",
+  description: SITE_DESCRIPTION,
   openGraph: {
-    siteName: "Ubu-Tangaza",
+    siteName: SITE_NAME,
     type: "website",
     locale: "en_KE",
-    title: "Ubu-Tangaza — get your customers to bring you new customers",
-    description:
-      "They bring you a new customer or come to your launch, send proof, and you check it. Only then do they get their airtime, voucher or discount.",
+    title: HOME_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE],
   },
+  twitter: {
+    card: "summary_large_image",
+    site: X_HANDLE,
+    title: HOME_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE],
+  },
+  ...(googleVerification || bingVerification
+    ? {
+        verification: {
+          ...(googleVerification ? { google: googleVerification } : {}),
+          ...(bingVerification ? { other: { "msvalidate.01": bingVerification } } : {}),
+        },
+      }
+    : {}),
+};
+
+/**
+ * Who runs the site and what it is called, for search engines. The alternate names are
+ * the point: people type the brand as one word ("ubutangaza", as in the domain), and
+ * this is where a search engine learns that spelling and "Ubu-Tangaza" are one name.
+ * No SearchAction, because the site has no search.
+ */
+const ALTERNATE_NAMES = ["Ubutangaza", "UbuTangaza", "Ubu Tangaza"];
+const SITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      alternateName: ALTERNATE_NAMES,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.png`,
+      description: SITE_DESCRIPTION,
+      sameAs: [X_PROFILE],
+      areaServed: "KE",
+      email: CONTACT.email,
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: CONTACT.email,
+        areaServed: "KE",
+        availableLanguage: "en",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      alternateName: ALTERNATE_NAMES,
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      inLanguage: "en-KE",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export const viewport: Viewport = {
@@ -79,6 +162,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="theme-boot" strategy="beforeInteractive">
           {THEME_BOOT_SCRIPT}
         </Script>
+        <JsonLd data={SITE_JSON_LD} />
         <Providers>
           <div className="relative z-10">{children}</div>
         </Providers>

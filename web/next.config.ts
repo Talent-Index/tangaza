@@ -46,8 +46,23 @@ securityHeaders.push({
   value: cspReportOnly,
 });
 
+// The same deployment also answers at ubu-tangaza.vercel.app, and every preview build
+// gets its own *.vercel.app address. Those are copies of the real site, so search
+// engines are told not to list them. Next anchors the pattern to the whole host name
+// (^...$, port removed), so it can only match a host that ends in ".vercel.app" and
+// never www.ubutangaza.biz.
+const VERCEL_HOST = ".*\\.vercel\\.app";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Send every visitor the page's metadata inside <head>. By default Next streams
+  // metadata that takes time to work out (a campaign page reads its title from the
+  // database) into <body> for everyone except a built-in list of crawlers, and
+  // Googlebot is not on that list: it is trusted to run the scripts that move the tags
+  // up afterwards. In the HTML as delivered, though, the canonical link and the robots
+  // tag sit in <body>, where Google does not accept them. A value here REPLACES the
+  // built-in list, hence a pattern that matches every user agent.
+  htmlLimitedBots: /.*/,
   // Headless checks and phone previews open the dev server as 127.0.0.1.
   allowedDevOrigins: ["127.0.0.1"],
   // Parent folders (e.g. C:\Users\ADMIN\package-lock.json) confuse Turbopack's
@@ -56,7 +71,14 @@ const nextConfig: NextConfig = {
     root: path.resolve(process.cwd()),
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: VERCEL_HOST }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+    ];
   },
 };
 

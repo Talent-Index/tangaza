@@ -1,4 +1,18 @@
+# Public pages fill in their text from these read-only endpoints after loading, so a
+# search engine that renders the page has to be allowed to fetch them. Everything else
+# under /api/ stays closed. (The "?" and "$" keep /api/campaigns/... tools out.)
 User-agent: *
 Allow: /
+Allow: /api/campaigns?
+Allow: /api/campaigns$
+Allow: /api/engagement-types
+Allow: /api/tiers
+Allow: /api/stats
+Allow: /api/feedback
+Allow: /api/bookings$
 Disallow: /api/
-Disallow: /admin/
+
+# Sign-in and business screens are not listed here on purpose: they carry a noindex
+# tag, and a search engine can only see that tag if it is allowed to open the page.
+
+Sitemap: https://www.ubutangaza.biz/sitemap.xml
