@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { LegalSection as S, LegalShell } from "@/components/site/Legal";
 import { CONTACT } from "@/lib/contact";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Terms of Service — Ubu-Tangaza",
-  description: "The terms that govern businesses and advocates using Ubu-Tangaza.",
-};
+export const metadata = pageMetadata({
+  title: "Terms of Service for businesses and customers",
+  description:
+    "The terms for businesses in Kenya that run referral and customer rewards campaigns on Ubu-Tangaza, and for the customers who take part and earn the rewards.",
+  path: "/terms",
+});
 
 /**
  * Written to be read: short sections, plain English, and nothing that contradicts how

@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import { BookingForm } from "@/components/booking/BookingForm";
 import { Icon } from "@/components/icons";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { CONTACT } from "@/lib/contact";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Book a setup session | Ubu-Tangaza",
+export const metadata = pageMetadata({
+  title: "Book a call to plan your referral campaign",
   description:
-    "Tell us your goal and pick a time. We'll build your first campaign around it together: the action and the reward.",
-};
+    "Tell us your goal and pick a time. We help your business in Kenya set up a referral or customer rewards campaign: what customers do and the reward they get.",
+  path: "/book",
+});
 
 const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
 

@@ -68,7 +68,7 @@ function SignedOut() {
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <p className="text-sm text-mist-500">Sign in with the account that will approve activities</p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Sign in</h1>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Register your business</h1>
           <div className="mt-8">
             <SignIn kicker="For businesses" />
           </div>

@@ -2,12 +2,15 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { FREE_CAMPAIGNS, priceForCampaign } from "@/lib/billing";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Pricing — Ubu-Tangaza",
+// No price or free-campaign count here: those live in lib/billing.ts and this text would not follow them.
+export const metadata = pageMetadata({
+  title: "Pricing: referral campaigns, no monthly fee",
   description:
-    "No monthly fee and no cut of your sales. You pay a small fee per campaign, and you choose the rewards you give.",
-};
+    "Ubu-Tangaza pricing for small businesses in Kenya: no monthly fee and no cut of your sales. Pay a small fee per referral campaign and choose your own rewards.",
+  path: "/pricing",
+});
 
 const CHECK = (
   <svg viewBox="0 0 24 24" className="mt-0.5 size-4 shrink-0 text-gold-text" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>

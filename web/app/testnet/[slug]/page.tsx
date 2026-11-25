@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BrandMark } from "@/components/ui";
+import { pageMetadata } from "@/lib/seo";
 import { getTestnetCampaign, testnetSlugs } from "@/lib/testnet-archive";
 
 /**
@@ -23,13 +24,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const c = getTestnetCampaign(slug);
   if (!c) return {};
-  return {
+  return pageMetadata({
     title: `${c.title} (testnet pilot)`,
     description: `${c.orgName} ran this campaign on the Ubu-Tangaza testnet pilot. ${c.participantCount} ${
       c.participantCount === 1 ? "person" : "people"
     } took part.`,
-    alternates: { canonical: `/testnet/${slug}` },
-  };
+    path: `/testnet/${slug}`,
+    // History for visitors, not for search results: a thin page about a test run should
+    // not be what a search for the business or the brand turns up.
+    noindex: true,
+    // The campaign's own cover when it has one; the site card otherwise.
+    ...(c.coverUrl ? { image: { url: c.coverUrl, alt: `${c.title}, ${c.orgName}` } } : {}),
+  });
 }
 
 const NAIROBI = "Africa/Nairobi";

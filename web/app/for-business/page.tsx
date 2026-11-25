@@ -11,7 +11,8 @@ import { BrandMark, Button } from "@/components/ui";
  */
 
 // Canonical target so a scanned QR always points at production, wherever this is viewed.
-const JOIN_URL = "https://ubutangaza.biz/waitlist";
+// The www host, because the bare domain answers every scan with a redirect first.
+const JOIN_URL = "https://www.ubutangaza.biz/waitlist";
 const SHARE_TEXT =
   "Reward the people who bring your shop new customers — verified from your M-Pesa Till, your reward your way. Join Ubu-Tangaza:";
 const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(

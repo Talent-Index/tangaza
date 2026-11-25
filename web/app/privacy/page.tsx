@@ -1,11 +1,13 @@
 import { LegalSection as S, LegalShell } from "@/components/site/Legal";
 import { CONTACT } from "@/lib/contact";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Privacy Policy — Ubu-Tangaza",
+export const metadata = pageMetadata({
+  title: "Privacy Policy: your data and your rights",
   description:
-    "What Ubu-Tangaza collects, why, who it is shared with, and your rights under Kenya's Data Protection Act, 2019.",
-};
+    "What Ubu-Tangaza collects from businesses and customers who join campaigns, why, who it is shared with, and your rights under Kenya's Data Protection Act, 2019.",
+  path: "/privacy",
+});
 
 /**
  * Deliberately specific: it names the actual data the app stores (including M-Pesa
