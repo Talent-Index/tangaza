@@ -144,7 +144,7 @@ function DesktopNav({ pending }: { pending: number }) {
         ? "border-gold-line text-mist-100"
         : "border-transparent text-mist-400 hover:text-mist-100"
     }`;
-  const toolActive = TOOLS_NAV.some((i) => isOrgNavActive(pathname, i.href));
+  const toolActive = [REWARDS_NAV, ...TOOLS_NAV].some((i) => isOrgNavActive(pathname, i.href));
 
   return (
     <nav
@@ -152,7 +152,7 @@ function DesktopNav({ pending }: { pending: number }) {
       className="order-3 hidden w-full md:block lg:order-none lg:w-auto"
     >
       <div className="flex items-center gap-5">
-        {[...PRIMARY_NAV, REWARDS_NAV].map((item) => {
+        {PRIMARY_NAV.map((item) => {
           const active = isOrgNavActive(pathname, item.href);
           const isApprovals = item.href === "/org";
           return (
@@ -196,7 +196,7 @@ function DesktopNav({ pending }: { pending: number }) {
               <p className="px-2 pb-1 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500">
                 Budget &amp; tools
               </p>
-              {TOOLS_NAV.map((item) => {
+              {[REWARDS_NAV, ...TOOLS_NAV].map((item) => {
                 const active = isOrgNavActive(pathname, item.href);
                 return (
                   <Link

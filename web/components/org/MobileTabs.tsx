@@ -16,7 +16,7 @@ import {
 import { useOrgSignOut } from "@/lib/org-sign-out";
 
 /**
- * Phone navigation: a fixed bottom bar with the four weekly destinations and a "More"
+ * Phone navigation: a fixed bottom bar with the weekly destinations and a "More"
  * sheet for everything set-and-forget. Hidden from md up, where the header carries it.
  */
 export function OrgMobileTabs({ pending }: { pending: number }) {
@@ -42,7 +42,7 @@ export function OrgMobileTabs({ pending }: { pending: number }) {
         aria-label="Business sections"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-700 bg-ink-850/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden light:shadow-[0_-2px_12px_rgb(0_0_0/0.06)]"
       >
-        <ul className="mx-auto grid h-14 max-w-md grid-cols-5">
+        <ul className="mx-auto grid h-14 max-w-lg grid-cols-6">
           {PRIMARY_NAV.map((item) => {
             const active = isOrgNavActive(pathname, item.href);
             const isApprovals = item.href === "/org";

@@ -9,11 +9,12 @@ export interface OrgNavItem {
   icon: IconKey;
 }
 
-/** The four things a business does every week. Approvals carries the pending badge. */
+/** What a business does every week. Approvals carries the pending badge. */
 export const PRIMARY_NAV: OrgNavItem[] = [
   { href: "/org/overview", label: "Overview", icon: "overview" },
   { href: "/org/campaigns", label: "Campaigns", icon: "campaigns" },
   { href: "/org", label: "Approvals", icon: "approvals" },
+  { href: "/org/funding", label: "Fund campaign", icon: "fund" },
   { href: "/org/clients", label: "Customers", icon: "clients" },
 ];
 
@@ -22,7 +23,6 @@ export const REWARDS_NAV: OrgNavItem = { href: "/org/settings", label: "Actions 
 
 /** Budget and side tools — the "Budget & tools" group. */
 export const TOOLS_NAV: OrgNavItem[] = [
-  { href: "/org/funding", label: "Fund campaign", icon: "fund" },
   { href: "/org/liability", label: "What you owe", icon: "liability" },
   { href: "/org/referrals", label: "Referrals", icon: "pilot" },
   { href: "/org/billing", label: "Billing", icon: "billing" },
