@@ -86,11 +86,16 @@ export function PaymentsBanner({ mode }: { mode: ModeState | null }) {
     );
   }
   if (mode.simulated || mode.testMode) {
+    const waitingOnQadi = !mode.qadiConfigured;
     return (
       <p className="rounded-xl border border-amber-glow/40 bg-amber-glow/10 px-3 py-2 text-sm text-mist-100">
         Test mode. No real M-Pesa money moves
-        {mode.simulated ? " until Qadi and Autopay sandbox keys are set" : ""}. Sandbox only — live
-        payments stay off.
+        {waitingOnQadi
+          ? ". Qadi is not connected yet, so funding stays a practice step"
+          : mode.simulated
+            ? " until Qadi and Autopay sandbox keys are set"
+            : ""}
+        . Sandbox only — live payments stay off.
       </p>
     );
   }
@@ -192,8 +197,12 @@ export function FundingScreen({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (practice) {
-      setNotice("This is an example balance. Sign in as the business to send a test M-Pesa prompt.");
+    if (practice || (mode && !mode.qadiConfigured)) {
+      setNotice(
+        practice
+          ? "This is an example balance. Sign in as the business to open a real campaign."
+          : "Test mode. Qadi is not connected, so no M-Pesa prompt was sent. Your campaign balance stays here."
+      );
       return;
     }
     const kesAmount = Number(amount);

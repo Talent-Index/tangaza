@@ -97,6 +97,9 @@ function Approvals() {
   const campaignTitles = new Map(
     (campaigns.data ?? []).map((c) => [c.id, c.title] as const)
   );
+  const cashCampaigns = new Set(
+    (campaigns.data ?? []).filter((c) => c.rewardKind === "cash").map((c) => c.id)
+  );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState<BulkState | null>(null);
@@ -192,7 +195,8 @@ function Approvals() {
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-text">Approvals</p>
           <h1 className="poster mt-3 text-5xl sm:text-6xl">Check the proof.</h1>
           <p className="mt-3 max-w-xl text-base text-mist-400">
-            Customers send proof. You approve the real ones and give the reward.
+            Ambassadors bring a new customer and send proof. You approve the real ones.
+            When the reward is cash, that approval asks for an M-Pesa payout to the Ambassador.
           </p>
         </div>
         {remaining !== null ? (
@@ -267,6 +271,7 @@ function Approvals() {
                 key={item.id}
                 item={item}
                 campaignTitle={item.campaignId ? campaignTitles.get(item.campaignId) : undefined}
+                cashReward={Boolean(item.campaignId && cashCampaigns.has(item.campaignId))}
                 canApprove={canApprove}
                 selectable={isApprover && items.length > 1}
                 selected={selected.has(item.id)}
@@ -391,6 +396,7 @@ function BulkResult({
 function ApprovalRow({
   item,
   campaignTitle,
+  cashReward,
   canApprove,
   selectable,
   selected,
@@ -404,6 +410,7 @@ function ApprovalRow({
 }: {
   item: PendingActivity;
   campaignTitle?: string;
+  cashReward?: boolean;
   canApprove: boolean;
   selectable: boolean;
   selected: boolean;
@@ -698,6 +705,7 @@ function ApprovalRow({
           ) : (
             <>Approving this adds +{item.weight} to {who}&rsquo;s count.</>
           )}
+          {cashReward ? " The cash reward is then requested to their M-Pesa number." : ""}
         </p>
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">

@@ -17,6 +17,7 @@ import {
   useDisplayName,
   useJoinedCampaigns,
   useMyCommunities,
+  useOrgAccess,
   usePendingActivities,
 } from "@/lib/hooks";
 import { useAdvocateSession } from "@/lib/session";
@@ -132,6 +133,7 @@ function useNextRewards(address: string, mine: Array<{ orgId: bigint; name: stri
 
 function Home({ address }: { address: string }) {
   const displayName = useDisplayName(address);
+  const portal = useOrgAccess(address);
   const communities = useMyCommunities(address);
   // No status filter: one poll returns every submission, newest first, in all three states.
   const activity = usePendingActivities({ advocate: address });
@@ -185,6 +187,26 @@ function Home({ address }: { address: string }) {
         <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl light:mt-0">Hi, {first}</h1>
         <p className="mt-3 text-base text-mist-400">{sub}</p>
       </header>
+
+      {portal.data?.kind === "approver" ? (
+        <Link
+          href="/org/overview"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-line/50 bg-gold/10 px-5 py-4 transition hover:border-gold-line"
+        >
+          <span>
+            <span className="block text-base font-semibold">
+              {portal.data.orgName || "Your business"}
+            </span>
+            <span className="mt-1 block text-sm text-mist-300">
+              Open the business portal to approve a new customer and fund a campaign.
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-bold text-gold-text">
+            Business portal
+            <Icon name="arrow-up-right" className="size-4" />
+          </span>
+        </Link>
+      ) : null}
 
       <CampaignGroups
         campaigns={discover.data ?? undefined}
