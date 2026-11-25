@@ -55,11 +55,17 @@ function useAsync<T>(
   load: () => Promise<T>,
   deps: unknown[],
   enabled = true,
-  pollMs = 0
+  pollMs = 0,
+  /**
+   * Data the server already loaded for this render. It is what the first paint shows
+   * (so the HTML a crawler gets has the content), and the usual fetch then refreshes
+   * it in place without a spinner.
+   */
+  initial: T | null = null
 ) {
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState<T | null>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(enabled);
+  const [loading, setLoading] = useState(enabled && initial === null);
   const [nonce, setNonce] = useState(0);
   const chainTick = useChainTick();
 
@@ -273,8 +279,14 @@ export function useOrgLedger(orgId: bigint = ORG_ID) {
  *
  * Not polled: an org edits these from a settings screen every few weeks, not every few
  * seconds, and the submit form re-mounts often enough to stay current.
+ *
+ * `initial` is the list the server already loaded for this business (the public
+ * campaign page passes it), shown on first render and refreshed in place.
  */
-export function useEngagementTypes(orgId: bigint | undefined = ORG_ID) {
+export function useEngagementTypes(
+  orgId: bigint | undefined = ORG_ID,
+  initial?: EngagementType[]
+) {
   return useAsync<EngagementType[]>(
     async () => {
       const res = await fetch(`/api/engagement-types?orgId=${orgId}`, {
@@ -285,7 +297,9 @@ export function useEngagementTypes(orgId: bigint | undefined = ORG_ID) {
       return json.types;
     },
     [String(orgId)],
-    orgId !== undefined
+    orgId !== undefined,
+    0,
+    initial ?? null
   );
 }
 
@@ -410,7 +424,7 @@ export function useJoinedCampaigns(address?: string) {
 }
 
 /** Live, not-yet-started, and previous campaigns for the home and the campaigns page. */
-export function useDiscoverCampaigns() {
+export function useDiscoverCampaigns(initial?: CampaignWithOrg[]) {
   return useAsync<CampaignWithOrg[]>(
     async () => {
       const res = await fetch("/api/campaigns?discover=true", { cache: "no-store" });
@@ -419,7 +433,8 @@ export function useDiscoverCampaigns() {
     },
     [],
     true,
-    POLL_ORG
+    POLL_ORG,
+    initial ?? null
   );
 }
 
@@ -479,17 +494,25 @@ export function useCampaignFunnel(campaignId: string | undefined, orgId: bigint 
 }
 
 /** One campaign by its shareable slug, plus whether this person has joined. */
-export function useCampaign(slug: string, address?: string) {
-  return useAsync<{ campaign: CampaignWithOrg; joined: boolean } | null>(
+export function useCampaign(slug: string, address?: string, initial?: CampaignWithOrg) {
+  // `checkedFor` is the account the `joined` answer belongs to. The server's copy has
+  // none, and an answer fetched before sign-in is for nobody, so a caller can tell
+  // "not joined" from "not asked yet for this person".
+  return useAsync<{ campaign: CampaignWithOrg; joined: boolean; checkedFor?: string } | null>(
     async () => {
       const qs = address ? `?slug=${slug}&address=${address}` : `?slug=${slug}`;
       const res = await fetch(`/api/campaigns${qs}`, { cache: "no-store" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`Could not load campaign (${res.status})`);
-      return (await res.json()) as { campaign: CampaignWithOrg; joined: boolean };
+      const json = (await res.json()) as { campaign: CampaignWithOrg; joined: boolean };
+      return { ...json, checkedFor: address };
     },
     [slug, address],
-    Boolean(slug)
+    Boolean(slug),
+    0,
+    // The server cannot know who is looking, so it starts as not joined; the fetch
+    // that follows fills in the real answer for a signed-in visitor.
+    initial ? { campaign: initial, joined: false } : null
   );
 }
 

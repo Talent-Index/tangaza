@@ -14,6 +14,13 @@ import { shortAddress } from "@/lib/format";
 import type { CampaignWithOrg } from "@/lib/hooks";
 import { PROOF_KINDS, formatReward, type EngagementType } from "@/lib/types";
 
+/**
+ * Campaign dates are shown on Kenyan time, the clock the businesses run on. Fixed
+ * rather than the viewer's own zone because this page is now rendered on the server
+ * first: the server and the browser must print the same day or React re-renders it.
+ */
+const NAIROBI = "Africa/Nairobi";
+
 const MONO = "font-mono text-[11px] uppercase tracking-[0.2em]";
 // Square hairline panels in the dark look; rounded paper cards in the light look.
 const PANEL = "border border-ink-700 bg-ink-850 light:rounded-xl light:shadow-sm";
@@ -45,6 +52,8 @@ export interface CampaignContentProps {
   slug: string;
   campaign: CampaignWithOrg;
   joined: boolean;
+  /** Signed in, but the answer to "have they joined?" has not arrived for this account yet. */
+  checkingJoined?: boolean;
   address?: string;
   /** Every engagement the business has defined (the campaign may count only some). */
   engagements: EngagementType[] | null;
@@ -59,6 +68,7 @@ export function CampaignContent({
   slug,
   campaign: c,
   joined,
+  checkingJoined = false,
   address,
   engagements,
   engagementsLoading,
@@ -81,7 +91,12 @@ export function CampaignContent({
   const ended = c.endsAt ? new Date(c.endsAt).getTime() < Date.now() : false;
   const closed = !c.active || ended;
   const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    new Date(iso).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: NAIROBI,
+    });
 
   return (
     <div className="animate-rise grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -146,10 +161,22 @@ export function CampaignContent({
 
         {c.coverUrl ? (
           <div className="mt-8 overflow-hidden border border-ink-700 bg-ink-900 light:rounded-xl">
+            {/*
+             * A plain <img>, not next/image: a cover can be a pasted link from any host.
+             * It is the largest thing on a phone screen, so the browser is told to fetch
+             * it first. Its real size is not stored anywhere, so width/height are only a
+             * typical cover shape (16:9): the browser holds that much room while the file
+             * loads, then uses the picture's own shape, so the text below barely moves.
+             * The classes still decide the size on screen.
+             */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={c.coverUrl}
               alt={`${c.title} — ${c.orgName}`}
+              width={1600}
+              height={900}
+              fetchPriority="high"
+              decoding="async"
               className="mx-auto h-auto max-h-[34rem] w-full object-contain"
             />
           </div>
@@ -201,8 +228,13 @@ export function CampaignContent({
                 Joining lets the business know you&rsquo;re taking part. What you earn depends on
                 what gets approved.
               </p>
-              <button type="button" onClick={join} disabled={joining} className={`${BTN} mt-5 w-full`}>
-                {joining ? "Joining…" : "Join this campaign"}
+              <button
+                type="button"
+                onClick={join}
+                disabled={joining || checkingJoined}
+                className={`${BTN} mt-5 w-full`}
+              >
+                {checkingJoined ? "Checking…" : joining ? "Joining…" : "Join this campaign"}
               </button>
             </>
           )}

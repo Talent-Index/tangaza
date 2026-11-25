@@ -1,121 +1,67 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
-import { Suspense, use, useEffect, useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
-import { CampaignContent, type Tier } from "@/components/campaign/CampaignContent";
-import { CustomerShell } from "@/components/customer/Shell";
-import { useToast } from "@/components/toast";
-import { Button, EmptyState, ErrorNote, Spinner } from "@/components/ui";
-import { useCampaign, useEngagementTypes } from "@/lib/hooks";
+import { notFound } from "next/navigation";
+import { CampaignPageClient } from "@/components/campaign/CampaignPageClient";
+import { loadCampaign, loadEngagementTypes, loadRewardTiers } from "@/lib/campaign-server";
 
 /**
  * A campaign, reached by its shared link.
  *
- * Readable signed out on purpose — this is the page a business posts to X or WhatsApp,
- * so a stranger should see what the campaign is, what counts, what it earns and how it
- * works before being asked for anything. Sign-in sits beside all that, not in front of it.
+ * Loaded here on the server so the HTML itself carries the campaign: its name, what it
+ * is about, the cover, what counts and what it earns. A search engine or a link preview
+ * reads that HTML and never runs the browser fetches this page used to depend on. The
+ * signed-in parts (joining, the joined state) stay in CampaignPageClient, which starts
+ * from this data and refreshes it.
+ *
+ * No loading.tsx above this route, and nothing here is wrapped in Suspense, on purpose:
+ * the "does it exist" check has to finish before any of the response is sent, or an
+ * unknown link could no longer answer with a real 404 status.
  */
-export default function CampaignPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
-  const account = useActiveAccount();
-
-  return (
-    <CustomerShell>
-      <Suspense fallback={null}>
-        <CampaignView slug={slug} address={account?.address} />
-      </Suspense>
-    </CustomerShell>
-  );
-}
-
-function CampaignView({ slug, address }: { slug: string; address?: string }) {
+export default async function CampaignPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { slug } = await params;
   // Present when this visit arrived through someone's /s/<code> link — the join
-  // carries it so the sharer gets the credit.
-  const via = useSearchParams().get("via");
-  const campaign = useCampaign(slug, address);
-  const orgId = campaign.data?.campaign.orgId;
-  // The campaign's own business, not the app's default org — a FitTribe campaign
-  // must list FitTribe's engagements, or "what counts" lies.
-  const engagements = useEngagementTypes(orgId ? BigInt(orgId) : undefined);
-  const [tiers, setTiers] = useState<Tier[] | null>(null);
+  // carries it so the sharer gets the credit. First value wins if it is repeated.
+  const rawVia = (await searchParams).via;
+  const via = Array.isArray(rawVia) ? rawVia[0] : rawVia;
 
-  const [joining, setJoining] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { success, error: toastError } = useToast();
-
-  useEffect(() => {
-    if (!orgId) return;
-    let cancelled = false;
-    fetch(`/api/tiers?orgId=${orgId}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { tiers?: Tier[] } | null) => {
-        if (!cancelled) setTiers(j?.tiers ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setTiers([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId]);
-
-  if (campaign.loading && !campaign.data) {
-    return (
-      <div className="grid place-items-center py-24">
-        <Spinner className="size-6" />
-      </div>
-    );
+  let campaign: Awaited<ReturnType<typeof loadCampaign>>;
+  let loaded = false;
+  try {
+    campaign = await loadCampaign(slug);
+    loaded = true;
+  } catch (err) {
+    // The database did not answer. That says nothing about whether the campaign
+    // exists, so no 404: send the page without data and let the browser load it
+    // through the API, as this page did before it was rendered on the server.
+    console.warn("[campaign page] could not load on the server, the browser will fetch it:", err);
   }
 
-  if (campaign.error) return <ErrorNote>{campaign.error}</ErrorNote>;
+  // Outside the try: notFound() works by throwing, and the catch above would swallow it.
+  if (loaded && !campaign) notFound();
 
-  if (!campaign.data) {
-    return (
-      <EmptyState
-        icon="🔍"
-        title="No such campaign"
-        body="That link may have expired, or the business may have closed it."
-        action={<Button href="/">Go home</Button>}
-      />
-    );
-  }
-
-  async function join() {
-    if (!address) return;
-    setError(null);
-    setJoining(true);
-    try {
-      const res = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, address, via: via ?? undefined }),
-      });
-      const json = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Could not join");
-      success("You're in the campaign");
-      campaign.refresh();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not join";
-      setError(msg);
-      toastError(msg);
-    } finally {
-      setJoining(false);
-    }
-  }
+  // What counts and what it earns belong to the campaign's business. If either fails
+  // it is simply left out and the browser fetches that one part.
+  const [engagements, tiers] = campaign
+    ? await Promise.all([
+        loadEngagementTypes(campaign.orgId).catch(() => undefined),
+        loadRewardTiers(campaign.orgId).catch(() => undefined),
+      ])
+    : [undefined, undefined];
 
   return (
-    <CampaignContent
+    // Keyed by slug so moving from one campaign to another starts from that campaign's
+    // data rather than keeping the previous one's state.
+    <CampaignPageClient
+      key={slug}
       slug={slug}
-      campaign={campaign.data.campaign}
-      joined={campaign.data.joined}
-      address={address}
-      engagements={engagements.data}
-      engagementsLoading={engagements.loading}
-      tiers={tiers}
-      joining={joining}
-      error={error}
-      onJoin={join}
+      via={via}
+      initialCampaign={campaign}
+      initialEngagements={engagements}
+      initialTiers={tiers}
     />
   );
 }

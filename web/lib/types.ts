@@ -97,7 +97,7 @@ export function formatReward(p: {
   const label = payoutKindLabel(kind);
   if (p.amount == null) return label || "Reward";
   if (kind === "discount") return `${p.amount}% ${label.toLowerCase()}`;
-  const money = `${currencySymbol(p.currency ?? undefined)}${p.amount.toLocaleString()}`.trim();
+  const money = `${currencySymbol(p.currency ?? undefined)}${p.amount.toLocaleString("en-KE")}`.trim();
   return kind && kind !== "cash" ? `${money} ${label.toLowerCase()}` : money;
 }
 
