@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HomeClient } from "@/components/home/HomeClient";
 import { loadDiscoverForPage } from "@/lib/discover";
+import { allGuides } from "@/lib/guides";
 import type { CampaignWithOrg } from "@/lib/hooks";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, pageMetadata } from "@/lib/seo";
 
@@ -25,5 +26,9 @@ export const revalidate = 300;
 
 export default async function Page() {
   const { campaigns, renderedAt } = await loadDiscoverForPage("home");
-  return <HomeClient initialCampaigns={campaigns} renderedAt={renderedAt} />;
+  // Only the card text crosses to the browser, not the guides themselves.
+  const guides = allGuides()
+    .slice(0, 3)
+    .map(({ slug, title, summary }) => ({ slug, title, summary }));
+  return <HomeClient initialCampaigns={campaigns} renderedAt={renderedAt} guides={guides} />;
 }

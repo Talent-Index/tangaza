@@ -63,6 +63,9 @@ export function SiteFooter() {
           <Link href="/pricing" className="hover:text-mist-100">
             Pricing
           </Link>
+          <Link href="/guides" className="hover:text-mist-100">
+            Guides
+          </Link>
           <Link href="/book" className="hover:text-mist-100">
             Book a 5-minute call
           </Link>

@@ -68,13 +68,23 @@ const SALON_ALT = "A hairdresser combing a client's hair in a salon";
  * `initialCampaigns` is the campaign list the server loaded for this render. With it the
  * campaign cards, and their links to each campaign's page, are in the page's HTML.
  */
+/** What the home page shows of a guide: enough for a card that links to it. */
+export interface GuideCard {
+  slug: string;
+  title: string;
+  summary: string;
+}
+
 export function LandingPage({
   initialCampaigns,
   renderedAt,
+  guides,
 }: {
   initialCampaigns?: CampaignWithOrg[];
   /** When the server built this HTML; the campaign cards sort by it on first render. */
   renderedAt?: number;
+  /** A few how-to guides to link to; the section is left out when there are none. */
+  guides?: GuideCard[];
 }) {
   const stats = useStats();
   return (
@@ -92,6 +102,7 @@ export function LandingPage({
           <PickYourMoment />
           <BuildTogether stats={stats} />
           <Faq />
+          <Guides guides={guides} />
           <FeedbackSection />
         </main>
         <SiteFooter />
@@ -635,6 +646,36 @@ function Faq() {
             </details>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Guides({ guides }: { guides?: GuideCard[] }) {
+  if (!guides?.length) return null;
+  return (
+    <section className="border-t border-ink-700 px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl">
+        <h2 className={KICKER}>Guides for business owners</h2>
+        <ul className="mt-6 grid gap-4 md:grid-cols-3">
+          {guides.map((g) => (
+            <li key={g.slug}>
+              <Link
+                href={`/guides/${g.slug}`}
+                className="card block h-full p-6 transition hover:border-gold/60"
+              >
+                <h3 className="text-lg font-bold leading-snug">{g.title}</h3>
+                <p className={`mt-2 text-sm leading-relaxed ${MUTED}`}>{g.summary}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/guides"
+          className="mt-6 inline-block text-[13px] font-bold uppercase tracking-[0.08em] text-gold-text underline-offset-4 hover:underline"
+        >
+          All guides →
+        </Link>
       </div>
     </section>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CampaignGroups } from "@/components/customer/CampaignGroups";
 import { CustomerShell } from "@/components/customer/Shell";
-import { LandingPage } from "@/components/landing/LandingPage";
+import { LandingPage, type GuideCard } from "@/components/landing/LandingPage";
 import { SessionRestoreScreen } from "@/components/customer/SessionRestore";
 import { Icon } from "@/components/icons";
 import { ConfigWarning, Spinner, TxReceipt } from "@/components/ui";
@@ -32,14 +32,18 @@ import type { PendingActivity } from "@/lib/types";
 export function HomeClient({
   initialCampaigns,
   renderedAt,
+  guides,
 }: {
   initialCampaigns?: CampaignWithOrg[];
   renderedAt?: number;
+  guides?: GuideCard[];
 }) {
   const { account, isRestoring } = useAdvocateSession();
 
   if (isRestoring) return <SessionRestoreScreen />;
-  if (!account) return <LandingPage initialCampaigns={initialCampaigns} renderedAt={renderedAt} />;
+  if (!account) return (
+      <LandingPage initialCampaigns={initialCampaigns} renderedAt={renderedAt} guides={guides} />
+    );
 
   return (
     <CustomerShell>

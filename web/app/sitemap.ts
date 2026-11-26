@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { guideSlugs } from "@/lib/guides";
 import { SITE_URL } from "@/lib/seo";
 import { listAllCampaignsDiscover } from "@/lib/store";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 // Pages anyone can open without signing in. Sign-in walls and business tools are left
 // out; they carry a noindex tag.
-const STATIC_PATHS = ["/", "/pricing", "/book", "/campaigns", "/register", "/feedback", "/privacy", "/terms"];
+const STATIC_PATHS = ["/", "/pricing", "/book", "/campaigns", "/guides", "/register", "/feedback", "/privacy", "/terms"];
 
 const abs = (path: string) => (path === "/" ? SITE_URL : `${SITE_URL}${path}`);
 
@@ -23,6 +24,7 @@ const abs = (path: string) => (path === "/" ? SITE_URL : `${SITE_URL}${path}`);
 // out wrong, and ignores the other two).
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({ url: abs(path) }));
+  for (const slug of guideSlugs()) entries.push({ url: abs(`/guides/${slug}`) });
 
   try {
     // Database rows only. The testnet pilot's read-only pages (/testnet/<slug>) are left
